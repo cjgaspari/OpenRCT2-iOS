@@ -402,7 +402,7 @@ namespace OpenRCT2
 
         bool Initialise() final override
         {
-            printf("[Context::Initialise] Starting...\n");
+            LOG_WARNING("[Context::Initialise] Starting...");
             if (_initialised)
             {
                 throw std::runtime_error("Context already initialised.");
@@ -410,7 +410,7 @@ namespace OpenRCT2
             _initialised = true;
 
             CrashInit();
-            printf("[Context::Initialise] CrashInit done\n");
+            LOG_WARNING("[Context::Initialise] CrashInit done");
 
             if (String::equals(Config::Get().general.lastRunVersion, kOpenRCT2Version))
             {
@@ -425,9 +425,9 @@ namespace OpenRCT2
 
             try
             {
-                printf("[Context::Initialise] Opening language: %d\n", Config::Get().general.language);
+                LOG_WARNING("[Context::Initialise] Opening language: %d", Config::Get().general.language);
                 _localisationService->OpenLanguage(Config::Get().general.language);
-                printf("[Context::Initialise] Language opened successfully\n");
+                LOG_WARNING("[Context::Initialise] Language opened successfully");
             }
             catch (const std::exception& e)
             {
@@ -439,7 +439,7 @@ namespace OpenRCT2
                 catch (const std::exception& eFallback)
                 {
                     LOG_FATAL("Failed to open fallback language: %s", eFallback.what());
-                    printf("[Context::Initialise] FAILED: Could not load language file\n");
+                    LOG_WARNING("[Context::Initialise] FAILED: Could not load language file");
                     auto& uiContext = GetContext()->GetUiContext();
 #ifdef __ANDROID__
                     uiContext.ShowMessageBox(
@@ -460,12 +460,12 @@ namespace OpenRCT2
 
             if (!gOpenRCT2Headless)
             {
-                printf("[Context::Initialise] Getting RCT2 path...\n");
+                LOG_WARNING("[Context::Initialise] Getting RCT2 path...");
                 auto rct2InstallPath = GetOrPromptRCT2Path();
-                printf("[Context::Initialise] RCT2 path: %s\n", rct2InstallPath.c_str());
+                LOG_WARNING("[Context::Initialise] RCT2 path: %s", rct2InstallPath.c_str());
                 if (rct2InstallPath.empty())
                 {
-                    printf("[Context::Initialise] FAILED: RCT2 path is empty\n");
+                    LOG_WARNING("[Context::Initialise] FAILED: RCT2 path is empty");
                     return false;
                 }
                 _env->SetBasePath(DirBase::rct2, rct2InstallPath);
@@ -537,24 +537,24 @@ namespace OpenRCT2
 
             if (!gOpenRCT2NoGraphics)
             {
-                printf("[Context::Initialise] Loading base graphics...\n");
+                LOG_WARNING("[Context::Initialise] Loading base graphics...");
                 if (!LoadBaseGraphics())
                 {
-                    printf("[Context::Initialise] FAILED: LoadBaseGraphics returned false\n");
+                    LOG_WARNING("[Context::Initialise] FAILED: LoadBaseGraphics returned false");
                     return false;
                 }
-                printf("[Context::Initialise] Base graphics loaded\n");
+                LOG_WARNING("[Context::Initialise] Base graphics loaded");
                 Drawing::LightFx::Init();
             }
 
             ContextInit();
-            printf("[Context::Initialise] ContextInit done\n");
+            LOG_WARNING("[Context::Initialise] ContextInit done");
             ResetSubsystems();
-            printf("[Context::Initialise] ResetSubsystems done\n");
+            LOG_WARNING("[Context::Initialise] ResetSubsystems done");
 
             if (!gOpenRCT2Headless)
             {
-                printf("[Context::Initialise] Setting up preloader scene\n");
+                LOG_WARNING("[Context::Initialise] Setting up preloader scene");
                 auto* preloaderScene = static_cast<PreloaderScene*>(GetPreloaderScene());
                 SetActiveScene(preloaderScene);
 
@@ -564,12 +564,12 @@ namespace OpenRCT2
             }
             else
             {
-                printf("[Context::Initialise] Headless mode - initializing repos\n");
+                LOG_WARNING("[Context::Initialise] Headless mode - initializing repos");
                 InitialiseRepositories();
                 InitialiseScriptEngine();
             }
 
-            printf("[Context::Initialise] SUCCESS - returning true\n");
+            LOG_WARNING("[Context::Initialise] SUCCESS - returning true");
             return true;
         }
 

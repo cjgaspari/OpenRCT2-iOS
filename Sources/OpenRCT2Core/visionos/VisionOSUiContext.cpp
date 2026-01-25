@@ -27,6 +27,20 @@
 // Use mach time instead of <chrono> to avoid visionOS SDK header issues
 #include <mach/mach_time.h>
 
+// os_log for reliable visionOS console logging
+#include <os/log.h>
+
+// Define a static log handle for OpenRCT2
+static os_log_t g_openrct2Log = nullptr;
+static inline os_log_t getOpenRCT2Log()
+{
+    if (!g_openrct2Log)
+    {
+        g_openrct2Log = os_log_create("io.openrct2.OpenRCT2", "VisionOSUiContext");
+    }
+    return g_openrct2Log;
+}
+
 // Objective-C headers for bundle path discovery
 #ifdef __OBJC__
     #import <Foundation/Foundation.h>
@@ -855,6 +869,20 @@ namespace OpenRCT2
                     }
                     break;
 
+                case DirBase::openrct2:
+                    // visionOS bundle layout: files like g2.dat, fonts.dat are in root
+                    // of visionos-resources, not in a data/ subfolder.
+                    if (did == DirId::data)
+                    {
+                        // g2.dat, fonts.dat etc are directly in visionos-resources root
+                        return basePath;
+                    }
+                    if (didIndex < std::size(kDirectoryNamesOpenRCT2))
+                    {
+                        directoryName = kDirectoryNamesOpenRCT2[didIndex];
+                    }
+                    break;
+
                 default:
                     if (didIndex < std::size(kDirectoryNamesOpenRCT2))
                     {
@@ -1046,6 +1074,10 @@ bool openrct2_init(const char* configPath)
  */
 bool openrct2_init_full(void)
 {
+    // Use os_log for reliable visionOS logging (appears in Console.app)
+    os_log_info(getOpenRCT2Log(), "openrct2_init_full starting...");
+    fprintf(stderr, "[OpenRCT2] openrct2_init_full starting...\n");
+    fflush(stderr);
     printf("[OpenRCT2] openrct2_init_full starting...\n");
 
     if (!g_initialized)
@@ -1062,6 +1094,9 @@ bool openrct2_init_full(void)
     }
 
 #ifdef OPENRCT2_FULL_CONTEXT
+    os_log_info(getOpenRCT2Log(), "OPENRCT2_FULL_CONTEXT is defined - using full context initialization");
+    fprintf(stderr, "[OpenRCT2] OPENRCT2_FULL_CONTEXT is defined\n");
+    fflush(stderr);
     try
     {
         if (!g_context)
@@ -1077,6 +1112,9 @@ bool openrct2_init_full(void)
         gCustomRCT2DataPath = rct2Path;
 
         printf("[OpenRCT2] Calling g_context->Initialise()...\n");
+        os_log_info(getOpenRCT2Log(), "Calling g_context->Initialise()...");
+        fprintf(stderr, "[OpenRCT2] Calling g_context->Initialise()...\n");
+        fflush(stderr);
         if (!g_context->Initialise())
         {
             g_lastError = "Context::Initialise() returned false";
@@ -1119,6 +1157,9 @@ bool openrct2_init_full(void)
 #else
     // Standalone mode: always "fully initialized"
     g_contextInitialized = true;
+    os_log_info(getOpenRCT2Log(), "Standalone mode - OPENRCT2_FULL_CONTEXT NOT defined");
+    fprintf(stderr, "[OpenRCT2] Standalone mode - OPENRCT2_FULL_CONTEXT NOT defined\n");
+    fflush(stderr);
     printf("[OpenRCT2] Standalone mode - marking as fully initialized\n");
     return true;
 #endif

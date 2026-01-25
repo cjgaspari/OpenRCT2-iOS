@@ -1,5 +1,8 @@
 import Foundation
 import RealityKit
+import os.log
+
+private let gameEngineLog = OSLog(subsystem: "io.openrct2.OpenRCT2", category: "GameEngine")
 
 /// C interop bindings for OpenRCT2
 @_silgen_name("openrct2_set_paths")
@@ -74,10 +77,10 @@ final class GameEngine: @unchecked Sendable {
         let cachePath =
             FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.path ?? ""
 
-        print("GameEngine: Setting paths:")
-        print("  bundleResourcePath: \(bundleResourcePath)")
-        print("  documentsPath: \(documentsPath)")
-        print("  cachePath: \(cachePath)")
+        os_log(.info, log: gameEngineLog, "Setting paths:")
+        os_log(.info, log: gameEngineLog, "  bundleResourcePath: %{public}@", bundleResourcePath)
+        os_log(.info, log: gameEngineLog, "  documentsPath: %{public}@", documentsPath)
+        os_log(.info, log: gameEngineLog, "  cachePath: %{public}@", cachePath)
 
         bundleResourcePath.withCString { bundleCStr in
             documentsPath.withCString { userCStr in
@@ -88,29 +91,32 @@ final class GameEngine: @unchecked Sendable {
         }
 
         // Initialize OpenRCT2 core
+        os_log(.info, log: gameEngineLog, "Calling openrct2_init()...")
         let initialized = openrct2_init(nil)
         guard initialized else {
             let errorMsg = getInitError() ?? "Unknown error"
-            print("GameEngine: openrct2_init() failed: \(errorMsg)")
+            os_log(.error, log: gameEngineLog, "openrct2_init() failed: %{public}@", errorMsg)
             throw GameEngineError.initializationFailed
         }
-        print("GameEngine: openrct2_init() succeeded")
+        os_log(.info, log: gameEngineLog, "openrct2_init() succeeded")
 
         // Complete full initialization (loads assets, drawing engine)
+        os_log(.info, log: gameEngineLog, "Calling openrct2_init_full()...")
         let fullyInitialized = openrct2_init_full()
         if !fullyInitialized {
             let errorMsg = getInitError() ?? "Unknown error"
-            print("GameEngine: openrct2_init_full() failed: \(errorMsg)")
+            os_log(.error, log: gameEngineLog, "openrct2_init_full() failed: %{public}@", errorMsg)
             // Continue anyway - standalone mode will work
-            print("GameEngine: Continuing in standalone test pattern mode")
+            os_log(.default, log: gameEngineLog, "Continuing in standalone test pattern mode")
         } else {
-            print("GameEngine: openrct2_init_full() succeeded - full game mode active")
+            os_log(
+                .info, log: gameEngineLog, "openrct2_init_full() succeeded - full game mode active")
         }
 
         // Warm-up: Force first tick to create the X8DrawingEngine
         // This ensures pixel buffer is available before game loop starts
         openrct2_tick()
-        print("GameEngine: First tick completed, pixel buffer should be ready")
+        os_log(.info, log: gameEngineLog, "First tick completed, pixel buffer should be ready")
     }
 
     /// Helper to get initialization error from C++

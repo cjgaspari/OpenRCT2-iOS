@@ -324,6 +324,20 @@ namespace OpenRCT2
                     break;
 
                 case DirBase::openrct2:
+                    // visionOS bundle layout: files like g2.dat, fonts.dat are in root
+                    // of visionos-resources, not in a data/ subfolder.
+                    // Only add subdirectory for specific DirIds that have actual subfolders.
+                    if (did == DirId::data)
+                    {
+                        // g2.dat, fonts.dat etc are directly in visionos-resources root
+                        return basePath;
+                    }
+                    if (didIndex < std::size(kDirectoryNamesOpenRCT2))
+                    {
+                        directoryName = kDirectoryNamesOpenRCT2[didIndex];
+                    }
+                    break;
+
                 case DirBase::user:
                 case DirBase::config:
                     if (didIndex < std::size(kDirectoryNamesOpenRCT2))

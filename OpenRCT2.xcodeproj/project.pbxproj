@@ -28,6 +28,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		84D9DF762F26AC5700CBCCA3 /* visionos-resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "visionos-resources";
+			sourceTree = "<group>";
+		};
 		8B41F6472DEDD0D5001A66F9 /* OpenRCT2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OpenRCT2;
@@ -80,6 +85,7 @@
 				8B9AAA042DEE000000123457 /* Sources/OpenRCT2Core */,
 				8BD71C052DEE41D800CEDD92 /* Config */,
 				8BC0A0002DEF000000AAAAAA /* visionos-resources */,
+				84D9DF762F26AC5700CBCCA3 /* visionos-resources */,
 				8B41F6472DEDD0D5001A66F9 /* OpenRCT2 */,
 				8B41F65F2DEDD0D6001A66F9 /* OpenRCT2UITests */,
 				8B41F6812DEDD23B001A66F9 /* Frameworks */,
@@ -276,6 +282,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
+					"OPENRCT2_FULL_CONTEXT=1",
 					"$(inherited)",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -342,6 +349,10 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"OPENRCT2_FULL_CONTEXT=1",
+					"$(inherited)",
+				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;

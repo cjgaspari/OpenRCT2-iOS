@@ -20,6 +20,24 @@
     #include <android/log.h>
 #endif
 
+// visionOS/iOS: Use os_log for reliable console logging
+#if defined(__APPLE__)
+    #include <TargetConditionals.h>
+    #if TARGET_OS_IOS || TARGET_OS_VISION
+        #define OPENRCT2_USE_OS_LOG 1
+        #include <os/log.h>
+static os_log_t g_diagnosticLog = nullptr;
+static os_log_t getDiagnosticLog()
+{
+    if (!g_diagnosticLog)
+    {
+        g_diagnosticLog = os_log_create("io.openrct2.OpenRCT2", "Diagnostic");
+    }
+    return g_diagnosticLog;
+}
+    #endif
+#endif
+
 using namespace OpenRCT2;
 
 [[maybe_unused]] static bool _log_location_enabled = true;
@@ -79,6 +97,27 @@ static constexpr const char* kLevelStrings[] = {
     "FATAL", "ERROR", "WARNING", "VERBOSE", "INFO",
 };
 
+    #ifdef OPENRCT2_USE_OS_LOG
+// Map DiagnosticLevel to os_log_type_t
+static os_log_type_t getOsLogType(DiagnosticLevel level)
+{
+    switch (level)
+    {
+        case DiagnosticLevel::Fatal:
+            return OS_LOG_TYPE_FAULT;
+        case DiagnosticLevel::Error:
+            return OS_LOG_TYPE_ERROR;
+        case DiagnosticLevel::Warning:
+            return OS_LOG_TYPE_DEFAULT;
+        case DiagnosticLevel::Verbose:
+            return OS_LOG_TYPE_DEBUG;
+        case DiagnosticLevel::Information:
+        default:
+            return OS_LOG_TYPE_INFO;
+    }
+}
+    #endif
+
 static void DiagnosticPrint(DiagnosticLevel level, const std::string& prefix, const std::string& msg)
 {
     auto stream = diagnostic_get_stream(level);
@@ -86,6 +125,12 @@ static void DiagnosticPrint(DiagnosticLevel level, const std::string& prefix, co
         Console::WriteLine("%s%s", prefix.c_str(), msg.c_str());
     else
         Console::Error::WriteLine("%s%s", prefix.c_str(), msg.c_str());
+
+    #ifdef OPENRCT2_USE_OS_LOG
+    // Also log via os_log for visionOS/iOS console visibility
+    auto fullMsg = prefix + msg;
+    os_log_with_type(getDiagnosticLog(), getOsLogType(level), "%{public}s", fullMsg.c_str());
+    #endif
 }
 
 void DiagnosticLog(DiagnosticLevel diagnosticLevel, const char* format, ...)
