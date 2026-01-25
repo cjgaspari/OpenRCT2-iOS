@@ -105,6 +105,7 @@ cd ios-vcpkg
 ./vcpkg install openssl:arm64-ios-simulator
 ./vcpkg install bzip2:arm64-ios-simulator
 ./vcpkg install brotli:arm64-ios-simulator
+./vcpkg install nlohmann-json:arm64-ios-simulator
 
 cd ..
 ```

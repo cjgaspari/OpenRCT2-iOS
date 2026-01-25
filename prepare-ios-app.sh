@@ -37,7 +37,14 @@ echo "=============================================="
 echo ""
 
 # Check prerequisites
-if [ ! -f "$BUILD_DIR/openrct2" ]; then
+# Check if executable exists - either directly or inside the CMake-created app bundle
+CMAKE_APP_BUNDLE=false
+if [ -f "$BUILD_DIR/openrct2" ]; then
+    EXECUTABLE="$BUILD_DIR/openrct2"
+elif [ -f "$BUILD_DIR/openrct2.app/openrct2" ]; then
+    EXECUTABLE="$BUILD_DIR/openrct2.app/openrct2"
+    CMAKE_APP_BUNDLE=true
+else
     echo "❌ openrct2 executable not found in $BUILD_DIR"
     echo "   Build OpenRCT2 first: cd build-ios && cmake --build . -j\$(sysctl -n hw.ncpu)"
     exit 1
@@ -49,14 +56,26 @@ if [ ! -d "$SDL2_FRAMEWORK" ]; then
     exit 1
 fi
 
+# If CMake created the app bundle, we need to save executable before removing
+if [ "$CMAKE_APP_BUNDLE" = true ]; then
+    TEMP_EXEC=$(mktemp)
+    cp "$EXECUTABLE" "$TEMP_EXEC"
+    EXECUTABLE="$TEMP_EXEC"
+fi
+
 # Create app bundle structure
 echo "=== Creating App Bundle Structure ==="
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Frameworks"
 
 # Copy executable
-cp "$BUILD_DIR/openrct2" "$APP_BUNDLE/"
+cp "$EXECUTABLE" "$APP_BUNDLE/openrct2"
 echo "✓ Copied openrct2 executable"
+
+# Clean up temp file if used
+if [ "$CMAKE_APP_BUNDLE" = true ]; then
+    rm -f "$TEMP_EXEC"
+fi
 
 # Copy Info.plist
 if [ -f "$WORKSPACE/ios-res/Info.plist" ]; then
