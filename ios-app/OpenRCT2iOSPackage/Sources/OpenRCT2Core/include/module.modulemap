@@ -1,4 +1,0 @@
-module OpenRCT2Core [extern_c] {
-    header "OpenRCT2.h"
-    export *
-}
