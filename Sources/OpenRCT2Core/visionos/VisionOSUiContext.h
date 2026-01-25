@@ -14,9 +14,10 @@ namespace OpenRCT2
 
     namespace Ui
     {
-        class IUiContext;
+        struct IUiContext;
         
-        // Factory
+        // Factory - returns raw pointer, caller takes ownership
+        // Use std::unique_ptr<IUiContext>(CreateVisionOSUiContext()) at call site
         [[nodiscard]] IUiContext* CreateVisionOSUiContext();
 
         // Concrete visionOS context API for Swift interop convenience

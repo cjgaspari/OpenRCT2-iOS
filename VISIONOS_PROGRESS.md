@@ -135,11 +135,19 @@
 
 ### Architecture Decisions
 
-- (None yet)
+1. **C Shim Implementation Location**: All C shim functions (`openrct2_*`) are implemented in `VisionOSUiContext.cpp` rather than `OpenRCT2Shim.cpp`. This avoids incomplete type errors since VisionOSUiContext.cpp has access to full type definitions.
+
+2. **WindowManager Disabled**: `IWindowManager` is returned as `nullptr` from `GetWindowManager()` to avoid including `WindowManager.h` which pulls in `sfl/static_vector.hpp` dependency that's not available for visionOS.
+
+3. **Mach Time Instead of chrono**: Using `<mach/mach_time.h>` instead of `<chrono>` for timing in ProcessMessages() to avoid visionOS SDK header ordering issues.
 
 ### Known Issues
 
-- (None yet)
+1. **visionOS SDK CHAR_BIT Issue**: The visionOS SDK has a header ordering issue where `<climits>` must be included BEFORE any C++ stdlib headers like `<chrono>`, `<ratio>`, etc. Otherwise, undefined `CHAR_BIT` and `INT_MAX` errors occur. **Fix**: Include `<limits.h>` and `<climits>` at the very top of .cpp files before any other includes.
+
+2. **PaletteIndex Enum Values**: `PaletteIndex::pi4` doesn't exist - use `pi10`, `pi14`, etc. Check `src/openrct2/drawing/PaletteIndex.h` for valid values.
+
+3. **SwiftUICore Linker Error**: Build currently fails at link stage with "cannot link directly with 'SwiftUICore'" - this is a project/SDK configuration issue requiring further investigation.
 
 ### Useful Commands
 

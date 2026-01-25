@@ -95,7 +95,8 @@ struct GameView: View {
         let widthChange = abs(gameWidth - currentWidth)
         let heightChange = abs(gameHeight - currentHeight)
 
-        guard widthChange >= Int(Self.MIN_SIZE_CHANGE) || heightChange >= Int(Self.MIN_SIZE_CHANGE) else {
+        guard widthChange >= Int(Self.MIN_SIZE_CHANGE) || heightChange >= Int(Self.MIN_SIZE_CHANGE)
+        else {
             return
         }
 
@@ -114,7 +115,9 @@ struct GameView: View {
     ///   - height: New game height in pixels
     ///   - drawableQueue: New DrawableQueue for texture binding
     @MainActor
-    private func updatePlaneEntity(width: Int, height: Int, drawableQueue: TextureResource.DrawableQueue) {
+    private func updatePlaneEntity(
+        width: Int, height: Int, drawableQueue: TextureResource.DrawableQueue
+    ) {
         guard let entity = planeEntity else { return }
 
         // Calculate new plane dimensions in meters
@@ -134,7 +137,9 @@ struct GameView: View {
         }
 
         // Create new texture material with updated DrawableQueue
-        if let newMaterial = createTextureMaterial(from: drawableQueue, width: width, height: height) {
+        if let newMaterial = createTextureMaterial(
+            from: drawableQueue, width: width, height: height)
+        {
             entity.model?.materials = [newMaterial]
         }
 
@@ -196,7 +201,9 @@ struct GameView: View {
             return createFallbackMaterial()
         }
 
-        return createTextureMaterial(from: drawableQueue, width: currentWidth, height: currentHeight) ?? createFallbackMaterial()
+        return createTextureMaterial(
+            from: drawableQueue, width: currentWidth, height: currentHeight)
+            ?? createFallbackMaterial()
     }
 
     /// Creates an UnlitMaterial from a DrawableQueue
@@ -206,7 +213,9 @@ struct GameView: View {
     ///   - height: Texture height for placeholder image
     /// - Returns: UnlitMaterial configured with the texture, or nil on failure
     @MainActor
-    private func createTextureMaterial(from drawableQueue: TextureResource.DrawableQueue, width: Int, height: Int) -> UnlitMaterial? {
+    private func createTextureMaterial(
+        from drawableQueue: TextureResource.DrawableQueue, width: Int, height: Int
+    ) -> UnlitMaterial? {
         do {
             // Create initial placeholder TextureResource from a solid color CGImage
             // This will be replaced by DrawableQueue content
@@ -258,23 +267,23 @@ struct GameView: View {
         // Create gray pixel data (BGRA format)
         var pixels = [UInt8](repeating: 0, count: width * height * bytesPerPixel)
         for i in stride(from: 0, to: pixels.count, by: bytesPerPixel) {
-            pixels[i] = 128     // Blue
-            pixels[i + 1] = 128 // Green
-            pixels[i + 2] = 128 // Red
-            pixels[i + 3] = 255 // Alpha
+            pixels[i] = 128  // Blue
+            pixels[i + 1] = 128  // Green
+            pixels[i + 2] = 128  // Red
+            pixels[i + 3] = 255  // Alpha
         }
 
         // Create CGImage from pixel data
         guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                  data: &pixels,
-                  width: width,
-                  height: height,
-                  bitsPerComponent: bitsPerComponent,
-                  bytesPerRow: bytesPerRow,
-                  space: colorSpace,
-                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-              )
+            let context = CGContext(
+                data: &pixels,
+                width: width,
+                height: height,
+                bitsPerComponent: bitsPerComponent,
+                bytesPerRow: bytesPerRow,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
         else {
             return nil
         }
