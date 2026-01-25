@@ -22,6 +22,7 @@ let package = Package(
             sources: [
                 "OpenRCT2Shim.cpp",
                 "visionos/VisionOSUiContext.cpp",
+                "visionos/VisionOSPlatformEnvironment.cpp",
                 "visionos/X8DrawingEngineVisionOS.cpp",
                 "visionos/InvalidationGridVisionOS.cpp",
                 "visionos/RenderTargetVisionOS.cpp",
