@@ -113,3 +113,42 @@ int32_t openrct2_get_pitch(void)
 
     return visionosCtx->GetBufferPitch();
 }
+
+bool openrct2_set_screen_size(int32_t width, int32_t height)
+{
+    if (!g_initialized || !g_uiContext)
+        return false;
+
+    if (width <= 0 || height <= 0)
+        return false;
+
+    auto* visionosCtx = AsVisionOSUiContext(const_cast<IUiContext*>(g_uiContext.get()));
+    if (!visionosCtx)
+        return false;
+
+    return visionosCtx->SetScreenSize(width, height);
+}
+
+uint32_t openrct2_get_frame_width(void)
+{
+    if (!g_initialized || !g_uiContext)
+        return ORCT2_SCREEN_WIDTH;
+
+    auto* visionosCtx = AsVisionOSUiContext(const_cast<IUiContext*>(g_uiContext.get()));
+    if (!visionosCtx)
+        return ORCT2_SCREEN_WIDTH;
+
+    return visionosCtx->GetBufferWidth();
+}
+
+uint32_t openrct2_get_frame_height(void)
+{
+    if (!g_initialized || !g_uiContext)
+        return ORCT2_SCREEN_HEIGHT;
+
+    auto* visionosCtx = AsVisionOSUiContext(const_cast<IUiContext*>(g_uiContext.get()));
+    if (!visionosCtx)
+        return ORCT2_SCREEN_HEIGHT;
+
+    return visionosCtx->GetBufferHeight();
+}

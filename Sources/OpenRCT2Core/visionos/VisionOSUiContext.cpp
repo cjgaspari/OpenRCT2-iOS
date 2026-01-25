@@ -268,6 +268,23 @@ namespace OpenRCT2
         {
             return _engine ? _engine->GetPaletteBGRA() : nullptr;
         }
+
+        bool SetScreenSize(int32_t width, int32_t height)
+        {
+            if (width <= 0 || height <= 0)
+                return false;
+
+            _width = width;
+            _height = height;
+
+            // Resize drawing engine if it exists
+            if (_engine)
+            {
+                _engine->Resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+            }
+
+            return true;
+        }
     };
 
     std::unique_ptr<IUiContext> CreateVisionOSUiContext()

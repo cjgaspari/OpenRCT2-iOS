@@ -20,16 +20,32 @@ func openrct2_get_palette() -> UnsafeRawPointer?
 @_silgen_name("openrct2_get_pitch")
 func openrct2_get_pitch() -> Int32
 
+@_silgen_name("openrct2_set_screen_size")
+func openrct2_set_screen_size(_ width: Int32, _ height: Int32) -> Bool
+
+@_silgen_name("openrct2_get_frame_width")
+func openrct2_get_frame_width() -> UInt32
+
+@_silgen_name("openrct2_get_frame_height")
+func openrct2_get_frame_height() -> UInt32
+
 /// Manages OpenRCT2 game engine integration with Swift
 /// Coordinates game ticks, frame rendering, and palette updates
 final class GameEngine: @unchecked Sendable {
-    private static let SCREEN_WIDTH = 1280
-    private static let SCREEN_HEIGHT = 720
+    private static let DEFAULT_WIDTH = 1280
+    private static let DEFAULT_HEIGHT = 720
 
     let renderer: OpenRCT2Renderer
 
     private var isRunning = false
     private let engineQueue = DispatchQueue(label: "com.openrct2.engine", qos: .userInteractive)
+
+    /// Current screen dimensions (thread-safe access via engineQueue)
+    private var screenWidth: Int
+    private var screenHeight: Int
+
+    /// Lock for coordinating resize operations
+    private let resizeLock = NSLock()
 
     // MARK: - Initialization
 
@@ -37,6 +53,8 @@ final class GameEngine: @unchecked Sendable {
     /// - Throws: If renderer creation fails
     init() throws {
         self.renderer = try OpenRCT2Renderer()
+        self.screenWidth = Self.DEFAULT_WIDTH
+        self.screenHeight = Self.DEFAULT_HEIGHT
 
         // Initialize OpenRCT2 core
         let initialized = openrct2_init(nil)
@@ -119,10 +137,16 @@ final class GameEngine: @unchecked Sendable {
 
         let pitch = openrct2_get_pitch()
 
+        // Use thread-safe dimensions
+        resizeLock.lock()
+        let width = screenWidth
+        let height = screenHeight
+        resizeLock.unlock()
+
         try renderer.uploadFrame(
             indexedPixels: framePtr,
-            width: Self.SCREEN_WIDTH,
-            height: Self.SCREEN_HEIGHT,
+            width: width,
+            height: height,
             pitch: Int(pitch)
         )
     }
@@ -131,6 +155,57 @@ final class GameEngine: @unchecked Sendable {
     /// - Returns: DrawableQueue for material binding
     func getDrawableQueue() -> TextureResource.DrawableQueue? {
         return renderer.getDrawableQueue()
+    }
+
+    /// Resizes the game screen to new dimensions
+    /// This coordinates resizing across the C++ engine, Swift renderer, and SwiftUI
+    /// - Parameters:
+    ///   - width: New width in pixels
+    ///   - height: New height in pixels
+    /// - Returns: The new DrawableQueue if resize succeeded, nil otherwise
+    func resize(width: Int, height: Int) -> TextureResource.DrawableQueue? {
+        guard width > 0 && height > 0 else { return nil }
+
+        // Skip if dimensions unchanged
+        resizeLock.lock()
+        let unchanged = (width == screenWidth && height == screenHeight)
+        resizeLock.unlock()
+
+        if unchanged {
+            return renderer.getDrawableQueue()
+        }
+
+        // Notify C++ side of new dimensions
+        let cppResized = openrct2_set_screen_size(Int32(width), Int32(height))
+        guard cppResized else {
+            print("GameEngine: C++ resize failed for \(width)x\(height)")
+            return nil
+        }
+
+        // Resize the renderer (recreates DrawableQueue)
+        do {
+            let newQueue = try renderer.resize(width: width, height: height)
+
+            // Update tracked dimensions
+            resizeLock.lock()
+            screenWidth = width
+            screenHeight = height
+            resizeLock.unlock()
+
+            print("GameEngine: Resized to \(width)x\(height)")
+            return newQueue
+        } catch {
+            print("GameEngine: Renderer resize failed: \(error)")
+            return nil
+        }
+    }
+
+    /// Returns current game dimensions
+    /// - Returns: Tuple of (width, height) in pixels
+    func getCurrentDimensions() -> (width: Int, height: Int) {
+        resizeLock.lock()
+        defer { resizeLock.unlock() }
+        return (screenWidth, screenHeight)
     }
 }
 

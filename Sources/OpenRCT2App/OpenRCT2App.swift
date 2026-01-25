@@ -13,7 +13,7 @@ struct OpenRCT2App: App {
         WindowGroup {
             Group {
                 if let engine = gameEngine {
-                    GameView(renderer: engine.renderer)
+                    GameView(gameEngine: engine)
                         .ignoresSafeArea()
                 } else if let error = initError {
                     // Show error if engine failed to initialize

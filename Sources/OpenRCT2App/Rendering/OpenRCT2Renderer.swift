@@ -202,8 +202,10 @@ final class OpenRCT2Renderer {
     /// - Parameters:
     ///   - width: New width in pixels
     ///   - height: New height in pixels
+    /// - Returns: The new DrawableQueue for rebinding to RealityKit materials
     /// - Throws: If DrawableQueue recreation fails
-    func resize(width: Int, height: Int) throws {
+    @discardableResult
+    func resize(width: Int, height: Int) throws -> TextureResource.DrawableQueue {
         guard width > 0 && height > 0 else {
             throw RendererError.invalidDimensions
         }
@@ -213,6 +215,12 @@ final class OpenRCT2Renderer {
 
         // Reallocate buffers
         try initializeBuffers()
+
+        guard let queue = drawableQueue else {
+            throw RendererError.drawableQueueNotInitialized
+        }
+
+        return queue
     }
 
     // MARK: - Private Helpers

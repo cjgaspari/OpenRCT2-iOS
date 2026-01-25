@@ -36,6 +36,20 @@ const uint8_t* openrct2_get_palette(void);
 /// @return Bytes per row in frame buffer (may be >= width for alignment)
 int32_t openrct2_get_pitch(void);
 
+/// Set screen resolution (for window resize handling)
+/// @param width New width in pixels
+/// @param height New height in pixels
+/// @return true if resize succeeded
+bool openrct2_set_screen_size(int32_t width, int32_t height);
+
+/// Get current frame buffer width
+/// @return Width in pixels
+uint32_t openrct2_get_frame_width(void);
+
+/// Get current frame buffer height
+/// @return Height in pixels
+uint32_t openrct2_get_frame_height(void);
+
 #ifdef __cplusplus
 }
 #endif
