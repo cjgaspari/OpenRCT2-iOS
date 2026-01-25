@@ -21,7 +21,13 @@
 
 typedef void* HANDLE;
 #elif defined(__APPLE__)
-    #include <CoreServices/CoreServices.h>
+    #include <TargetConditionals.h>
+    #if TARGET_OS_IOS || TARGET_OS_TV || TARGET_OS_WATCH
+        // iOS doesn't support FSEvents
+        #define OPENRCT2_NO_FILE_WATCHER
+    #else
+        #include <CoreServices/CoreServices.h>
+    #endif
 #endif
 
 /**
@@ -56,7 +62,7 @@ private:
 
     FileDescriptor _fileDesc;
     std::vector<WatchDescriptor> _watchDescs;
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && !defined(OPENRCT2_NO_FILE_WATCHER)
     FSEventStreamRef _stream{};
     CFRunLoopRef _runLoop{};
 #endif
@@ -70,7 +76,7 @@ public:
 private:
 #if defined(_WIN32) || defined(__linux__)
     bool _finished{};
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && !defined(OPENRCT2_NO_FILE_WATCHER)
     static void FSEventsCallback(
         ConstFSEventStreamRef streamRef, void* clientCallBackInfo, size_t numEvents, void* eventPaths,
         const FSEventStreamEventFlags eventFlags[], const FSEventStreamEventId eventIds[]);

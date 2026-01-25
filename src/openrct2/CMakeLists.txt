@@ -93,6 +93,10 @@ if (NOT DISABLE_TTF)
 
     if (MSVC)
         find_package(freetype REQUIRED)
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        # iOS: Use manually specified FREETYPE paths passed from cmake configuration
+        # The paths are set in the cmake invocation to avoid pkg-config issues
+        message(STATUS "iOS: Using FREETYPE_INCLUDE_DIRS=${FREETYPE_INCLUDE_DIRS}")
     else ()
         PKG_CHECK_MODULES(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
     endif ()
@@ -134,6 +138,11 @@ elseif (MSVC)
 
     find_path(LIBZIP_INCLUDE_DIRS zip.h)
     find_library(LIBZIP_LIBRARIES zip)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    # iOS: Use manually specified library paths passed from cmake configuration
+    # No pkg-config to avoid macOS library contamination
+    message(STATUS "iOS: Using manually specified library paths")
+    # Variables like ZIP_LIBRARIES, ZLIB_LIBRARY, etc. are set in cmake invocation
 else ()
     PKG_CHECK_MODULES(LIBZIP REQUIRED IMPORTED_TARGET libzip>=1.0)
     PKG_CHECK_MODULES(ZLIB REQUIRED IMPORTED_TARGET zlib)
@@ -157,6 +166,19 @@ if (STATIC)
                                      ${ZLIB_STATIC_LIBRARIES}
                                      ${LIBZIP_STATIC_LIBRARIES}
                                      ${ZSTD_STATIC_LIBRARIES})
+elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    # iOS: Link directly with library files
+    # libzip depends on OpenSSL crypto and bzip2 for encryption/compression support
+    # freetype depends on brotli
+    target_link_libraries(libopenrct2
+                                     ${PNG_LIBRARY}
+                                     ${ZLIB_LIBRARY}
+                                     ${LIBZIP_LIBRARY}
+                                     ${OPENSSL_CRYPTO_LIBRARY}
+                                     ${BZIP2_LIBRARY}
+                                     ${BROTLI_DEC_LIBRARY}
+                                     ${BROTLI_COMMON_LIBRARY}
+                                     ${ZSTD_LIBRARY})
 else ()
     if (NOT MSVC AND NOT EMSCRIPTEN)
         target_link_libraries(libopenrct2
@@ -195,20 +217,35 @@ if (EMSCRIPTEN)
 endif()
 
 if (NOT MINGW AND NOT MSVC AND NOT EMSCRIPTEN)
-    if (APPLE AND NOT MACOS_USE_DEPENDENCIES)
-        execute_process(COMMAND brew --prefix icu4c OUTPUT_VARIABLE HOMEBREW_PREFIX_ICU OUTPUT_STRIP_TRAILING_WHITESPACE)
-        # Needed for linking with non-broken icu on Apple platforms
-        list(APPEND CMAKE_PREFIX_PATH "${HOMEBREW_PREFIX_ICU}")
-    endif ()
-    # For unicode code page conversion.
-    find_package(ICU 59.0 REQUIRED COMPONENTS uc)
+    if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        # iOS uses direct library paths set via CMake variables
+        if (ICU_ROOT)
+            target_include_directories(libopenrct2 SYSTEM PRIVATE "${ICU_ROOT}/include")
+            # Link order matters: uc depends on data
+            target_link_libraries(libopenrct2
+                "${ICU_ROOT}/lib/libicuuc.a"
+                "${ICU_ROOT}/lib/libicui18n.a"
+                "${ICU_ROOT}/lib/libicudata.a"
+            )
+        else()
+            message(FATAL_ERROR "ICU_ROOT must be set for iOS builds")
+        endif()
+    else()
+        if (APPLE AND NOT MACOS_USE_DEPENDENCIES)
+            execute_process(COMMAND brew --prefix icu4c OUTPUT_VARIABLE HOMEBREW_PREFIX_ICU OUTPUT_STRIP_TRAILING_WHITESPACE)
+            # Needed for linking with non-broken icu on Apple platforms
+            list(APPEND CMAKE_PREFIX_PATH "${HOMEBREW_PREFIX_ICU}")
+        endif ()
+        # For unicode code page conversion.
+        find_package(ICU 59.0 REQUIRED COMPONENTS uc)
 
-    target_include_directories(libopenrct2 SYSTEM PRIVATE ${ICU_INCLUDE_DIRS})
+        target_include_directories(libopenrct2 SYSTEM PRIVATE ${ICU_INCLUDE_DIRS})
 
-    if (STATIC)
-        target_link_libraries(libopenrct2 ${ICU_STATIC_LIBRARIES})
-    else ()
-        target_link_libraries(libopenrct2 ${ICU_LIBRARIES})
+        if (STATIC)
+            target_link_libraries(libopenrct2 ${ICU_STATIC_LIBRARIES})
+        else ()
+            target_link_libraries(libopenrct2 ${ICU_LIBRARIES})
+        endif ()
     endif ()
 endif ()
 
@@ -219,6 +256,13 @@ if (NOT DISABLE_TTF)
         if (UNIX AND NOT APPLE)
             target_link_libraries(libopenrct2 ${FONTCONFIG_STATIC_LIBRARIES})
         endif ()
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        # iOS uses direct library paths, not PkgConfig
+        if (FREETYPE_LIBRARY)
+            target_link_libraries(libopenrct2 ${FREETYPE_LIBRARY})
+        else()
+            target_link_libraries(libopenrct2 ${FREETYPE_LIBRARIES})
+        endif()
     else ()
         if (NOT MSVC)
             target_link_libraries(libopenrct2 PkgConfig::FREETYPE)

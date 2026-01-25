@@ -28,6 +28,24 @@
     #include <emscripten.h>
 #endif
 
+// Handle iOS/Android platform detection
+#if defined(__APPLE__)
+    #include <TargetConditionals.h>
+    #if TARGET_OS_IPHONE
+        #define OPENRCT2_IOS 1
+    #endif
+#endif
+
+#ifdef __ANDROID__
+    #define OPENRCT2_ANDROID 1
+#endif
+
+// On iOS/Android, main() is handled separately so we don't want SDL to redefine main
+#if defined(OPENRCT2_IOS) || defined(OPENRCT2_ANDROID)
+    #define SDL_MAIN_HANDLED
+    #include <SDL.h>
+#endif
+
 using namespace OpenRCT2;
 using namespace OpenRCT2::Audio;
 using namespace OpenRCT2::Ui;
@@ -38,14 +56,7 @@ static std::shared_ptr<T> ToShared(std::unique_ptr<T>&& src)
     return std::shared_ptr<T>(std::move(src));
 }
 
-/**
- * Main entry point for non-Windows systems. Windows instead uses its own DLL proxy.
- */
-#if defined(_MSC_VER) && !defined(__DISABLE_DLL_PROXY__)
-int NormalisedMain(int argc, const char** argv)
-#else
-int main(int argc, const char** argv)
-#endif
+static int OpenRCT2Main(int argc, const char** argv)
 {
 #ifdef __EMSCRIPTEN__
     MAIN_THREAD_EM_ASM({
@@ -90,11 +101,34 @@ int main(int argc, const char** argv)
     return rc;
 }
 
-#ifdef __ANDROID__
-extern "C" {
-int SDL_main(int argc, const char* argv[])
+/**
+ * Main entry point for non-Windows systems. Windows instead uses its own DLL proxy.
+ * On iOS/Android, SDL_main is the entry point called by SDL after platform initialization.
+ */
+#if defined(OPENRCT2_IOS)
+// On iOS, main() is provided by main_ios.mm which calls SDL_UIKitRunApp
+// SDL then calls SDL_main as the user entry point
+extern "C" int SDL_main(int argc, char* argv[])
 {
-    return main(argc, argv);
+    return OpenRCT2Main(argc, const_cast<const char**>(argv));
 }
+#elif defined(OPENRCT2_ANDROID)
+extern "C" int SDL_main(int argc, char* argv[])
+{
+    return OpenRCT2Main(argc, const_cast<const char**>(argv));
+}
+int main(int argc, const char** argv)
+{
+    return OpenRCT2Main(argc, argv);
+}
+#elif defined(_MSC_VER) && !defined(__DISABLE_DLL_PROXY__)
+int NormalisedMain(int argc, const char** argv)
+{
+    return OpenRCT2Main(argc, argv);
+}
+#else
+int main(int argc, const char** argv)
+{
+    return OpenRCT2Main(argc, argv);
 }
 #endif

@@ -24,6 +24,28 @@ elseif (MSVC)
         find_library(SPEEX_LDFLAGS libogg)
         find_library(SPEEX_LDFLAGS libvorbis)
     endif ()
+elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    # iOS-specific dependency handling using framework/static libs
+    message(STATUS "Configuring for iOS platform")
+    
+    # SDL2 framework
+    if (DEFINED SDL2_FRAMEWORK_PATH)
+        set(SDL2_INCLUDE_DIRS "${SDL2_FRAMEWORK_PATH}/Headers")
+        set(SDL2_LDFLAGS "-F${SDL2_FRAMEWORK_PATH}/.. -framework SDL2")
+    else()
+        find_library(SDL2_LIBRARY SDL2)
+        set(SDL2_LDFLAGS "${SDL2_LIBRARY}")
+    endif()
+    
+    # SpeexDSP static library
+    if (DEFINED SPEEXDSP_ROOT)
+        set(SPEEX_INCLUDE_DIRS "${SPEEXDSP_ROOT}/include")
+        set(SPEEX_LDFLAGS "${SPEEXDSP_ROOT}/lib/libspeexdsp.a")
+    else()
+        find_package(SpeexDSP REQUIRED)
+        set(SPEEX_INCLUDE_DIRS "${SpeexDSP_INCLUDE_DIRS}")
+        set(SPEEX_LDFLAGS "${SpeexDSP_LIBRARIES}")
+    endif()
 else ()
     PKG_CHECK_MODULES(SDL2 REQUIRED IMPORTED_TARGET sdl2)
     PKG_CHECK_MODULES(SPEEX REQUIRED IMPORTED_TARGET speexdsp)
@@ -64,12 +86,25 @@ add_executable(OpenRCT2::openrct2 ALIAS openrct2)
 SET_CHECK_CXX_FLAGS(openrct2)
 ipo_set_target_properties(openrct2)
 
+# Set up RPATH for finding embedded frameworks at runtime (iOS/macOS)
+if (APPLE)
+    set_target_properties(openrct2 PROPERTIES
+        INSTALL_RPATH "@executable_path/Frameworks"
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+endif()
+
 # mingw builds cannot use the PkgConfig imported targets
 if (EMSCRIPTEN)
     target_link_libraries(openrct2 "libopenrct2"
                                     ${SPEEXDSP_LIBRARIES}
                                     ${ICU_DATA_LIBRARIES}
                                     ${ICU_DT_LIBRARY_RELEASE})
+elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    # iOS uses direct library paths, not PkgConfig
+    target_link_libraries(openrct2 "libopenrct2"
+                                    ${SDL2_LDFLAGS}
+                                    ${SPEEX_LDFLAGS})
 elseif (NOT MSVC AND NOT WIN32)
     target_link_libraries(openrct2 "libopenrct2"
                                     PkgConfig::SDL2
