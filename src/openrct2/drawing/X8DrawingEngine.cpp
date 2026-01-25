@@ -150,6 +150,13 @@ void X8DrawingEngine::Resize(uint32_t width, uint32_t height)
 
 void X8DrawingEngine::SetPalette([[maybe_unused]] const GamePalette& palette)
 {
+    // Pack BGRA palette entries into uint32_t in BGRA byte order
+    for (size_t i = 0; i < kGamePaletteSize; ++i)
+    {
+        const auto& p = palette[i];
+        _paletteBGRA[i] = (static_cast<uint32_t>(p.alpha) << 24) | (static_cast<uint32_t>(p.red) << 16)
+            | (static_cast<uint32_t>(p.green) << 8) | (static_cast<uint32_t>(p.blue));
+    }
 }
 
 void X8DrawingEngine::SetVSync([[maybe_unused]] bool vsync)
@@ -689,4 +696,29 @@ void X8DrawingContext::EndDraw()
     Guard::Assert(_isDrawing == true);
 
     _isDrawing = false;
+}
+
+uint8_t* X8DrawingEngine::GetPixelBuffer()
+{
+    return _bits;
+}
+
+uint32_t X8DrawingEngine::GetBufferWidth() const
+{
+    return _width;
+}
+
+uint32_t X8DrawingEngine::GetBufferHeight() const
+{
+    return _height;
+}
+
+int32_t X8DrawingEngine::GetBufferPitch() const
+{
+    return _mainRT.LineStride();
+}
+
+const uint32_t* X8DrawingEngine::GetPaletteBGRA() const
+{
+    return _paletteBGRA.data();
 }

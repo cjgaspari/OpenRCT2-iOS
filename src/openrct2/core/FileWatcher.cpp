@@ -27,8 +27,8 @@
     #include <unistd.h>
 #elif defined(__APPLE__)
     #include <TargetConditionals.h>
-    #if TARGET_OS_IOS || TARGET_OS_TV || TARGET_OS_WATCH
-        // iOS doesn't support FSEvents - file watching is disabled
+    #if TARGET_OS_IOS || TARGET_OS_TV || TARGET_OS_WATCH || TARGET_OS_VISION
+        // iOS/visionOS doesn't support FSEvents - file watching is disabled
         #define OPENRCT2_NO_FILE_WATCHER
     #else
         #include <CoreServices/CoreServices.h>

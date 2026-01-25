@@ -1,0 +1,26 @@
+---
+Name: OpenRCT2
+
+Functions:
+  - Name: openrct2_init
+    SwiftName: init(dataPath:)
+  - Name: openrct2_shutdown
+    SwiftName: shutdown()
+  - Name: openrct2_tick
+    SwiftName: tick()
+  - Name: openrct2_get_frame_buffer
+    SwiftName: getFrameBuffer()
+  - Name: openrct2_get_frame_buffer_size
+    SwiftName: getFrameBufferSize()
+  - Name: openrct2_get_frame_width
+    SwiftName: getFrameWidth()
+  - Name: openrct2_get_frame_height
+    SwiftName: getFrameHeight()
+  - Name: openrct2_get_palette
+    SwiftName: getPalette()
+  - Name: openrct2_touch_down
+    SwiftName: touchDown(x:y:)
+  - Name: openrct2_touch_moved
+    SwiftName: touchMoved(x:y:)
+  - Name: openrct2_touch_up
+    SwiftName: touchUp(x:y:)

@@ -402,6 +402,7 @@ namespace OpenRCT2
 
         bool Initialise() final override
         {
+            LOG_WARNING("[Context::Initialise] Starting...");
             if (_initialised)
             {
                 throw std::runtime_error("Context already initialised.");
@@ -409,6 +410,7 @@ namespace OpenRCT2
             _initialised = true;
 
             CrashInit();
+            LOG_WARNING("[Context::Initialise] CrashInit done");
 
             if (String::equals(Config::Get().general.lastRunVersion, kOpenRCT2Version))
             {
@@ -423,7 +425,9 @@ namespace OpenRCT2
 
             try
             {
+                LOG_WARNING("[Context::Initialise] Opening language: %d", Config::Get().general.language);
                 _localisationService->OpenLanguage(Config::Get().general.language);
+                LOG_WARNING("[Context::Initialise] Language opened successfully");
             }
             catch (const std::exception& e)
             {
@@ -435,6 +439,7 @@ namespace OpenRCT2
                 catch (const std::exception& eFallback)
                 {
                     LOG_FATAL("Failed to open fallback language: %s", eFallback.what());
+                    LOG_WARNING("[Context::Initialise] FAILED: Could not load language file");
                     auto& uiContext = GetContext()->GetUiContext();
 #ifdef __ANDROID__
                     uiContext.ShowMessageBox(
@@ -455,9 +460,12 @@ namespace OpenRCT2
 
             if (!gOpenRCT2Headless)
             {
+                LOG_WARNING("[Context::Initialise] Getting RCT2 path...");
                 auto rct2InstallPath = GetOrPromptRCT2Path();
+                LOG_WARNING("[Context::Initialise] RCT2 path: %s", rct2InstallPath.c_str());
                 if (rct2InstallPath.empty())
                 {
+                    LOG_WARNING("[Context::Initialise] FAILED: RCT2 path is empty");
                     return false;
                 }
                 _env->SetBasePath(DirBase::rct2, rct2InstallPath);
@@ -529,18 +537,24 @@ namespace OpenRCT2
 
             if (!gOpenRCT2NoGraphics)
             {
+                LOG_WARNING("[Context::Initialise] Loading base graphics...");
                 if (!LoadBaseGraphics())
                 {
+                    LOG_WARNING("[Context::Initialise] FAILED: LoadBaseGraphics returned false");
                     return false;
                 }
+                LOG_WARNING("[Context::Initialise] Base graphics loaded");
                 Drawing::LightFx::Init();
             }
 
             ContextInit();
+            LOG_WARNING("[Context::Initialise] ContextInit done");
             ResetSubsystems();
+            LOG_WARNING("[Context::Initialise] ResetSubsystems done");
 
             if (!gOpenRCT2Headless)
             {
+                LOG_WARNING("[Context::Initialise] Setting up preloader scene");
                 auto* preloaderScene = static_cast<PreloaderScene*>(GetPreloaderScene());
                 SetActiveScene(preloaderScene);
 
@@ -550,10 +564,12 @@ namespace OpenRCT2
             }
             else
             {
+                LOG_WARNING("[Context::Initialise] Headless mode - initializing repos");
                 InitialiseRepositories();
                 InitialiseScriptEngine();
             }
 
+            LOG_WARNING("[Context::Initialise] SUCCESS - returning true");
             return true;
         }
 

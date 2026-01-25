@@ -1,0 +1,28 @@
+// Config/Debug.xcconfig
+// Debug build settings for OpenRCT2 visionOS
+
+// Build only for arm64 (libopenrct2.a is arm64 only)
+ARCHS = arm64
+VALID_ARCHS = arm64
+ONLY_ACTIVE_ARCH = YES
+
+// Preprocessor definitions for visionOS SDK header compatibility
+// The visionOS SDK has a bug where CHAR_BIT and various limit macros must be defined
+// before any C++ standard library headers are included
+// OPENRCT2_FULL_CONTEXT=1 enables the full game engine (requires libopenrct2.a)
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) DEBUG=1 OPENRCT2_IOS=1 __VISIONOS__=1 OPENRCT2_FULL_CONTEXT=1 CHAR_BIT=8 SCHAR_MAX=127 SCHAR_MIN=(-128) UCHAR_MAX=255 SHRT_MAX=32767 SHRT_MIN=(-32768) USHRT_MAX=65535 INT_MAX=2147483647 INT_MIN=(-2147483647-1) UINT_MAX=4294967295U LONG_MAX=9223372036854775807L LONG_MIN=(-9223372036854775807L-1) ULONG_MAX=18446744073709551615UL LLONG_MAX=9223372036854775807LL LLONG_MIN=(-9223372036854775807LL-1) ULLONG_MAX=18446744073709551615ULL
+
+// Header search paths - include thirdparty for SFL and other dependencies
+HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT)/src/thirdparty
+
+// C++ compiler flags - disable char8_t to fix u8"" string literal compatibility
+OTHER_CPLUSPLUSFLAGS = $(inherited) -fno-char8_t
+
+// Library search paths for libopenrct2.a, vcpkg dependencies, ICU, and libzip
+LIBRARY_SEARCH_PATHS = $(inherited) $(SRCROOT)/build-visionos $(SRCROOT)/ios-vcpkg/installed/arm64-xros-simulator/lib $(SRCROOT)/visionos-deps/icu-visionos/lib $(SRCROOT)/visionos-deps/libzip-visionos/lib
+
+// Link against libopenrct2.a and all its dependencies including ICU and libzip
+OTHER_LDFLAGS = $(inherited) -lopenrct2 -lz -lpng16 -lfreetype -lzstd -lbz2 -lbrotlidec -lbrotlicommon -licuuc -licui18n -licudata -lzip -lc++ -framework Foundation
+
+// Product settings
+PRODUCT_DISPLAY_NAME = OpenRCT2 Debug
