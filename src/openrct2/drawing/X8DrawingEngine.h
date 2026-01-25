@@ -9,11 +9,11 @@
 
 #pragma once
 
+#include "ColourPalette.h"
 #include "IDrawingContext.h"
 #include "IDrawingEngine.h"
 #include "InvalidationGrid.h"
 #include "RenderTarget.h"
-#include "ColourPalette.h"
 
 #include <memory>
 

@@ -6,7 +6,7 @@ let package = Package(
     platforms: [
         .iOS(.v17),
         .macOS(.v14),
-        .visionOS(.v2),
+        .visionOS(.v1),
     ],
     products: [
         .library(name: "OpenRCT2Core", targets: ["OpenRCT2Core"]),
@@ -20,8 +20,8 @@ let package = Package(
             path: "Sources/OpenRCT2Core",
             exclude: [],
             sources: [
-                "OpenRCT2Shim.c",
-                "visionos/VisionOSUiContext.cpp"
+                "OpenRCT2Shim.cpp",
+                "visionos/VisionOSUiContext.cpp",
             ],
             publicHeadersPath: "include",
             cSettings: [
@@ -30,12 +30,14 @@ let package = Package(
                 .headerSearchPath("../../src/openrct2"),
                 .define("OPENRCT2_IOS", to: "1"),
                 .define("__VISIONOS__", to: "1"),
+                .define("CHAR_BIT", to: "8"),
             ],
             cxxSettings: [
                 .headerSearchPath("../../src"),
                 .headerSearchPath("../../src/openrct2"),
                 .define("OPENRCT2_IOS", to: "1"),
                 .define("__VISIONOS__", to: "1"),
+                .define("CHAR_BIT", to: "8"),
             ]
         ),
 

@@ -154,10 +154,8 @@ void X8DrawingEngine::SetPalette([[maybe_unused]] const GamePalette& palette)
     for (size_t i = 0; i < kGamePaletteSize; ++i)
     {
         const auto& p = palette[i];
-        _paletteBGRA[i] = (static_cast<uint32_t>(p.alpha) << 24)
-            | (static_cast<uint32_t>(p.red) << 16)
-            | (static_cast<uint32_t>(p.green) << 8)
-            | (static_cast<uint32_t>(p.blue));
+        _paletteBGRA[i] = (static_cast<uint32_t>(p.alpha) << 24) | (static_cast<uint32_t>(p.red) << 16)
+            | (static_cast<uint32_t>(p.green) << 8) | (static_cast<uint32_t>(p.blue));
     }
 }
 

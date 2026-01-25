@@ -17,9 +17,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		8B41F6452DEDD0D5001A66F9 /* .app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = .app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B41F6452DEDD0D5001A66F9 /* .app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = .app; path = OpenRCT2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B41F65C2DEDD0D6001A66F9 /* OpenRCT2.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = OpenRCT2.xctest; path = .xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-        8B9AAA012DEE000000123456 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		8B9AAA012DEE000000123456 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,27 +33,30 @@
 			path = OpenRCT2UITests;
 			sourceTree = "<group>";
 		};
+		8B9AAA022DEE000000123456 /* Sources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		8B9AAA032DEE000000123457 /* Sources/OpenRCT2App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Sources/OpenRCT2App;
+			sourceTree = "<group>";
+		};
+		8B9AAA042DEE000000123457 /* Sources/OpenRCT2Core */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Sources/OpenRCT2Core;
+			sourceTree = "<group>";
+		};
 		8BD71C052DEE41D800CEDD92 /* Config */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Config;
 			sourceTree = "<group>";
 		};
-        8B9AAA022DEE000000123456 /* Sources */ = {
-            isa = PBXFileSystemSynchronizedRootGroup;
-            path = Sources;
-            sourceTree = "<group>";
-        };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		8B41F6422DEDD0D5001A66F9 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		8B41F6592DEDD0D6001A66F9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -66,8 +69,10 @@
 		8B41F63C2DEDD0D5001A66F9 = {
 			isa = PBXGroup;
 			children = (
-                8B9AAA012DEE000000123456 /* Package.swift */,
-                8B9AAA022DEE000000123456 /* Sources */,
+				8B9AAA012DEE000000123456 /* Package.swift */,
+				8B9AAA022DEE000000123456 /* Sources */,
+				8B9AAA032DEE000000123457 /* Sources/OpenRCT2App */,
+				8B9AAA042DEE000000123457 /* Sources/OpenRCT2Core */,
 				8BD71C052DEE41D800CEDD92 /* Config */,
 				8B41F6472DEDD0D5001A66F9 /* OpenRCT2 */,
 				8B41F65F2DEDD0D6001A66F9 /* OpenRCT2UITests */,
@@ -109,6 +114,8 @@
 			);
 			fileSystemSynchronizedGroups = (
 				8B41F6472DEDD0D5001A66F9 /* OpenRCT2 */,
+				8B9AAA032DEE000000123457 /* Sources/OpenRCT2App */,
+				8B9AAA042DEE000000123457 /* Sources/OpenRCT2Core */,
 				8BD71C052DEE41D800CEDD92 /* Config */,
 			);
 			name = OpenRCT2;
@@ -121,7 +128,6 @@
 			buildConfigurationList = 8B41F66C2DEDD0D6001A66F9 /* Build configuration list for PBXNativeTarget "OpenRCT2UITests" */;
 			buildPhases = (
 				8B41F6582DEDD0D6001A66F9 /* Sources */,
-				8B41F6592DEDD0D6001A66F9 /* Frameworks */,
 				8B41F65A2DEDD0D6001A66F9 /* Resources */,
 			);
 			buildRules = (
@@ -271,7 +277,13 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/Sources/OpenRCT2Core/include",
+					"$(SRCROOT)/src",
+					"$(SRCROOT)/src/openrct2",
+				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MODULEMAP_FILE = "$(SRCROOT)/Sources/OpenRCT2Core/module.modulemap";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -330,7 +342,13 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/Sources/OpenRCT2Core/include",
+					"$(SRCROOT)/src",
+					"$(SRCROOT)/src/openrct2",
+				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MODULEMAP_FILE = "$(SRCROOT)/Sources/OpenRCT2Core/module.modulemap";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "-cxx-interoperability-mode=default";
@@ -357,12 +375,12 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.openrct2.visionos;
-				PRODUCT_NAME = OpenRCT2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.openrct2.visionos;
+				PRODUCT_NAME = OpenRCT2;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -383,12 +401,12 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.openrct2.visionos;
-				PRODUCT_NAME = OpenRCT2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.openrct2.visionos;
+				PRODUCT_NAME = OpenRCT2;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
