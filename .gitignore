@@ -323,3 +323,7 @@ cmake-build-*/
 /build-ios
 /ios-deps
 /ios-vcpkg
+/build-visionos
+/visionos-deps
+/visionos-res
+/visionos-resources
