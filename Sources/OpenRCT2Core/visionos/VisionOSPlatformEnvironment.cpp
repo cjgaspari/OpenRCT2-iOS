@@ -1,6 +1,6 @@
 /****************************************************************************
  * VisionOSPlatformEnvironment - visionOS implementation of IPlatformEnvironment
- * 
+ *
  * VOS-035: Full GameContext Initialization
  * Creates the platform environment with proper paths for:
  * - App bundle resources (g1.dat, g2.dat, language files)
@@ -13,14 +13,13 @@
 #include <climits>
 #include <cstdint>
 #include <limits.h>
-#include <string>
-
 #include <openrct2/PlatformEnvironment.h>
 #include <openrct2/config/Config.h>
+#include <string>
 
 // Objective-C headers for path discovery
 #ifdef __OBJC__
-#import <Foundation/Foundation.h>
+    #import <Foundation/Foundation.h>
 #endif
 
 using namespace OpenRCT2;
@@ -34,9 +33,11 @@ namespace
      */
     static u8string CombinePath(u8string_view a, u8string_view b)
     {
-        if (a.empty()) return u8string(b);
-        if (b.empty()) return u8string(a);
-        
+        if (a.empty())
+            return u8string(b);
+        if (b.empty())
+            return u8string(a);
+
         // Check if 'a' already ends with a separator
         char last = a.back();
         if (last == '/' || last == '\\')
@@ -50,7 +51,7 @@ namespace
         result.append(b);
         return result;
     }
-    
+
     // Directory names for RCT2 data layout
     static constexpr const char* kDirectoryNamesRCT2[] = {
         "Data",        // DATA
@@ -98,21 +99,9 @@ namespace
 
     // File names for various OpenRCT2 files
     static constexpr const char* kFileNames[] = {
-        "config.ini",
-        "hotkeys.dat",
-        "shortcuts.json",
-        "objects.idx",
-        "tracks.idx",
-        "scenarios.idx",
-        "groups.json",
-        "servers.cfg",
-        "users.json",
-        "highscores.dat",
-        "scores.dat",
-        "Saved Games/scores.dat",
-        "changelog.txt",
-        "plugin.store.json",
-        "contributors.md",
+        "config.ini",    "hotkeys.dat",       "shortcuts.json",  "objects.idx",    "tracks.idx", "scenarios.idx",
+        "groups.json",   "servers.cfg",       "users.json",      "highscores.dat", "scores.dat", "Saved Games/scores.dat",
+        "changelog.txt", "plugin.store.json", "contributors.md",
     };
 
 #ifdef __OBJC__
@@ -162,11 +151,11 @@ namespace
             {
                 NSString* basePath = paths.firstObject;
                 NSString* appPath = [basePath stringByAppendingPathComponent:@"OpenRCT2"];
-                
+
                 // Create directory if needed
-                [[NSFileManager defaultManager] createDirectoryAtPath:appPath 
-                                          withIntermediateDirectories:YES 
-                                                           attributes:nil 
+                [[NSFileManager defaultManager] createDirectoryAtPath:appPath
+                                          withIntermediateDirectories:YES
+                                                           attributes:nil
                                                                 error:nil];
                 return std::string(appPath.UTF8String);
             }
@@ -186,10 +175,10 @@ namespace
             {
                 NSString* basePath = paths.firstObject;
                 NSString* appPath = [basePath stringByAppendingPathComponent:@"OpenRCT2"];
-                
-                [[NSFileManager defaultManager] createDirectoryAtPath:appPath 
-                                          withIntermediateDirectories:YES 
-                                                           attributes:nil 
+
+                [[NSFileManager defaultManager] createDirectoryAtPath:appPath
+                                          withIntermediateDirectories:YES
+                                                           attributes:nil
                                                                 error:nil];
                 return std::string(appPath.UTF8String);
             }
@@ -205,17 +194,32 @@ namespace
         @autoreleasepool
         {
             BOOL isDir = NO;
-            BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithUTF8String:path.c_str()] 
+            BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithUTF8String:path.c_str()]
                                                                isDirectory:&isDir];
             return exists && isDir;
         }
     }
 #else
-    static std::string GetBundleResourcePath() { return "."; }
-    static std::string GetDocumentsPath() { return "."; }
-    static std::string GetApplicationSupportPath() { return "."; }
-    static std::string GetCachesPath() { return "."; }
-    static bool DirectoryExists(const std::string&) { return false; }
+    static std::string GetBundleResourcePath()
+    {
+        return ".";
+    }
+    static std::string GetDocumentsPath()
+    {
+        return ".";
+    }
+    static std::string GetApplicationSupportPath()
+    {
+        return ".";
+    }
+    static std::string GetCachesPath()
+    {
+        return ".";
+    }
+    static bool DirectoryExists(const std::string&)
+    {
+        return false;
+    }
 #endif
 
 } // anonymous namespace
@@ -224,7 +228,7 @@ namespace OpenRCT2
 {
     /**
      * VisionOS Platform Environment Implementation.
-     * 
+     *
      * Directory structure:
      * - DirBase::openrct2  -> App bundle resources (read-only game data)
      * - DirBase::user      -> Documents/OpenRCT2 (user saves, scenarios, etc.)
@@ -247,22 +251,22 @@ namespace OpenRCT2
             auto documentsPath = GetDocumentsPath();
             auto appSupportPath = GetApplicationSupportPath();
             auto cachesPath = GetCachesPath();
-            
+
             // User data directory within Documents
             auto userPath = CombinePath(documentsPath, "OpenRCT2");
-            
+
             // Initialize base paths
             _basePath[static_cast<size_t>(DirBase::openrct2)] = bundlePath;
             _basePath[static_cast<size_t>(DirBase::user)] = userPath;
             _basePath[static_cast<size_t>(DirBase::config)] = appSupportPath;
             _basePath[static_cast<size_t>(DirBase::cache)] = cachesPath;
             _basePath[static_cast<size_t>(DirBase::documentation)] = bundlePath;
-            
+
             // RCT2 data: Check bundle first, then user documents
             // If bundled with app, use that. Otherwise look in user's Documents.
             auto bundledRCT2 = CombinePath(bundlePath, "rct2");
             auto userRCT2 = CombinePath(userPath, "rct2");
-            
+
             if (DirectoryExists(bundledRCT2))
             {
                 _basePath[static_cast<size_t>(DirBase::rct2)] = bundledRCT2;
@@ -271,7 +275,7 @@ namespace OpenRCT2
             {
                 _basePath[static_cast<size_t>(DirBase::rct2)] = userRCT2;
             }
-            
+
             // RCT1 data: always user-provided
             _basePath[static_cast<size_t>(DirBase::rct1)] = CombinePath(userPath, "rct1");
         }
@@ -293,10 +297,10 @@ namespace OpenRCT2
             {
                 return u8string();
             }
-            
+
             const char* directoryName = nullptr;
             auto didIndex = static_cast<size_t>(did);
-            
+
             switch (base)
             {
                 case DirBase::rct1:
@@ -306,7 +310,7 @@ namespace OpenRCT2
                         directoryName = kDirectoryNamesRCT2[didIndex];
                     }
                     break;
-                    
+
                 case DirBase::openrct2:
                 case DirBase::user:
                 case DirBase::config:
@@ -315,7 +319,7 @@ namespace OpenRCT2
                         directoryName = kDirectoryNamesOpenRCT2[didIndex];
                     }
                     break;
-                    
+
                 default:
                     if (didIndex < std::size(kDirectoryNamesOpenRCT2))
                     {
@@ -323,12 +327,12 @@ namespace OpenRCT2
                     }
                     break;
             }
-            
+
             if (directoryName == nullptr)
             {
                 return basePath;
             }
-            
+
             return CombinePath(basePath, directoryName);
         }
 
@@ -337,12 +341,12 @@ namespace OpenRCT2
             DirBase dirbase = GetDefaultBaseDirectory(pathid);
             auto basePath = GetDirectoryPath(dirbase);
             auto pathidIndex = static_cast<size_t>(pathid);
-            
+
             if (pathidIndex < std::size(kFileNames))
             {
                 return CombinePath(basePath, kFileNames[pathidIndex]);
             }
-            
+
             return basePath;
         }
 
@@ -376,19 +380,19 @@ namespace OpenRCT2
                 case PathId::configShortcutsLegacy:
                 case PathId::configShortcuts:
                     return DirBase::config;
-                    
+
                 case PathId::cacheObjects:
                 case PathId::cacheTracks:
                 case PathId::cacheScenarios:
                     return DirBase::cache;
-                    
+
                 case PathId::scoresRCT2:
                     return DirBase::rct2;
-                    
+
                 case PathId::changelog:
                 case PathId::contributors:
                     return DirBase::documentation;
-                    
+
                 default:
                     return DirBase::user;
             }

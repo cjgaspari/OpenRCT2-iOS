@@ -1,12 +1,12 @@
 /****************************************************************************
  * VisionOSUiContext - visionOS implementation of IUiContext
- * 
+ *
  * VOS-035: Full GameContext Initialization
  * - Creates full OpenRCT2 Context with proper platform environment
  * - Integrates with real Painter and drawing engine
  * - Supports Swift-managed game loop (40Hz ticks)
  * - Exposes frame buffer for Metal rendering
- * 
+ *
  * VOS-036: Proper drawing engine with game palette
  * VOS-037: Asset path discovery for visionOS bundle
  ****************************************************************************/
@@ -20,7 +20,7 @@ namespace OpenRCT2
 {
     struct IContext;
     struct IPlatformEnvironment;
-    
+
     namespace Ui
     {
         struct IUiContext;
@@ -32,7 +32,7 @@ namespace OpenRCT2
         class VisionOSUiContext;
         VisionOSUiContext* AsVisionOSUiContext(IUiContext* ctx);
     } // namespace Ui
-    
+
     // VOS-035: Factory for visionOS platform environment
     [[nodiscard]] std::unique_ptr<IPlatformEnvironment> CreateVisionOSPlatformEnvironment();
 } // namespace OpenRCT2
