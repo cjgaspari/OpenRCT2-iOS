@@ -1,0 +1,174 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "OpenRCT2App-arm64-apple-macosx26.0-debug.exe": ["<OpenRCT2App-arm64-apple-macosx26.0-debug.exe>"]
+  "OpenRCT2App-arm64-apple-macosx26.0-debug.module": ["<OpenRCT2App-arm64-apple-macosx26.0-debug.module>"]
+  "OpenRCT2Core-arm64-apple-macosx26.0-debug.module": ["<OpenRCT2Core-arm64-apple-macosx26.0-debug.module>"]
+  "OpenRCT2CoreTests-arm64-apple-macosx26.0-debug.module": ["<OpenRCT2CoreTests-arm64-apple-macosx26.0-debug.module>"]
+  "OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.module": ["<OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.module>"]
+  "OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.test": ["<OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.test>"]
+  "PackageStructure": ["<PackageStructure>"]
+  "main": ["<OpenRCT2App-arm64-apple-macosx26.0-debug.exe>","<OpenRCT2App-arm64-apple-macosx26.0-debug.module>","<OpenRCT2Core-arm64-apple-macosx26.0-debug.module>"]
+  "test": ["<OpenRCT2App-arm64-apple-macosx26.0-debug.exe>","<OpenRCT2App-arm64-apple-macosx26.0-debug.module>","<OpenRCT2Core-arm64-apple-macosx26.0-debug.module>","<OpenRCT2CoreTests-arm64-apple-macosx26.0-debug.module>","<OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.test>"]
+default: "main"
+nodes:
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/Tests/OpenRCT2CoreTests/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App":
+    is-mutated: true
+commands:
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App-entitlement.plist":
+    tool: write-auxiliary-file
+    inputs: ["<entitlement-plist>","<com.apple.security.get-task-allow>"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App-entitlement.plist"]
+    description: "Write auxiliary file /Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App-entitlement.plist"
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/GameRenderer.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/GameView.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/OpenRCT2App.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/DerivedSources/resource_bundle_accessor.swift"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/sources"]
+    description: "Write auxiliary file /Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/sources"
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/GameRenderer.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/GameView.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/OpenRCT2App.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/resource_bundle_accessor.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.product/Objects.LinkFileList"
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o":
+    tool: clang
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/OpenRCT2Shim.c"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o"]
+    description: "Compiling OpenRCT2Core OpenRCT2Shim.c"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang","-fobjc-arc","-target","arm64-apple-macosx14.0","-O0","-DSWIFT_PACKAGE=1","-DDEBUG=1","-fblocks","-index-store-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/index/store","-fmodules","-fmodule-name=OpenRCT2Core","-fmodules-cache-path=/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/ModuleCache","-I","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/include","-DOPENRCT2_IOS=1","-I/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/include","-isysroot","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-fPIC","-g","-MD","-MT","dependencies","-MF","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.d","-c","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/OpenRCT2Shim.c","-o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o"]
+    deps: "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.d"
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/cjgaspari/Developer/OpenRCT2-iOS/Tests/OpenRCT2CoreTests/OpenRCT2CoreTests.swift"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/sources"]
+    description: "Write auxiliary file /Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/sources"
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.derived/runner.swift"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/sources"]
+    description: "Write auxiliary file /Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/sources"
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.derived/runner.swift":
+    tool: test-entry-point-tool
+    inputs: []
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.derived/runner.swift"]
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/OpenRCT2CoreTests.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/runner.swift.o"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.product/Objects.LinkFileList"
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOS_OpenRCT2App.bundle/Shaders.metal":
+    tool: copy-tool
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/Shaders.metal"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOS_OpenRCT2App.bundle/Shaders.metal"]
+    description: "Copying /Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/Shaders.metal"
+
+  "/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+
+  "<OpenRCT2App-arm64-apple-macosx26.0-debug.exe>":
+    tool: phony
+    inputs: ["<OpenRCT2App-arm64-apple-macosx26.0-debug.exe-CodeSigning>"]
+    outputs: ["<OpenRCT2App-arm64-apple-macosx26.0-debug.exe>"]
+
+  "<OpenRCT2App-arm64-apple-macosx26.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/GameRenderer.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/GameView.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/OpenRCT2App.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/resource_bundle_accessor.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2App.swiftmodule"]
+    outputs: ["<OpenRCT2App-arm64-apple-macosx26.0-debug.module>"]
+
+  "<OpenRCT2Core-arm64-apple-macosx26.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o"]
+    outputs: ["<OpenRCT2Core-arm64-apple-macosx26.0-debug.module>"]
+
+  "<OpenRCT2CoreTests-arm64-apple-macosx26.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/OpenRCT2CoreTests.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2CoreTests.swiftmodule"]
+    outputs: ["<OpenRCT2CoreTests-arm64-apple-macosx26.0-debug.module>"]
+
+  "<OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/runner.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2iOSPackageTests.swiftmodule"]
+    outputs: ["<OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.module>"]
+
+  "<OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.test>":
+    tool: phony
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.xctest/Contents/MacOS/OpenRCT2iOSPackageTests"]
+    outputs: ["<OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.test>"]
+
+  "C.OpenRCT2App-arm64-apple-macosx26.0-debug.exe":
+    tool: shell
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/GameRenderer.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/GameView.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/OpenRCT2App.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/resource_bundle_accessor.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.product/Objects.LinkFileList"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/OpenRCT2App"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug","-o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App","-module-name","OpenRCT2App","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-alias","-Xlinker","_OpenRCT2App_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx14.0","-Xlinker","-add_ast_path","-Xlinker","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2App.swiftmodule","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.OpenRCT2App-arm64-apple-macosx26.0-debug.exe-entitlements":
+    tool: shell
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App-entitlement.plist"]
+    outputs: ["<OpenRCT2App-arm64-apple-macosx26.0-debug.exe-CodeSigning>"]
+    description: "Applying debug entitlements to ./.build/arm64-apple-macosx/debug/OpenRCT2App"
+    args: ["codesign","--force","--sign","-","--entitlements","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App-entitlement.plist","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App"]
+
+  "C.OpenRCT2App-arm64-apple-macosx26.0-debug.module":
+    tool: shell
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/GameRenderer.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/GameView.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/OpenRCT2App.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/DerivedSources/resource_bundle_accessor.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","<OpenRCT2App-arm64-apple-macosx26.0-debug.module-resources>","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/sources"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/GameRenderer.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/GameView.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/OpenRCT2App.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/resource_bundle_accessor.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2App.swiftmodule"]
+    description: "Compiling Swift Module 'OpenRCT2App' (4 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","OpenRCT2App","-emit-dependencies","-emit-module","-emit-module-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2App.swiftmodule","-output-file-map","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/output-file-map.json","-incremental","-c","@/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2App.build/sources","-I","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j8","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE","-Xcc","-fmodule-map-file=/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/include/module.modulemap","-Xcc","-I","-Xcc","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/include","-module-cache-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","OpenRCT2App_main","-color-diagnostics","-swift-version","5","-enable-upcoming-feature","BareSlashRegexLiterals","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","openrct2_ios"]
+
+  "C.OpenRCT2CoreTests-arm64-apple-macosx26.0-debug.module":
+    tool: shell
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/Tests/OpenRCT2CoreTests/OpenRCT2CoreTests.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/sources"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/OpenRCT2CoreTests.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2CoreTests.swiftmodule"]
+    description: "Compiling Swift Module 'OpenRCT2CoreTests' (1 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","OpenRCT2CoreTests","-emit-dependencies","-emit-module","-emit-module-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2CoreTests.swiftmodule","-output-file-map","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/output-file-map.json","-parse-as-library","-incremental","-c","@/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/sources","-I","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-Xfrontend","-enable-cross-import-overlays","-j8","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-Xcc","-fmodule-map-file=/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/include/module.modulemap","-Xcc","-I","-Xcc","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/include","-module-cache-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-parse-as-library","-color-diagnostics","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","openrct2_ios"]
+
+  "C.OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.module":
+    tool: shell
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.derived/runner.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2CoreTests.swiftmodule","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/sources"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/runner.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2iOSPackageTests.swiftmodule"]
+    description: "Compiling Swift Module 'OpenRCT2iOSPackageTests' (1 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","OpenRCT2iOSPackageTests","-emit-dependencies","-emit-module","-emit-module-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2iOSPackageTests.swiftmodule","-output-file-map","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/output-file-map.json","-parse-as-library","-incremental","-c","@/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/sources","-I","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-Xfrontend","-enable-cross-import-overlays","-j8","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-Xcc","-fmodule-map-file=/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/include/module.modulemap","-Xcc","-I","-Xcc","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/include","-module-cache-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-parse-as-library","-emit-objc-header","-emit-objc-header-path","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/include/OpenRCT2iOSPackageTests-Swift.h","-color-diagnostics","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","openrct2_ios"]
+
+  "C.OpenRCT2iOSPackageTests-arm64-apple-macosx26.0-debug.test":
+    tool: shell
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2Core.build/OpenRCT2Shim.c.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2CoreTests.build/OpenRCT2CoreTests.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.build/runner.swift.o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.product/Objects.LinkFileList"]
+    outputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.xctest/Contents/MacOS/OpenRCT2iOSPackageTests"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.xctest/Contents/MacOS/OpenRCT2iOSPackageTests"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug","-o","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.xctest/Contents/MacOS/OpenRCT2iOSPackageTests","-module-name","OpenRCT2iOSPackageTests","-Xlinker","-no_warn_duplicate_libraries","-Xlinker","-bundle","-Xlinker","-rpath","-Xlinker","@loader_path/../../../","@/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOSPackageTests.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx14.0","-Xlinker","-add_ast_path","-Xlinker","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2CoreTests.swiftmodule","-Xlinker","-add_ast_path","-Xlinker","/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/Modules/OpenRCT2iOSPackageTests.swiftmodule","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "OpenRCT2App-arm64-apple-macosx26.0-debug.module-resources":
+    tool: phony
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/.build/arm64-apple-macosx/debug/OpenRCT2iOS_OpenRCT2App.bundle/Shaders.metal"]
+    outputs: ["<OpenRCT2App-arm64-apple-macosx26.0-debug.module-resources>"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2App/","/Users/cjgaspari/Developer/OpenRCT2-iOS/Sources/OpenRCT2Core/","/Users/cjgaspari/Developer/OpenRCT2-iOS/Tests/OpenRCT2CoreTests/","/Users/cjgaspari/Developer/OpenRCT2-iOS/Package.swift","/Users/cjgaspari/Developer/OpenRCT2-iOS/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+
