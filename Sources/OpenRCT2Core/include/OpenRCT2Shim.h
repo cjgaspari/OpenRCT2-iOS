@@ -22,6 +22,13 @@ extern "C" {
 /// @return true if initialization succeeded
 bool openrct2_init(const char* configPath);
 
+/// Set the base path for game resources (call before openrct2_init).
+/// This is needed because the C++ library can't access NSBundle directly.
+/// @param bundlePath Path to app bundle resources (e.g., .app/visionos-resources)
+/// @param userPath Path to user documents directory
+/// @param cachePath Path to caches directory
+void openrct2_set_paths(const char* bundlePath, const char* userPath, const char* cachePath);
+
 /// Complete OpenRCT2 initialization - loads g1.dat, g2.dat, initializes repositories.
 /// Must be called after openrct2_init() before game can be played.
 /// This may take several seconds as it loads all game assets.

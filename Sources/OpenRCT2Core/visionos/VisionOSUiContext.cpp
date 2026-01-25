@@ -39,6 +39,7 @@
 // Full context headers - only when OPENRCT2_FULL_CONTEXT is defined
 #ifdef OPENRCT2_FULL_CONTEXT
     #include <openrct2/Context.h>
+    #include <openrct2/OpenRCT2.h>
     #include <openrct2/PlatformEnvironment.h>
     #include <openrct2/audio/AudioContext.h>
     #include <openrct2/drawing/IDrawingEngine.h>
@@ -49,77 +50,41 @@
 
 using namespace OpenRCT2::Drawing;
 
-// Forward declaration from VisionOSPlatformEnvironment.cpp
+// Forward declarations - we'll provide our own implementation using Swift-provided paths
 namespace OpenRCT2
 {
-    std::unique_ptr<IPlatformEnvironment> CreateVisionOSPlatformEnvironment();
-}
+    // These will be defined later in this file
+    std::unique_ptr<IPlatformEnvironment> CreateVisionOSPlatformEnvironmentWithPaths(
+        const std::string& bundlePath, const std::string& userPath, const std::string& cachePath);
+} // namespace OpenRCT2
 
 // ============================================================================
-// VisionOS Path Helpers (Objective-C++)
+// VisionOS Path Helpers - paths are provided by Swift via openrct2_set_paths()
 // ============================================================================
 
-#ifdef __OBJC__
-/**
- * Get the app bundle's resource path.
- */
-static std::string GetVisionOSBundlePath()
+// The Objective-C path discovery code has been replaced with Swift-provided paths
+// because this file is compiled as C++ (not Objective-C++) by Xcode.
+
+static std::string CombinePath(const std::string& a, const std::string& b)
 {
-    @autoreleasepool
-    {
-        NSBundle* bundle = [NSBundle mainBundle];
-        if (bundle && bundle.bundleIdentifier)
-        {
-            auto resources = bundle.resourcePath.UTF8String;
-            if (resources)
-            {
-                return std::string(resources);
-            }
-        }
-        return std::string();
-    }
+    if (a.empty())
+        return b;
+    if (b.empty())
+        return a;
+    if (a.back() == '/' || a.back() == '\\')
+        return a + b;
+    return a + "/" + b;
 }
 
-/**
- * Get the Documents directory for user data.
- */
-static std::string GetVisionOSDocumentsPath()
-{
-    @autoreleasepool
-    {
-        NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        if (paths.count > 0)
-        {
-            return std::string([paths.firstObject UTF8String]);
-        }
-        return std::string();
-    }
-}
+// Global path variables set by openrct2_set_paths() from Swift
+static std::string g_bundlePath;
+static std::string g_userPath;
+static std::string g_cachePath;
 
-/**
- * Check if a file exists.
- */
-static bool FileExistsAt(const std::string& path)
-{
-    @autoreleasepool
-    {
-        return [[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithUTF8String:path.c_str()]];
-    }
-}
-#else
-static std::string GetVisionOSBundlePath()
-{
-    return ".";
-}
-static std::string GetVisionOSDocumentsPath()
-{
-    return ".";
-}
-static bool FileExistsAt(const std::string&)
-{
-    return false;
-}
-#endif
+// Forward declarations for accessor functions
+const std::string& GetGlobalBundlePath();
+const std::string& GetGlobalUserPath();
+const std::string& GetGlobalCachePath();
 
 namespace OpenRCT2
 {
@@ -168,12 +133,12 @@ namespace OpenRCT2
             }
 
             /**
-             * Initialize asset paths.
+             * Initialize asset paths using the global paths set from Swift.
              */
             void InitializeAssetPaths()
             {
-                _bundlePath = GetVisionOSBundlePath();
-                _documentsPath = GetVisionOSDocumentsPath();
+                _bundlePath = GetGlobalBundlePath();
+                _documentsPath = GetGlobalUserPath();
             }
 
             /**
@@ -715,10 +680,266 @@ static VisionOSUiContext* g_visionosUiContext = nullptr;
 static bool g_initialized = false;
 static bool g_contextInitialized = false;
 static RenderTarget g_dummyRT = {};
+static std::string g_lastError;
 
 #ifdef OPENRCT2_FULL_CONTEXT
 static std::unique_ptr<IContext> g_context;
 #endif
+
+/**
+ * Set paths from Swift before calling openrct2_init().
+ * This is necessary because the C++ library built with CMake
+ * cannot access NSBundle/Foundation APIs directly.
+ */
+void openrct2_set_paths(const char* bundlePath, const char* userPath, const char* cachePath)
+{
+    if (bundlePath)
+        g_bundlePath = bundlePath;
+    if (userPath)
+        g_userPath = userPath;
+    if (cachePath)
+        g_cachePath = cachePath;
+
+    printf("[OpenRCT2] Paths set from Swift:\n");
+    printf("  bundlePath: %s\n", g_bundlePath.c_str());
+    printf("  userPath: %s\n", g_userPath.c_str());
+    printf("  cachePath: %s\n", g_cachePath.c_str());
+}
+
+// Accessor functions for VisionOSPlatformEnvironment
+const std::string& GetGlobalBundlePath()
+{
+    return g_bundlePath;
+}
+const std::string& GetGlobalUserPath()
+{
+    return g_userPath;
+}
+const std::string& GetGlobalCachePath()
+{
+    return g_cachePath;
+}
+
+#ifdef OPENRCT2_FULL_CONTEXT
+// ============================================================================
+// VisionOS Platform Environment Implementation (uses Swift-provided paths)
+// ============================================================================
+
+namespace
+{
+    // Directory names for RCT2 data layout
+    static constexpr const char* kDirectoryNamesRCT2[] = {
+        "Data",        // DATA
+        "Landscapes",  // LANDSCAPE
+        nullptr,       // LANGUAGE
+        nullptr,       // LOG_CHAT
+        nullptr,       // LOG_SERVER
+        nullptr,       // NETWORK_KEY
+        "ObjData",     // OBJECT
+        nullptr,       // PLUGIN
+        "Saved Games", // SAVE
+        "Scenarios",   // SCENARIO
+        nullptr,       // SCREENSHOT
+        nullptr,       // SEQUENCE
+        nullptr,       // SHADER
+        nullptr,       // THEME
+        "Tracks",      // TRACK
+    };
+
+    // Directory names for OpenRCT2 user data
+    static constexpr const char* kDirectoryNamesOpenRCT2[] = {
+        "data",             // DATA
+        "landscape",        // LANDSCAPE
+        "language",         // LANGUAGE
+        "chatlogs",         // LOG_CHAT
+        "serverlogs",       // LOG_SERVER
+        "keys",             // NETWORK_KEY
+        "object",           // OBJECT
+        "plugin",           // PLUGIN
+        "save",             // SAVE
+        "scenario",         // SCENARIO
+        "screenshot",       // SCREENSHOT
+        "sequence",         // SEQUENCE
+        "shaders",          // SHADER
+        "themes",           // THEME
+        "track",            // TRACK
+        "heightmap",        // HEIGHTMAP
+        "replay",           // REPLAY
+        "desyncs",          // DESYNCS
+        "crash",            // CRASH
+        "assetpack",        // ASSET_PACK
+        "scenario_patches", // SCENARIO_PATCHES
+    };
+
+    // File names for various OpenRCT2 files
+    static constexpr const char* kFileNames[] = {
+        "config.ini",    "hotkeys.dat",       "shortcuts.json",  "objects.idx",    "tracks.idx", "scenarios.idx",
+        "groups.json",   "servers.cfg",       "users.json",      "highscores.dat", "scores.dat", "Saved Games/scores.dat",
+        "changelog.txt", "plugin.store.json", "contributors.md",
+    };
+} // namespace
+
+namespace OpenRCT2
+{
+    class VisionOSPlatformEnvironmentImpl final : public IPlatformEnvironment
+    {
+    private:
+        u8string _basePath[static_cast<size_t>(DirBase::documentation) + 1];
+
+    public:
+        VisionOSPlatformEnvironmentImpl(
+            const std::string& bundlePath, const std::string& userPath, const std::string& cachePath)
+        {
+            // OpenRCT2 data (g2.dat, language, objects, etc.) is in the bundle
+            _basePath[static_cast<size_t>(DirBase::openrct2)] = bundlePath;
+
+            // User data directory
+            auto userDataPath = CombinePath(userPath, "OpenRCT2");
+            _basePath[static_cast<size_t>(DirBase::user)] = userDataPath;
+
+            // Config in user path
+            _basePath[static_cast<size_t>(DirBase::config)] = userDataPath;
+
+            // Cache
+            _basePath[static_cast<size_t>(DirBase::cache)] = cachePath;
+
+            // Documentation in bundle
+            _basePath[static_cast<size_t>(DirBase::documentation)] = bundlePath;
+
+            // RCT2 data: check bundle first, then user
+            auto bundledRCT2 = CombinePath(bundlePath, "rct2");
+            auto userRCT2 = CombinePath(userDataPath, "rct2");
+
+            // Always use bundled RCT2 if it exists (g1.dat should be there)
+            _basePath[static_cast<size_t>(DirBase::rct2)] = bundledRCT2;
+
+            // RCT1 is optional, user-provided
+            _basePath[static_cast<size_t>(DirBase::rct1)] = CombinePath(userDataPath, "rct1");
+
+            printf("[OpenRCT2] VisionOSPlatformEnvironmentImpl initialized:\n");
+            printf("  openrct2: %s\n", _basePath[static_cast<size_t>(DirBase::openrct2)].c_str());
+            printf("  user: %s\n", _basePath[static_cast<size_t>(DirBase::user)].c_str());
+            printf("  rct2: %s\n", _basePath[static_cast<size_t>(DirBase::rct2)].c_str());
+            printf("  config: %s\n", _basePath[static_cast<size_t>(DirBase::config)].c_str());
+            printf("  cache: %s\n", _basePath[static_cast<size_t>(DirBase::cache)].c_str());
+        }
+
+        u8string GetDirectoryPath(DirBase base) const override
+        {
+            auto index = static_cast<size_t>(base);
+            if (index < std::size(_basePath))
+            {
+                return _basePath[index];
+            }
+            return u8string();
+        }
+
+        u8string GetDirectoryPath(DirBase base, DirId did) const override
+        {
+            auto basePath = GetDirectoryPath(base);
+            if (basePath.empty())
+            {
+                return u8string();
+            }
+
+            const char* directoryName = nullptr;
+            auto didIndex = static_cast<size_t>(did);
+
+            switch (base)
+            {
+                case DirBase::rct1:
+                case DirBase::rct2:
+                    if (didIndex < std::size(kDirectoryNamesRCT2))
+                    {
+                        directoryName = kDirectoryNamesRCT2[didIndex];
+                    }
+                    break;
+
+                default:
+                    if (didIndex < std::size(kDirectoryNamesOpenRCT2))
+                    {
+                        directoryName = kDirectoryNamesOpenRCT2[didIndex];
+                    }
+                    break;
+            }
+
+            if (directoryName == nullptr)
+            {
+                return basePath;
+            }
+
+            return CombinePath(basePath, directoryName);
+        }
+
+        u8string GetFilePath(PathId pathid) const override
+        {
+            DirBase dirbase = GetDefaultBaseDirectory(pathid);
+            auto basePath = GetDirectoryPath(dirbase);
+            auto pathidIndex = static_cast<size_t>(pathid);
+
+            if (pathidIndex < std::size(kFileNames))
+            {
+                return CombinePath(basePath, kFileNames[pathidIndex]);
+            }
+
+            return basePath;
+        }
+
+        u8string FindFile(DirBase base, DirId did, u8string_view fileName) const override
+        {
+            auto dataPath = GetDirectoryPath(base, did);
+            return CombinePath(dataPath, std::string(fileName));
+        }
+
+        void SetBasePath(DirBase base, u8string_view path) override
+        {
+            auto index = static_cast<size_t>(base);
+            if (index < std::size(_basePath))
+            {
+                _basePath[index] = u8string(path);
+            }
+        }
+
+        bool IsUsingClassic() const override
+        {
+            return false;
+        }
+
+    private:
+        static DirBase GetDefaultBaseDirectory(PathId pathid)
+        {
+            switch (pathid)
+            {
+                case PathId::config:
+                case PathId::configShortcutsLegacy:
+                case PathId::configShortcuts:
+                    return DirBase::config;
+
+                case PathId::cacheObjects:
+                case PathId::cacheTracks:
+                case PathId::cacheScenarios:
+                    return DirBase::cache;
+
+                case PathId::scoresRCT2:
+                    return DirBase::rct2;
+
+                case PathId::changelog:
+                case PathId::contributors:
+                    return DirBase::documentation;
+
+                default:
+                    return DirBase::user;
+            }
+        }
+    };
+
+    std::unique_ptr<IPlatformEnvironment> CreateVisionOSPlatformEnvironmentWithPaths(
+        const std::string& bundlePath, const std::string& userPath, const std::string& cachePath)
+    {
+        return std::make_unique<VisionOSPlatformEnvironmentImpl>(bundlePath, userPath, cachePath);
+    }
+} // namespace OpenRCT2
+#endif // OPENRCT2_FULL_CONTEXT
 
 /**
  * VOS-035: Initialize OpenRCT2.
@@ -735,34 +956,84 @@ bool openrct2_init(const char* configPath)
 
     try
     {
+        printf("[OpenRCT2] openrct2_init starting...\n");
+
 #ifdef OPENRCT2_FULL_CONTEXT
-        // Full context mode: create complete OpenRCT2 context
-        auto env = CreateVisionOSPlatformEnvironment();
+        printf("[OpenRCT2] FULL_CONTEXT mode - creating complete OpenRCT2 context\n");
+
+        // Check if paths were set from Swift
+        if (g_bundlePath.empty())
+        {
+            printf("[OpenRCT2] ERROR: Bundle path not set! Call openrct2_set_paths() first.\n");
+            return false;
+        }
+
+        printf("[OpenRCT2] Using paths from Swift:\n");
+        printf("  bundlePath: %s\n", g_bundlePath.c_str());
+        printf("  userPath: %s\n", g_userPath.c_str());
+        printf("  cachePath: %s\n", g_cachePath.c_str());
+
+        // Full context mode: create complete OpenRCT2 context with paths from Swift
+        auto env = CreateVisionOSPlatformEnvironmentWithPaths(g_bundlePath, g_userPath, g_cachePath);
+        printf("[OpenRCT2] Created VisionOSPlatformEnvironmentWithPaths\n");
+
+        // Log the paths
+        printf("[OpenRCT2] Paths:\n");
+        printf("  openrct2: %s\n", env->GetDirectoryPath(DirBase::openrct2).c_str());
+        printf("  user: %s\n", env->GetDirectoryPath(DirBase::user).c_str());
+        printf("  rct2: %s\n", env->GetDirectoryPath(DirBase::rct2).c_str());
+        printf("  config: %s\n", env->GetDirectoryPath(DirBase::config).c_str());
+        printf("  cache: %s\n", env->GetDirectoryPath(DirBase::cache).c_str());
+
         auto audioContext = Audio::CreateDummyAudioContext();
+        printf("[OpenRCT2] Created DummyAudioContext\n");
+
         auto uiContext = CreateVisionOSUiContext();
+        printf("[OpenRCT2] Created VisionOSUiContext\n");
+
         g_visionosUiContext = AsVisionOSUiContext(uiContext.get());
 
         g_context = CreateContext(std::move(env), std::move(audioContext), std::move(uiContext));
 
         if (!g_context)
+        {
+            g_lastError = "CreateContext returned null";
+            printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
             return false;
+        }
+        printf("[OpenRCT2] CreateContext succeeded\n");
 
         if (g_visionosUiContext)
             g_visionosUiContext->SetContext(g_context.get());
 #else
+        printf("[OpenRCT2] Standalone mode - creating UI context only\n");
+
         // Standalone mode: just create UI context
         g_uiContext = CreateVisionOSUiContext();
         if (!g_uiContext)
+        {
+            g_lastError = "CreateVisionOSUiContext returned null";
+            printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
             return false;
+        }
 
         g_visionosUiContext = AsVisionOSUiContext(g_uiContext.get());
 #endif
 
         g_initialized = true;
+        printf("[OpenRCT2] openrct2_init completed successfully\n");
         return true;
+    }
+    catch (const std::exception& ex)
+    {
+        g_lastError = std::string("Exception in openrct2_init: ") + ex.what();
+        printf("[OpenRCT2] %s\n", g_lastError.c_str());
+        return false;
     }
     catch (...)
     {
+        g_lastError = "Unknown exception in openrct2_init";
+        printf("[OpenRCT2] %s\n", g_lastError.c_str());
         return false;
     }
 }
@@ -775,37 +1046,80 @@ bool openrct2_init(const char* configPath)
  */
 bool openrct2_init_full(void)
 {
+    printf("[OpenRCT2] openrct2_init_full starting...\n");
+
     if (!g_initialized)
+    {
+        g_lastError = "openrct2_init not called";
+        printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
         return false;
+    }
 
     if (g_contextInitialized)
+    {
+        printf("[OpenRCT2] Already fully initialized\n");
         return true;
+    }
 
 #ifdef OPENRCT2_FULL_CONTEXT
     try
     {
         if (!g_context)
+        {
+            g_lastError = "g_context is null";
+            printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
             return false;
+        }
 
+        // Set the RCT2 data path to our bundled data to skip the directory browser
+        auto rct2Path = CombinePath(g_bundlePath, "rct2");
+        printf("[OpenRCT2] Setting gCustomRCT2DataPath to: %s\n", rct2Path.c_str());
+        gCustomRCT2DataPath = rct2Path;
+
+        printf("[OpenRCT2] Calling g_context->Initialise()...\n");
         if (!g_context->Initialise())
+        {
+            g_lastError = "Context::Initialise() returned false";
+            printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
             return false;
+        }
+        printf("[OpenRCT2] Context::Initialise() succeeded\n");
 
+        printf("[OpenRCT2] Calling InitialiseDrawingEngine()...\n");
         g_context->InitialiseDrawingEngine();
+        printf("[OpenRCT2] InitialiseDrawingEngine() succeeded\n");
 
         auto* titleScene = g_context->GetTitleScene();
         if (titleScene)
+        {
+            printf("[OpenRCT2] Setting title scene as active\n");
             g_context->SetActiveScene(titleScene);
+        }
+        else
+        {
+            printf("[OpenRCT2] Warning: GetTitleScene() returned null\n");
+        }
 
         g_contextInitialized = true;
+        printf("[OpenRCT2] openrct2_init_full completed successfully\n");
         return true;
+    }
+    catch (const std::exception& ex)
+    {
+        g_lastError = std::string("Exception in openrct2_init_full: ") + ex.what();
+        printf("[OpenRCT2] %s\n", g_lastError.c_str());
+        return false;
     }
     catch (...)
     {
+        g_lastError = "Unknown exception in openrct2_init_full";
+        printf("[OpenRCT2] %s\n", g_lastError.c_str());
         return false;
     }
 #else
     // Standalone mode: always "fully initialized"
     g_contextInitialized = true;
+    printf("[OpenRCT2] Standalone mode - marking as fully initialized\n");
     return true;
 #endif
 }
@@ -824,6 +1138,9 @@ void openrct2_shutdown(void)
 
 /**
  * VOS-035: Game tick - advances game state and renders frame.
+ *
+ * If full context is initialized, runs the real game.
+ * Otherwise, falls back to standalone test pattern mode.
  */
 void openrct2_tick(void)
 {
@@ -831,31 +1148,34 @@ void openrct2_tick(void)
         return;
 
 #ifdef OPENRCT2_FULL_CONTEXT
-    if (!g_context || !g_contextInitialized)
-        return;
-
-    g_context->GetUiContext().ProcessMessages();
-
-    auto* activeScene = g_context->GetActiveScene();
-    if (activeScene)
-        activeScene->Tick();
-
-    auto* drawingEngine = g_context->GetDrawingEngine();
-    auto* painter = g_context->GetPainter();
-
-    if (drawingEngine && painter)
+    // If full context is ready, use it
+    if (g_context && g_contextInitialized)
     {
-        drawingEngine->BeginDraw();
-        painter->Paint(*drawingEngine);
-        drawingEngine->EndDraw();
-    }
-#else
-    if (!g_uiContext)
-        return;
+        g_context->GetUiContext().ProcessMessages();
 
-    g_uiContext->ProcessMessages();
-    g_uiContext->Draw(g_dummyRT);
+        auto* activeScene = g_context->GetActiveScene();
+        if (activeScene)
+            activeScene->Tick();
+
+        auto* drawingEngine = g_context->GetDrawingEngine();
+        auto* painter = g_context->GetPainter();
+
+        if (drawingEngine && painter)
+        {
+            drawingEngine->BeginDraw();
+            painter->Paint(*drawingEngine);
+            drawingEngine->EndDraw();
+        }
+        return;
+    }
 #endif
+
+    // Fallback: standalone test pattern mode
+    if (g_visionosUiContext)
+    {
+        g_visionosUiContext->ProcessMessages();
+        g_visionosUiContext->Draw(g_dummyRT);
+    }
 }
 
 const uint8_t* openrct2_get_frame_buffer(void)
@@ -916,5 +1236,5 @@ bool openrct2_is_fully_initialized(void)
 
 const char* openrct2_get_init_error(void)
 {
-    return nullptr;
+    return g_lastError.empty() ? nullptr : g_lastError.c_str();
 }

@@ -2,8 +2,19 @@ import Foundation
 import RealityKit
 
 /// C interop bindings for OpenRCT2
+@_silgen_name("openrct2_set_paths")
+func openrct2_set_paths(
+    _ bundlePath: UnsafePointer<CChar>?, _ userPath: UnsafePointer<CChar>?,
+    _ cachePath: UnsafePointer<CChar>?)
+
 @_silgen_name("openrct2_init")
 func openrct2_init(_ configPath: UnsafeRawPointer?) -> Bool
+
+@_silgen_name("openrct2_init_full")
+func openrct2_init_full() -> Bool
+
+@_silgen_name("openrct2_get_init_error")
+func openrct2_get_init_error() -> UnsafePointer<CChar>?
 
 @_silgen_name("openrct2_shutdown")
 func openrct2_shutdown()
@@ -56,15 +67,56 @@ final class GameEngine: @unchecked Sendable {
         self.screenWidth = Self.DEFAULT_WIDTH
         self.screenHeight = Self.DEFAULT_HEIGHT
 
+        // Set paths from Swift bundle info before initializing OpenRCT2
+        let bundleResourcePath = Bundle.main.bundlePath + "/visionos-resources"
+        let documentsPath =
+            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path ?? ""
+        let cachePath =
+            FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.path ?? ""
+
+        print("GameEngine: Setting paths:")
+        print("  bundleResourcePath: \(bundleResourcePath)")
+        print("  documentsPath: \(documentsPath)")
+        print("  cachePath: \(cachePath)")
+
+        bundleResourcePath.withCString { bundleCStr in
+            documentsPath.withCString { userCStr in
+                cachePath.withCString { cacheCStr in
+                    openrct2_set_paths(bundleCStr, userCStr, cacheCStr)
+                }
+            }
+        }
+
         // Initialize OpenRCT2 core
         let initialized = openrct2_init(nil)
         guard initialized else {
+            let errorMsg = getInitError() ?? "Unknown error"
+            print("GameEngine: openrct2_init() failed: \(errorMsg)")
             throw GameEngineError.initializationFailed
+        }
+        print("GameEngine: openrct2_init() succeeded")
+
+        // Complete full initialization (loads assets, drawing engine)
+        let fullyInitialized = openrct2_init_full()
+        if !fullyInitialized {
+            let errorMsg = getInitError() ?? "Unknown error"
+            print("GameEngine: openrct2_init_full() failed: \(errorMsg)")
+            // Continue anyway - standalone mode will work
+            print("GameEngine: Continuing in standalone test pattern mode")
+        } else {
+            print("GameEngine: openrct2_init_full() succeeded - full game mode active")
         }
 
         // Warm-up: Force first tick to create the X8DrawingEngine
         // This ensures pixel buffer is available before game loop starts
         openrct2_tick()
+        print("GameEngine: First tick completed, pixel buffer should be ready")
+    }
+
+    /// Helper to get initialization error from C++
+    private func getInitError() -> String? {
+        guard let cStr = openrct2_get_init_error() else { return nil }
+        return String(cString: cStr)
     }
 
     deinit {

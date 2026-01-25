@@ -108,6 +108,7 @@ namespace
     /**
      * Get the app bundle's resource path.
      * This is where g1.dat, g2.dat, language files, etc. are bundled.
+     * For visionOS, assets are in the visionos-resources subfolder.
      */
     static std::string GetBundleResourcePath()
     {
@@ -116,7 +117,18 @@ namespace
             NSBundle* bundle = [NSBundle mainBundle];
             if (bundle && bundle.resourcePath)
             {
-                return std::string(bundle.resourcePath.UTF8String);
+                // Check for visionos-resources subfolder first
+                NSString* resourcePath = bundle.resourcePath;
+                NSString* visionosResources = [resourcePath stringByAppendingPathComponent:@"visionos-resources"];
+
+                BOOL isDir = NO;
+                if ([[NSFileManager defaultManager] fileExistsAtPath:visionosResources isDirectory:&isDir] && isDir)
+                {
+                    return std::string(visionosResources.UTF8String);
+                }
+
+                // Fall back to root resource path
+                return std::string(resourcePath.UTF8String);
             }
             return std::string();
         }
