@@ -3,45 +3,47 @@ import SwiftUI
 
 @main
 struct OpenRCT2App: App {
-    /// Shared renderer instance for game texture management
-    @State private var renderer: OpenRCT2Renderer?
+    /// Game engine managing the game loop and rendering
+    @State private var gameEngine: GameEngine?
 
-    /// Error message if renderer initialization fails
-    @State private var rendererError: String?
+    /// Error message if initialization fails
+    @State private var initError: String?
 
     var body: some Scene {
         WindowGroup {
             Group {
-                if let renderer = renderer {
-                    GameView(renderer: renderer)
+                if let engine = gameEngine {
+                    GameView(renderer: engine.renderer)
                         .ignoresSafeArea()
-                } else if let error = rendererError {
-                    // Show error if renderer failed to initialize
+                } else if let error = initError {
+                    // Show error if engine failed to initialize
                     VStack {
-                        Text("Failed to initialize renderer")
+                        Text("Failed to initialize game")
                             .font(.headline)
                         Text(error)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 } else {
-                    // Loading state while renderer initializes
+                    // Loading state while engine initializes
                     ProgressView("Initializing...")
                 }
             }
             .task {
-                await initializeRenderer()
+                await initializeGameEngine()
             }
         }
     }
 
-    /// Initializes the OpenRCT2Renderer on the main actor
+    /// Initializes the GameEngine and starts the game loop
     @MainActor
-    private func initializeRenderer() async {
+    private func initializeGameEngine() async {
         do {
-            renderer = try OpenRCT2Renderer()
+            let engine = try GameEngine()
+            engine.start()  // Begin 40Hz game loop
+            gameEngine = engine
         } catch {
-            rendererError = error.localizedDescription
+            initError = error.localizedDescription
         }
     }
 }
