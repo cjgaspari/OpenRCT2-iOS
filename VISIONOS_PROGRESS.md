@@ -11,11 +11,12 @@
 | M2: VisionOSUiContext | ✅ Complete | 5/5 | Pixel buffer accessible from Swift |
 | M3: Metal Bridge | ✅ Complete | 4/4 | DrawableQueue renders at 90 Hz |
 | M4: RealityKit Display | ✅ Complete | 4/4 | Live gameplay in window ≥30fps |
+| M4.5: Game Context | 🟡 Deferred | 0/3 | Real game viewport renders |
 | M5: Input | 🔴 Not Started | 0/5 | Look+pinch interaction works |
 | M6: Audio | 🔴 Not Started | 0/4 | Music + SFX via AVFoundation |
 
-**Total Progress**: 18/27 tasks (67%)  
-**Estimated Remaining**: ~43 hours
+**Total Progress**: 18/30 tasks (60%)  
+**Estimated Remaining**: ~55 hours
 
 ---
 
@@ -77,7 +78,21 @@
 | VOS-033 | Handle Window Resize | ✅ Completed | 3h | 2026-01-25 | GeometryReader + plane resize |
 
 ---
+### Milestone 4.5: Full Game Context Integration (8-12 hours) — DEFERRED
 
+> **Gate**: Real game viewport renders (title screen or park)  
+> **Depends on**: M4 complete + test pattern renders with correct colors  
+> **Status**: 🟡 DEFERRED — Awaiting test pattern color verification
+
+| Ticket | Description | Status | Effort | Completed | Notes |
+|--------|-------------|--------|--------|-----------|-------|
+| VOS-035 | Integrate GameContext Initialization | 🔴 Not Started | 4h | - | Wire up full GameContext |
+| VOS-036 | Connect Real Drawing Contexts | 🔴 Not Started | 4h | - | Replace test Draw() with game loop |
+| VOS-037 | Asset Loading for visionOS | 🔴 Not Started | 4h | - | g1.dat/g2.dat sprite loading |
+
+**Why Deferred**: Current implementation shows test pattern (background + rectangle fill). Before wiring full game context, we must verify the Metal shader palette conversion produces correct colors. A channel swap bug was identified and fixed — rebuild required to verify.
+
+---
 ### Milestone 5: Gaze + Pinch Input (20 hours)
 
 > **Gate**: Look+pinch clicks register correctly in game  
@@ -118,6 +133,8 @@
 | 2026-01-25 | VOS-031 | Apply TextureResource to Plane Material | - | UnlitMaterial + DrawableQueue |
 | 2026-01-25 | VOS-032 | Connect Game Loop to Render Pipeline | - | GameEngine coordinates 40Hz ticks |
 | 2026-01-25 | VOS-033 | Handle Window Resize | - | GeometryReader + dynamic resize |
+| 2026-01-25 | BUGFIX | Metal shader RGBA channel order | - | Fixed BGRA→RGBA swap in PaletteConvert.metal |
+| 2026-01-25 | BUGFIX | Engine warm-up race condition | - | Added openrct2_tick() after init for DrawingEngine creation |
 
 ---
 
@@ -150,6 +167,10 @@
 3. ~~**SwiftUICore Linker Error**: Build currently fails at link stage with "cannot link directly with 'SwiftUICore'" - this is a project/SDK configuration issue requiring further investigation.~~ **FIXED**: This was resolved by fixing the SDK header issues.
 
 4. ~~**Network Framework Header Collision**: The Apple `Network.framework` conflicts with OpenRCT2's `src/openrct2/Network/Network.h` when `src/openrct2` is in the header search path.~~ **FIXED**: Removed `$(SRCROOT)/src/openrct2` from `HEADER_SEARCH_PATHS` in project.pbxproj. All OpenRCT2 headers should be included as `<openrct2/...>` not directly.
+
+5. ~~**Blue Plane Instead of Game Colors**: Test pattern rendered as solid blue instead of reddish colors.~~ **FIXED**: Metal's `texture.write()` expects RGBA component order regardless of texture pixel format. The shader was outputting `half4(b,g,r,a)` when it should output `half4(r,g,b,a)`. Fixed in `PaletteConvert.metal`.
+
+6. ~~**Frame Buffer Unavailable on First Frames**: `openrct2_get_frame_buffer()` returned `nullptr` initially because `X8DrawingEngine` is created lazily on first `Draw()` call.~~ **FIXED**: Added warm-up `openrct2_tick()` call after `openrct2_init()` in `GameEngine.swift` to ensure drawing engine exists before game loop starts.
 
 ### Useful Commands
 

@@ -384,6 +384,74 @@ kernel void convertIndexedToRGBA(
 
 ---
 
+---
+
+## Milestone 4.5: Full Game Context Integration (DEFERRED)
+**Total Effort**: 8-12 hours | **Duration**: 0.5 weeks  
+**Status**: DEFERRED until test pattern renders correctly
+
+> **Prerequisite**: Test pattern (background + rectangle) must render with correct colors in M4.
+> **Goal**: Replace test pattern with actual game viewport rendering.
+
+### VOS-035: Integrate GameContext Initialization
+**Effort**: 4 hours
+
+**Description**: Wire up full OpenRCT2 GameContext instead of minimal VisionOSUiContext test stubs.
+
+**Tasks**:
+- [ ] Load and initialize full GameContext in `openrct2_init()`
+- [ ] Set up title sequence or load a test park file
+- [ ] Configure viewport and window system
+- [ ] Connect game state machine (intro → title → game)
+
+**Acceptance Criteria**:
+- Title screen or loaded park renders in visionOS window
+- Game state progresses past initialization
+
+**Dependencies**:
+- VOS-033 complete (window resize working)
+- Test pattern renders with correct colors
+
+---
+
+### VOS-036: Connect Real Drawing Contexts
+**Effort**: 4 hours
+
+**Description**: Replace test Draw() with actual game drawing calls.
+
+**Tasks**:
+- [ ] Remove test pattern from `VisionOSUiContext::Draw()`
+- [ ] Connect to `DrawingContext` from main game loop
+- [ ] Handle viewport invalidation and dirty rects
+- [ ] Wire up window manager for UI elements
+
+**Acceptance Criteria**:
+- Game windows (toolbar, status bar) render
+- Park terrain and objects visible
+
+**Files Modified**:
+- `Sources/OpenRCT2Core/visionos/VisionOSUiContext.cpp`
+- `Sources/OpenRCT2App/GameEngine.swift`
+
+---
+
+### VOS-037: Asset Loading for visionOS
+**Effort**: 4 hours
+
+**Description**: Ensure game assets (sprites, objects) load correctly on visionOS.
+
+**Tasks**:
+- [ ] Configure asset paths for app bundle
+- [ ] Verify sprite loading from g1.dat/g2.dat
+- [ ] Test object loading (rides, scenery)
+- [ ] Handle any endianness or format issues
+
+**Acceptance Criteria**:
+- Park renders with all objects visible
+- No missing sprites or placeholder textures
+
+---
+
 ## Milestone 5: Gaze + Pinch Input
 **Total Effort**: 20 hours | **Duration**: 1.5 weeks
 

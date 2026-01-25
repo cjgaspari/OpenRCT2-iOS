@@ -7,7 +7,6 @@
 #include <climits>
 #include <cstdint>
 #include <limits.h>
-
 #include <openrct2/drawing/RenderTarget.h>
 
 namespace OpenRCT2::Drawing

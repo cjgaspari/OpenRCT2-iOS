@@ -4,14 +4,12 @@
  ****************************************************************************/
 
 // Force include limits headers early for visionOS SDK compatibility
+#include <algorithm>
 #include <climits>
 #include <cstdint>
-#include <limits.h>
-
-#include <openrct2/drawing/InvalidationGrid.h>
-
-#include <algorithm>
 #include <cstring>
+#include <limits.h>
+#include <openrct2/drawing/InvalidationGrid.h>
 
 namespace OpenRCT2::Drawing
 {

@@ -61,6 +61,10 @@ final class GameEngine: @unchecked Sendable {
         guard initialized else {
             throw GameEngineError.initializationFailed
         }
+
+        // Warm-up: Force first tick to create the X8DrawingEngine
+        // This ensures pixel buffer is available before game loop starts
+        openrct2_tick()
     }
 
     deinit {

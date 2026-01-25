@@ -53,13 +53,13 @@ kernel void convertIndexedToRGBA(
     uint8_t r = (bgraValue >> 16) & 0xFF;
     uint8_t a = (bgraValue >> 24) & 0xFF;
     
-    // Convert BGRA to RGBA for output texture
-    // Normalize components to [0,1] range for BGRA8Unorm texture
-    // Note: write() to BGRA texture expects BGRA order, not RGBA
-    half4 bgra = half4(half(b) / 255.0, half(g) / 255.0, half(r) / 255.0, half(a) / 255.0);
+    // Convert to RGBA for output texture
+    // Metal's write() always expects RGBA component order regardless of pixel format
+    // The texture format (bgra8Unorm) handles byte swapping internally
+    half4 rgba = half4(half(r) / 255.0, half(g) / 255.0, half(b) / 255.0, half(a) / 255.0);
     
     // Write to output texture
-    outTexture.write(bgra, gid);
+    outTexture.write(rgba, gid);
 }
 
 /// Alternative kernel for debugging: pass-through test pattern

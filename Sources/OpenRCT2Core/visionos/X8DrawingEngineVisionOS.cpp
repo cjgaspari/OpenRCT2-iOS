@@ -7,15 +7,13 @@
  ****************************************************************************/
 
 // Force include limits headers early for visionOS SDK compatibility
-#include <climits>
-#include <cstdint>
-#include <limits.h>
-
 #include <algorithm>
 #include <cassert>
+#include <climits>
+#include <cstdint>
 #include <cstring>
+#include <limits.h>
 #include <memory>
-
 #include <openrct2/drawing/X8DrawingEngine.h>
 
 using namespace OpenRCT2;
