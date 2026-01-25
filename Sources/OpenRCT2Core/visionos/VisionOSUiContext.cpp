@@ -43,6 +43,7 @@
     #include <openrct2/audio/AudioContext.h>
     #include <openrct2/drawing/IDrawingEngine.h>
     #include <openrct2/paint/Painter.h>
+    #include <openrct2/scenes/Scene.h>
     #include <openrct2/ui/WindowManager.h>
 #endif
 

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8BC0A0012DEF000000AAAAAA /* visionos-resources in Resources */ = {isa = PBXBuildFile; fileRef = 8BC0A0002DEF000000AAAAAA /* visionos-resources */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		8B41F65D2DEDD0D6001A66F9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -20,6 +24,7 @@
 		8B41F6452DEDD0D5001A66F9 /* OpenRCT2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenRCT2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B41F65C2DEDD0D6001A66F9 /* .xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = .xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B9AAA012DEE000000123456 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		8BC0A0002DEF000000AAAAAA /* visionos-resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "visionos-resources"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -74,6 +79,7 @@
 				8B9AAA032DEE000000123457 /* Sources/OpenRCT2App */,
 				8B9AAA042DEE000000123457 /* Sources/OpenRCT2Core */,
 				8BD71C052DEE41D800CEDD92 /* Config */,
+				8BC0A0002DEF000000AAAAAA /* visionos-resources */,
 				8B41F6472DEDD0D5001A66F9 /* OpenRCT2 */,
 				8B41F65F2DEDD0D6001A66F9 /* OpenRCT2UITests */,
 				8B41F6812DEDD23B001A66F9 /* Frameworks */,
@@ -187,6 +193,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8BC0A0012DEF000000AAAAAA /* visionos-resources in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

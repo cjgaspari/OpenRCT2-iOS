@@ -1,16 +1,52 @@
 # visionOS Simulator Toolchain for OpenRCT2
 # Configured for visionOS Simulator testing
-set(CMAKE_SYSTEM_NAME xros)
-set(CMAKE_OSX_SYSROOT xrosimulator)
-set(CMAKE_OSX_ARCHITECTURES arm64)
-set(CMAKE_OSX_DEPLOYMENT_TARGET 2.0)
+#
+# Note: CMAKE_SYSTEM_NAME=Darwin because CMake doesn't have native visionOS support.
+# The actual SDK (xrsimulator) and target triple determine the platform.
 
-# SDK paths
+# Use Darwin to avoid iOS SDK validation
+set(CMAKE_SYSTEM_NAME Darwin)
+set(CMAKE_SYSTEM_VERSION 1)
+
+# Get the SDK path dynamically
 execute_process(
-    COMMAND xcrun --sdk xrosimulator --show-sdk-path
+    COMMAND xcrun --sdk xrsimulator --show-sdk-path
     OUTPUT_VARIABLE XROS_SDK_PATH
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+set(CMAKE_OSX_SYSROOT "${XROS_SDK_PATH}")
+set(CMAKE_OSX_ARCHITECTURES arm64)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 2.0)
+
+# Set up the target triple for visionOS Simulator
+set(XROS_TARGET "arm64-apple-xros2.0-simulator")
+
+# Get compiler paths
+execute_process(
+    COMMAND xcrun --sdk xrsimulator --find clang
+    OUTPUT_VARIABLE XROS_C_COMPILER
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+execute_process(
+    COMMAND xcrun --sdk xrsimulator --find clang++
+    OUTPUT_VARIABLE XROS_CXX_COMPILER
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+set(CMAKE_C_COMPILER "${XROS_C_COMPILER}")
+set(CMAKE_CXX_COMPILER "${XROS_CXX_COMPILER}")
+
+# Compiler flags for visionOS target
+set(CMAKE_C_FLAGS_INIT "-target ${XROS_TARGET} -isysroot ${XROS_SDK_PATH}")
+set(CMAKE_CXX_FLAGS_INIT "-target ${XROS_TARGET} -isysroot ${XROS_SDK_PATH}")
+
+# Mark as cross-compiling
+set(CMAKE_CROSSCOMPILING ON)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+# SDK paths
+# (SDK path already obtained above)
 
 # Dependency paths
 set(VCPKG_ROOT "/Users/cjgaspari/Developer/OpenRCT2-iOS/ios-vcpkg/installed/arm64-xros-simulator")
