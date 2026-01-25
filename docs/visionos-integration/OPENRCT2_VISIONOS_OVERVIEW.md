@@ -6,93 +6,90 @@
 
 | Field | Value |
 |-------|-------|
-| **Goal** | Port OpenRCT2 to visionOS using native SwiftUI + RealityKit |
+| **Goal** | Port OpenRCT2 to visionOS using a SwiftUI window backed by CAMetalLayer |
 | **Target** | visionOS 2.0+ (Apple Vision Pro) |
-| **Approach** | Bypass SDL; use X8DrawingEngine software renderer + Metal |
-| **Effort** | ~105 hours (24 tickets across 6 milestones) |
-| **Status** | Planning Complete → Ready for M1 |
+| **Approach** | Bypass SDL; render the X8DrawingEngine buffer into a Metal texture and draw a fullscreen triangle with a nearest sampler |
+| **Effort** | ~90-100 hours (updated for Metal window plan) |
+| **Status** | RealityKit plan superseded → Metal window migration active |
 
 ## Core Architecture
 
 ```
-Swift App (SwiftUI + RealityKit)
+Swift App (SwiftUI WindowGroup)
     ↓
-TextureResource.DrawableQueue (90/120 Hz)
+GameView (UIViewRepresentable)
     ↓
-Metal Compute Shader (palette conversion)
+MetalLayerView (UIView + CAMetalLayer + MTLCommandQueue)
     ↓
-VisionOSUiContext (IUiContext implementation)
+rct2_update() / rct2_get_frame() from C++ bridge
     ↓
-X8DrawingEngine (uint8_t* pixel buffer)
+MTLTexture.replaceRegion (BGRA8) → fullscreen triangle
     ↓
-OpenRCT2 Game Core (C++)
+Nearest sampler → CAMetalLayer drawable
 ```
 
 ## Key Technical Decisions
 
 | Decision | Choice | Why |
 |----------|--------|-----|
-| C++ Interop | Swift 5.9+ direct | No C wrapper; `module.modulemap` |
-| Display | DrawableQueue | 90 Hz without frame drops |
-| Palette | Metal compute shader | 10× faster than CPU |
-| Build | CMake + vcpkg | `arm64-xros` triplet |
+| C++ Interop | Existing C ABI (`openrct2_*`) with Swift 5.9+ | Already live; keeps bridge stable |
+| Display | CAMetalLayer + render pipeline | Fewer moving parts than RealityKit DrawableQueue; deterministic pacing |
+| Sampling | Nearest sampler in fragment shader | Pixel-perfect UI; no unintended filtering |
+| Pixel Format | Prefer BGRA8 from engine | Matches Metal default, avoids shader swizzle |
+| Build | CMake + vcpkg | Reuse current triplets/toolchains |
 
-## Milestone Breakdown
+## Milestone Breakdown (Metal Window)
 
 | # | Milestone | Tickets | Hours | Gate |
 |---|-----------|---------|-------|------|
-| M1 | Xcode Foundation | VOS-001→005 | 15 | C++ lib compiles for visionOS |
-| M2 | VisionOSUiContext | VOS-010→014 | 20 | Pixel buffer accessible from Swift |
-| M3 | Metal Bridge | VOS-020→023 | 20 | DrawableQueue renders at 90 Hz |
-| M4 | RealityKit Display | VOS-030→033 | 15 | Live gameplay in window ≥30fps |
-| M5 | Input | VOS-040→044 | 20 | Look+pinch interaction works |
-| M6 | Audio | VOS-050→053 | 15 | Music + SFX via AVFoundation |
+| M1 | Xcode/Foundation | VOS-001→005 | 14 | C++ lib + Swift interop build for visionOS |
+| M2 | VisionOSUiContext | VOS-010→014 | 18 | Pixel buffer + palette exposed via C ABI |
+| M3 | Metal Renderer | VOS-020→024 | 18 | CAMetalLayer renderer presents frame |
+| M4 | SwiftUI Host | VOS-030→033 | 12 | GameView uses Metal view, handles resize |
+| M5 | Input Bridge | VOS-040→044 | 16 | Pointer/gesture → CursorState mapping in view coords |
+| M6 | Audio (Optional) | VOS-050→053 | 12 | AVFoundation bridge kept but deprioritized |
 
 ## Key Files & Interfaces
 
 ### C++ (Existing)
-- `src/openrct2/drawing/X8DrawingEngine.h` - Software renderer (`_bits`, `_width`, `_height`, `_pitch`)
-- `src/openrct2/drawing/ColourPalette.h` - `GamePalette` (BGRA format, 256 colors)
-- `src/openrct2/ui/UiContext.h` - `IUiContext` interface to implement
-- `src/openrct2-ui/drawing/engines/HardwareDisplayDrawingEngine.cpp:275` - `CopyBitsToTexture()` reference pattern
+- src/openrct2/drawing/X8DrawingEngine.h — software renderer (`_bits`, `_width`, `_height`, `_pitch`)
+- src/openrct2/drawing/ColourPalette.h — `GamePalette` (BGRA, 256 colors)
+- src/openrct2/ui/UiContext.h — `IUiContext` implemented by visionOS layer
 
-### Swift (To Create)
-- `Sources/OpenRCT2App/OpenRCT2App.swift` - @main entry, WindowGroup
-- `Sources/OpenRCT2App/GameEngine.swift` - C++ interop coordinator
-- `Sources/OpenRCT2App/Rendering/OpenRCT2Renderer.swift` - DrawableQueue pipeline
-- `Sources/OpenRCT2App/Rendering/Shaders/PaletteConvert.metal` - GPU palette conversion
-- `Sources/OpenRCT2Core/visionos/VisionOSUiContext.h` - IUiContext for visionOS
+### Swift (To Update/Create)
+- Sources/OpenRCT2App/GameView.swift — replace RealityView with UIViewRepresentable wrapper around MetalLayerView
+- Sources/OpenRCT2App/Rendering/OpenRCT2Renderer.swift — retarget from DrawableQueue/compute to CAMetalLayer pipeline
+- Sources/OpenRCT2App/GameEngine.swift — reuse C bridge; update frame upload and resize handshake
+- Sources/OpenRCT2App/Rendering/Shaders/Shaders.metal — fullscreen triangle + nearest sampler (no compute)
+- Sources/OpenRCT2App/Rendering/MetalLayerView.swift — UIView subclass exposing CAMetalLayer draw loop (new)
 
-### Build Config (To Create)
-- `cmake/visionos-arm64.toolchain.cmake`
-- `cmake/visionos-simulator.toolchain.cmake`
-- `vcpkg/triplets/community/arm64-xros.cmake`
-- `vcpkg/triplets/community/arm64-xros-simulator.cmake`
+### Build Config (Reused)
+- cmake/visionos-*.toolchain.cmake
+- vcpkg/triplets/community/arm64-xros*.cmake
 
 ## Critical Implementation Notes
 
-1. **Palette is BGRA** - Not RGBA. Conversion required in shader.
-2. **Pitch is offset** - `RenderTarget.pitch` + `width` = actual stride
-3. **DrawableQueue triple-buffers** - Never blocks; call `nextDrawable()` → write → `present()`
-4. **Game tick ~40 Hz** - Display runs at 90 Hz independently
-5. **No SDL** - All SDL calls must be replaced with native APIs
+1. **Prefer BGRA output from C++** — avoid per-frame channel swizzle; otherwise swizzle in fragment shader.
+2. **Stride awareness** — use `bytesPerRow = strideBytes` from the bridge when calling `replaceRegion`.
+3. **Do not recreate textures every frame** — recreate only on size change.
+4. **Use nearest sampling** — sampler state `filter::nearest` for crisp UI.
+5. **Input uses view coordinates** — map UIView points → framebuffer pixels with letterbox math.
 
-## Post-MVP Enhancements
+## Post-MVP Enhancements (Optional)
 
 | Enhancement | Effort | Description |
 |-------------|--------|-------------|
-| Parallax UI | +15 hrs | Depth-layered toolbars/dialogs |
-| Diorama Mode | +20 hrs | Tilted view like model train set |
-| God Mode | +30 hrs | ImmersiveSpace, park on table below user |
-| Spatial Audio | +25 hrs | 3D positioned sounds |
+| Double-buffer uploads | +6 hrs | Rotate 2–3 textures to reduce stalls |
+| Compute blit path | +8 hrs | Optionally use MTLBuffer + blit for larger frames |
+| RealityKit presentation | +12 hrs | Reintroduce as feature after Metal window is stable |
 
 ## Resources
 
 - [Full Epic Document](OPENRCT2_VISIONOS_EPIC.md)
-- [Archived iOS/SDL Docs](docs/archive/ios-sdl-approach/)
+- [Metal migration spec](SPEC_Migrate_RealityKit_to_Metal_Window.md)
+- [Metal-cpp notes](metal-cpp-notes.md)
 - [Swift C++ Interop](https://www.swift.org/documentation/cxx-interop/)
 - [visionOS Documentation](https://developer.apple.com/documentation/visionos/)
-- [TextureResource.DrawableQueue](https://developer.apple.com/documentation/realitykit/textureresource/drawablequeue)
 
 ## Quick Commands
 
@@ -113,22 +110,22 @@ Use these MCP tools for building and running:
 
 | Tool | Purpose |
 |------|---------|
-| `mcp_xcodebuildmcp_build_sim` | Build for visionOS Simulator |
-| `mcp_xcodebuildmcp_build_run_sim` | Build and run on Simulator |
-| `mcp_xcodebuildmcp_launch_app_sim` | Launch already-built app |
-| `mcp_xcodebuildmcp_describe_ui` | Get UI hierarchy for input testing |
-| `mcp_xcodebuildmcp_gesture` | Simulate gestures (scroll, swipe) |
-| `mcp_xcodebuildmcp_type_text` | Type text input |
-| `mcp_xcodebuildmcp_scaffold_ios_project` | Create new Xcode project (M1) |
-| `mcp_xcodebuildmcp_doctor` | Check build environment |
+| mcp_xcodebuildmcp_build_sim | Build for visionOS Simulator |
+| mcp_xcodebuildmcp_build_run_sim | Build and run on Simulator |
+| mcp_xcodebuildmcp_launch_app_sim | Launch already-built app |
+| mcp_xcodebuildmcp_describe_ui | Get UI hierarchy for input testing |
+| mcp_xcodebuildmcp_gesture | Simulate gestures (scroll, swipe) |
+| mcp_xcodebuildmcp_type_text | Type text input |
+| mcp_xcodebuildmcp_scaffold_ios_project | Create new Xcode project (M1) |
+| mcp_xcodebuildmcp_doctor | Check build environment |
 
 ### Example Workflow
 
 ```
-1. mcp_xcodebuildmcp_doctor          # Verify environment
-2. mcp_xcodebuildmcp_scaffold_ios_project  # Create visionOS project (adapt for visionOS)
-3. mcp_xcodebuildmcp_build_sim       # Build for simulator
-4. mcp_xcodebuildmcp_build_run_sim   # Build and launch
-5. mcp_xcodebuildmcp_describe_ui     # Inspect running UI
-6. mcp_xcodebuildmcp_gesture         # Test interactions
+1. mcp_xcodebuildmcp_doctor
+2. mcp_xcodebuildmcp_scaffold_ios_project (visionOS template)
+3. mcp_xcodebuildmcp_build_sim
+4. mcp_xcodebuildmcp_build_run_sim
+5. mcp_xcodebuildmcp_describe_ui
+6. mcp_xcodebuildmcp_gesture
 ```
