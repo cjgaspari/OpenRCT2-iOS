@@ -19,6 +19,38 @@ xcrun --sdk iphonesimulator --show-sdk-path
 # Should show path to iOS Simulator SDK
 ```
 
+---
+
+## Quick Start (Automated Setup)
+
+If you want to get up and running quickly, use the provided setup scripts:
+
+```bash
+# 1. Clone and enter the repository
+git clone https://github.com/OpenRCT2/OpenRCT2.git OpenRCT2-iOS
+cd OpenRCT2-iOS
+git checkout develop  # or your iOS branch
+
+# 2. Install all iOS dependencies (vcpkg, SDL2, ICU)
+./setup-ios-deps.sh
+
+# 3. Configure and build
+./cmake-ios.sh
+cd build-ios && cmake --build . -j$(sysctl -n hw.ncpu)
+
+# 4. Create app bundle (auto-detects local OpenRCT2.app or downloads data)
+./prepare-ios-app.sh
+
+# 5. Run on simulator
+xcrun simctl boot "iPhone Air"
+xcrun simctl install booted build-ios/openrct2.app
+xcrun simctl launch booted io.openrct2.OpenRCT2
+```
+
+The rest of this guide explains each step in detail for troubleshooting or manual setup.
+
+---
+
 ## Directory Structure
 
 After setup, your workspace will look like:
@@ -32,7 +64,9 @@ OpenRCT2-iOS/
 │   ├── SDL2.framework/
 │   └── icu-ios/
 ├── ios-vcpkg/              # vcpkg with iOS dependencies
+├── setup-ios-deps.sh       # ⭐ Installs all dependencies (vcpkg, SDL2, ICU)
 ├── cmake-ios.sh            # CMake configuration script
+├── prepare-ios-app.sh      # ⭐ Creates iOS app bundle with data files
 └── build-ios.sh            # Alternative build script
 ```
 
@@ -49,6 +83,9 @@ git checkout develop  # or your iOS branch
 ---
 
 ## Step 2: Build iOS Dependencies
+
+> **💡 Automated alternative:** Run `./setup-ios-deps.sh` to install all dependencies automatically.
+> Use `--skip-vcpkg`, `--skip-sdl2`, or `--skip-icu` to skip specific components.
 
 ### 2.1 Set Up vcpkg for iOS Simulator
 
@@ -215,6 +252,10 @@ This produces the `openrct2` executable in `build-ios/`.
 
 ## Step 5: Create iOS App Bundle
 
+> **💡 Automated alternative:** Run `./prepare-ios-app.sh` to create the app bundle automatically.
+> It checks for `/Applications/OpenRCT2.app` first, or downloads data from GitHub.
+> Use `--download-data` to force download, or `--skip-data` to skip data files.
+
 ```bash
 cd build-ios
 
@@ -236,11 +277,27 @@ cp -R ../data/shaders openrct2.app/
 cp -R ../data/scenario_patches openrct2.app/
 ```
 
-### 5.1 Download OpenRCT2 Data Files
+### 5.1 Copy OpenRCT2 Data Files
 
-Download the official release to get g2.dat, objects, and sequences:
+OpenRCT2 requires data files (g2.dat, objects, sequences). Check if you have OpenRCT2 installed locally first:
 
 ```bash
+# Option A: Copy from local installation (preferred)
+if [ -d "/Applications/OpenRCT2.app" ]; then
+    RESOURCES="/Applications/OpenRCT2.app/Contents/Resources"
+    cp "$RESOURCES/g2.dat" openrct2.app/
+    cp -R "$RESOURCES/object" openrct2.app/
+    cp -R "$RESOURCES/sequence" openrct2.app/
+    cp -R "$RESOURCES/assetpack" openrct2.app/
+    cp "$RESOURCES/fonts.dat" openrct2.app/
+    echo "✓ Copied data files from /Applications/OpenRCT2.app"
+fi
+```
+
+If OpenRCT2 is not installed locally, download from the official release:
+
+```bash
+# Option B: Download from GitHub release
 curl -L -o OpenRCT2-macos.zip \
     https://github.com/OpenRCT2/OpenRCT2/releases/download/v0.4.30/OpenRCT2-v0.4.30-macos-universal.zip
 
