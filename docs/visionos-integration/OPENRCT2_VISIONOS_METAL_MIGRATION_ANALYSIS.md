@@ -14,17 +14,17 @@ Purpose: outline concrete changes needed to move the current visionOS branch fro
 
 SwiftUI WindowGroup → `UIViewRepresentable` → `MetalLayerView` (UIView + CAMetalLayer) → `MTLCommandQueue` + render pipeline (fullscreen triangle, nearest sampler) → `replaceRegion` upload of BGRA framebuffer → present drawable.
 
-## Migration Plan
+## Migration Plan (with agreed decisions)
 
 1) Replace renderer to use CAMetalLayer
 - Rework [Sources/OpenRCT2App/Rendering/OpenRCT2Renderer.swift](Sources/OpenRCT2App/Rendering/OpenRCT2Renderer.swift): drop DrawableQueue/RealityKit/compute paths; manage `MTLDevice`, `MTLCommandQueue`, `MTLTexture` reuse, and a simple render pipeline + sampler.
-- Add `ensureTexture(width:height:)`, `upload(framePtr:strideBytes:)`, `draw(to drawable:)` helpers; handle stride via `bytesPerRow`.
-- Keep palette API only if needed for optional swizzle fallback; otherwise prefer BGRA frames from C++.
+- Add `ensureTexture(width:height:)`, `upload(framePtr:strideBytes:)`, `draw(to drawable:)` helpers; stride uses `bytesPerRow = width + pitch` from the C ABI (agreed).
+- Prefer BGRA frames from C++; keep palette API only for optional fragment swizzle fallback if RGBA persists.
 
 2) Introduce MetalLayerView (new)
 - UIView subclass with `override class var layerClass -> CAMetalLayer`.
 - Owns renderer instance; sets `metalLayer.pixelFormat = .bgra8Unorm`, `framebufferOnly = true`.
-- Drives `CADisplayLink` → `tick()` that calls `rct2_update`/`openrct2_tick`, fetches frame pointer/stride/size, calls renderer upload + draw.
+- Drives `CADisplayLink` → `tick()` that calls `rct2_update`/`openrct2_tick`, fetches frame pointer/stride/size, calls renderer upload + draw (single agreed driver on main).
 - Manages drawableSize and recreates texture only on size change.
 
 3) Swap GameView to UIViewRepresentable
@@ -33,12 +33,12 @@ SwiftUI WindowGroup → `UIViewRepresentable` → `MetalLayerView` (UIView + CAM
 - Provide environment hooks to start/stop the display link when the view appears/disappears.
 
 4) Adjust GameEngine loop
-- Decide single tick driver: either let MetalLayerView tick (preferred) or keep `engineQueue` but move upload/draw to main thread with CAMetalLayer.
+- Adopt the MetalLayerView display link as the single tick driver; avoid double-ticking with the existing engine queue.
 - Remove `getDrawableQueue()` exposure; replace with helpers for width/height/stride/pixels.
 - Ensure width/height used for texture creation come from C++ getters to avoid desync.
 
 5) Add Metal shaders
-- Create `Shaders.metal` in Rendering/Shaders with `vertex_main` (fullscreen triangle) and `fragment_main` (nearest sampler, optional BGRA→RGBA swizzle if C++ cannot emit BGRA).
+- Create `Shaders.metal` in Rendering/Shaders with `vertex_main` (fullscreen triangle) and `fragment_main` (nearest sampler); include optional BGRA→RGBA swizzle only if C++ cannot emit BGRA.
 - Build as part of the app target; no compute pipeline needed.
 
 6) Input mapping on MetalLayerView
@@ -52,12 +52,13 @@ SwiftUI WindowGroup → `UIViewRepresentable` → `MetalLayerView` (UIView + CAM
 8) Validation & instrumentation
 - Log when textures are recreated (should be resize-only).
 - Add lightweight FPS/frame pacing counters during bring-up.
-- Test color correctness (BGRA) and stride correctness after migration.
+- Test color correctness (BGRA) and stride correctness after migration; pause/present gracefully when `nextDrawable` is nil (backgrounded).
 
 ## Risks / Watchouts
 
 - Stride mismatch: must use `bytesPerRow = width + pitch` from `openrct2_get_pitch()`; otherwise banding/tearing.
-- BGRA vs RGBA: if C++ still outputs RGBA, add fragment swizzle or request BGRA from C++ drawing path.
+- BGRA vs RGBA: if C++ still outputs RGBA, add fragment swizzle or request BGRA from C++ drawing path (preferred BGRA agreed).
+- Tick contention: ensure only the MetalLayerView display link drives tick/upload/draw; avoid double ticks if old engine thread lingers.
 - Drawable availability: CAMetalLayer `nextDrawable()` can return nil when backgrounded—pause display link appropriately.
 - Input offsets: letterboxing math must match render scale to avoid misaligned clicks; write unit tests for mapping helper.
 

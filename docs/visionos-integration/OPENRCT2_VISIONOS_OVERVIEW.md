@@ -35,7 +35,9 @@ Nearest sampler → CAMetalLayer drawable
 | C++ Interop | Existing C ABI (`openrct2_*`) with Swift 5.9+ | Already live; keeps bridge stable |
 | Display | CAMetalLayer + render pipeline | Fewer moving parts than RealityKit DrawableQueue; deterministic pacing |
 | Sampling | Nearest sampler in fragment shader | Pixel-perfect UI; no unintended filtering |
-| Pixel Format | Prefer BGRA8 from engine | Matches Metal default, avoids shader swizzle |
+| Pixel Format | Prefer BGRA8 from engine (agreed) | Matches Metal default, avoids shader swizzle; fallback swizzle in fragment only if needed |
+| Stride Contract | `bytesPerRow = width + pitch` from C ABI (agreed) | Avoids artifacts; single source of truth from C++ |
+| Tick Driver | CADisplayLink inside Metal view calls `rct2_update`/`openrct2_tick` (agreed) | Single loop, predictable pacing; upload/draw on main |
 | Build | CMake + vcpkg | Reuse current triplets/toolchains |
 
 ## Milestone Breakdown (Metal Window)

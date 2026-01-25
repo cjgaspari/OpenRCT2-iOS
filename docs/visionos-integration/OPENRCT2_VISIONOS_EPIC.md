@@ -50,14 +50,15 @@ X8DrawingEngine (C++) → BGRA8 buffer + stride
 | Interop | Keep existing C ABI and Swift 5.9+ interop | No churn to game glue; focus on renderer swap |
 | Display | CAMetalLayer + MTLCommandQueue | Direct control, no DrawableQueue dependency |
 | Sampling | Nearest in fragment stage | Crisp UI pixels at any scale |
-| Pixel format | Prefer BGRA8 from C++ | Matches Metal default; avoid per-frame swizzle |
-| Upload | `replaceRegion` with stride-aware bytesPerRow | Minimal allocations; simple CPU copy |
-| Draw loop | CADisplayLink (on main) + lightweight command buffer | Predictable pacing; easy suspend/resume |
+| Pixel format | Prefer BGRA8 from C++ (agreed); fragment swizzle fallback only if required | Matches Metal default; avoids per-frame swizzle |
+| Stride contract | `bytesPerRow = width + pitch` from C ABI (agreed) | Prevents artifacts; single source of truth from C++ |
+| Upload | `replaceRegion` using stride bytes | Minimal allocations; simple CPU copy |
+| Draw loop | CADisplayLink inside Metal view drives `rct2_update`/`openrct2_tick` (agreed) | Predictable pacing; upload/draw on main; suspend when backgrounded |
 
 ### Minimal Shader Set
 
 - Vertex: fullscreen triangle (no vertex buffers).
-- Fragment: sample bound texture with `sampler(filter::nearest, address::clamp_to_edge)` and return `float4`.
+- Fragment: sample bound texture with `sampler(filter::nearest, address::clamp_to_edge)` and return `float4`; optional BGRA→RGBA swizzle only if engine cannot emit BGRA.
 
 ---
 
@@ -104,8 +105,8 @@ X8DrawingEngine (C++) → BGRA8 buffer + stride
 ## Rendering Pipeline (Metal Window)
 
 1. **Frame prep**
-   - `rct2_update(dt)` (if caller-driven) or `openrct2_tick()` from C.
-   - Fetch width/height/stride via C ABI.
+   - `CADisplayLink` inside Metal view calls `rct2_update(dt)`/`openrct2_tick()`.
+   - Fetch width/height/stride via C ABI; stride = width + pitch.
 
 2. **Texture management**
    - `ensureTexture` recreates `MTLTexture` when dimensions change (usage: `.shaderRead`).
@@ -117,13 +118,13 @@ X8DrawingEngine (C++) → BGRA8 buffer + stride
 
 4. **Draw**
    - Create command buffer → render pass targeting `nextDrawable.texture`.
-   - Set pipeline + sampler + fragment texture.
+   - Set pipeline + sampler + fragment texture (swizzle only if needed).
    - Draw 3 vertices (fullscreen triangle).
-   - Present drawable.
+   - Present drawable; handle nil drawable by skipping when backgrounded.
 
 5. **Timing**
-   - `CADisplayLink` updates `dt` and drives tick/upload/draw.
-   - If a separate game thread remains, only pull frame/draw on main to avoid layer contention.
+   - Single display-link loop on main; pause when inactive.
+   - If a separate game thread remains, limit it to logic only; render/upload stays on main.
 
 ---
 

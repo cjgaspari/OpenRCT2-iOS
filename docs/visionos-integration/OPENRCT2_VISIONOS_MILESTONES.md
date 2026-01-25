@@ -194,6 +194,7 @@
 - [ ] Add Shaders.metal (vertex_main/fragment_main, nearest sampler)
 - [ ] Create `MTLRenderPipelineState`
 - [ ] Create `MTLSamplerState` (nearest, clamp)
+- [ ] Optional fragment swizzle path if C++ cannot emit BGRA
 
 **Acceptance Criteria**:
 - Pipeline compiles; triangle renders with a test texture
@@ -211,7 +212,7 @@
 - [ ] Optional double-buffering toggle
 
 **Acceptance Criteria**:
-- Upload shows correct colors; no per-frame recreation
+- Upload shows correct colors; no per-frame recreation; stride uses `bytesPerRow = width + pitch` from C ABI
 
 ---
 
@@ -227,6 +228,21 @@
 
 **Acceptance Criteria**:
 - Frame presents without GPU validation errors
+
+---
+
+### VOS-024: Tick Driver Integration
+**Effort**: 3 hours
+
+**Description**: Use CAMetalLayer view’s `CADisplayLink` to drive game tick + upload + draw.
+
+**Tasks**:
+- [ ] Create display link inside MetalLayerView; call `rct2_update/openrct2_tick`
+- [ ] Keep rendering on main; pause when app inactive or drawable nil
+- [ ] Ensure no double-ticking if background engine thread remains
+
+**Acceptance Criteria**:
+- Single loop drives tick/upload/draw; no duplicate ticks; resumes cleanly after pause
 
 ---
 
