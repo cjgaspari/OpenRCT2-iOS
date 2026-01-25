@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		8B41F6832DEDD23B001A66F9 /* OpenRCT2Core in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6822DEDD23B001A66F9 /* OpenRCT2Core */; };
-		8B41F6852DEDD25C001A66F9 /* OpenRCT2Core in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* OpenRCT2Core */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,7 +63,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8B41F6852DEDD25C001A66F9 /* OpenRCT2Core in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,7 +70,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8B41F6832DEDD23B001A66F9 /* OpenRCT2Core in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,9 +123,6 @@
 				8BD71C052DEE41D800CEDD92 /* Config */,
 			);
 			name = OpenRCT2;
-			packageProductDependencies = (
-				8B41F6842DEDD25C001A66F9 /* OpenRCT2Core */,
-			);
 			productName = OpenRCT2;
 			productReference = 8B41F6452DEDD0D5001A66F9 /* OpenRCT2.app */;
 			productType = "com.apple.product-type.application";
@@ -151,9 +144,6 @@
 				8B41F65F2DEDD0D6001A66F9 /* OpenRCT2UITests */,
 			);
 			name = OpenRCT2UITests;
-			packageProductDependencies = (
-				8B41F6822DEDD23B001A66F9 /* OpenRCT2Core */,
-			);
 			productName = OpenRCT2UITests;
 			productReference = 8B41F65C2DEDD0D6001A66F9 /* OpenRCT2.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -469,16 +459,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCSwiftPackageProductDependency section */
-		8B41F6822DEDD23B001A66F9 /* OpenRCT2Core */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = OpenRCT2Core;
-		};
-		8B41F6842DEDD25C001A66F9 /* OpenRCT2Core */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = OpenRCT2Core;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8B41F63D2DEDD0D5001A66F9 /* Project object */;
 }
