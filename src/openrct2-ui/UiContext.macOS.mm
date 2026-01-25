@@ -9,22 +9,145 @@
 
 #if defined(__APPLE__) && defined(__MACH__)
 
-    #include "UiContext.h"
+    #include <TargetConditionals.h>
 
-    #include <openrct2/Diagnostic.h>
-    #include <openrct2/core/String.hpp>
-    #include <openrct2/ui/UiContext.h>
+    #if TARGET_OS_IOS
+        // iOS-specific implementation
+        #include "UiContext.h"
 
-    // undefine `interface` and `abstract`, because it's causing conflicts with Objective-C's keywords
-    #undef interface
-    #undef abstract
+        #include <openrct2/Diagnostic.h>
+        #include <openrct2/core/String.hpp>
+        #include <openrct2/ui/UiContext.h>
 
-    #include <ApplicationServices/ApplicationServices.h>
-    #import <Cocoa/Cocoa.h>
-    #include <CoreFoundation/CFBundle.h>
-    #include <SDL.h>
-    #include <mach-o/dyld.h>
-    #include <string>
+        #undef interface
+        #undef abstract
+
+        #include <SDL.h>
+        #import <UIKit/UIKit.h>
+        #include <string>
+
+namespace OpenRCT2::Ui
+{
+    class iOSContext final : public IPlatformUiContext
+    {
+    public:
+        iOSContext()
+        {
+        }
+
+        void SetWindowIcon(SDL_Window* window) override
+        {
+            // iOS apps use Info.plist for icons
+        }
+
+        bool IsSteamOverlayAttached() override
+        {
+            return false;
+        }
+
+        void ShowMessageBox(SDL_Window* window, const std::string& message) override
+        {
+            @autoreleasepool
+            {
+                UIAlertController* alert = [UIAlertController
+                    alertControllerWithTitle:@"OpenRCT2"
+                                     message:[NSString stringWithUTF8String:message.c_str()]
+                              preferredStyle:UIAlertControllerStyleAlert];
+                UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
+                [alert addAction:okAction];
+
+                // Get the root view controller to present the alert
+                UIWindow* keyWindow = nil;
+                for (UIWindowScene* scene in UIApplication.sharedApplication.connectedScenes)
+                {
+                    if (scene.activationState == UISceneActivationStateForegroundActive)
+                    {
+                        keyWindow = scene.keyWindow;
+                        break;
+                    }
+                }
+                UIViewController* rootVC = keyWindow.rootViewController;
+                if (rootVC)
+                {
+                    [rootVC presentViewController:alert animated:YES completion:nil];
+                }
+            }
+        }
+
+        bool HasMenuSupport() override
+        {
+            return false; // iOS doesn't have traditional menu support
+        }
+
+        int32_t ShowMenuDialog(
+            const std::vector<std::string>& options, const std::string& title, const std::string& text) override
+        {
+            // iOS implementation would use UIAlertController with action sheets
+            LOG_WARNING("ShowMenuDialog not fully implemented for iOS");
+            return 0;
+        }
+
+        void ShowBrowserLink(const std::string& url)
+        {
+            @autoreleasepool
+            {
+                NSURL* nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:url.c_str()]];
+                [[UIApplication sharedApplication] openURL:nsurl options:@{} completionHandler:nil];
+            }
+        }
+
+        void OpenFolder(const std::string& path) override
+        {
+            // iOS doesn't support opening folders directly
+            LOG_WARNING("OpenFolder not supported on iOS");
+        }
+
+        void OpenURL(const std::string& url) override
+        {
+            ShowBrowserLink(url);
+        }
+
+        std::string ShowFileDialog(SDL_Window* window, const FileDialogDesc& desc) override
+        {
+            LOG_WARNING("File dialogs not implemented for iOS");
+            return std::string();
+        }
+
+        std::string ShowDirectoryDialog(SDL_Window* window, const std::string& title) override
+        {
+            LOG_WARNING("Directory dialogs not implemented for iOS");
+            return std::string();
+        }
+
+        bool HasFilePicker() const override
+        {
+            return false; // iOS file picker requires different implementation
+        }
+    };
+
+    std::unique_ptr<IPlatformUiContext> CreatePlatformUiContext()
+    {
+        return std::make_unique<iOSContext>();
+    }
+} // namespace OpenRCT2::Ui
+
+    #else // macOS
+        #include "UiContext.h"
+
+        #include <openrct2/Diagnostic.h>
+        #include <openrct2/core/String.hpp>
+        #include <openrct2/ui/UiContext.h>
+
+        // undefine `interface` and `abstract`, because it's causing conflicts with Objective-C's keywords
+        #undef interface
+        #undef abstract
+
+        #include <ApplicationServices/ApplicationServices.h>
+        #import <Cocoa/Cocoa.h>
+        #include <CoreFoundation/CFBundle.h>
+        #include <SDL.h>
+        #include <mach-o/dyld.h>
+        #include <string>
 
 namespace OpenRCT2::Ui
 {
@@ -246,5 +369,7 @@ namespace OpenRCT2::Ui
         return std::make_unique<macOSContext>();
     }
 } // namespace OpenRCT2::Ui
+
+    #endif // TARGET_OS_IOS else (macOS)
 
 #endif // __APPLE__ && __MACH__

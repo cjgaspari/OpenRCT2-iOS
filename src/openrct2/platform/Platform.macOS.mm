@@ -24,6 +24,7 @@
     #include <AvailabilityMacros.h>
     #include <CoreText/CoreText.h>
     #include <Foundation/Foundation.h>
+    #include <TargetConditionals.h>
     #include <mach-o/dyld.h>
     #include <mach/mach_time.h>
     #include <pwd.h>
@@ -237,6 +238,10 @@ namespace OpenRCT2::Platform
 
     SteamPaths GetSteamPaths()
     {
+    #if TARGET_OS_IPHONE
+        // Steam is not available on iOS
+        return {};
+    #else
         const char* homeDir = getpwuid(getuid())->pw_dir;
         if (homeDir == nullptr)
         {
@@ -256,6 +261,7 @@ namespace OpenRCT2::Platform
         ret.manifests = "steamapps";
 
         return ret;
+    #endif
     }
 
     std::string GetFontPath(const TTFFontDescriptor& font)

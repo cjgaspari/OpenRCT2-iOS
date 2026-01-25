@@ -509,7 +509,8 @@ if (NOT MACOS_BUNDLE OR (MACOS_BUNDLE AND WITH_TESTS))
     install(DIRECTORY "data/" DESTINATION "${CMAKE_INSTALL_DATADIR}/openrct2")
 
     # even when building WITH_TESTS, none of the below install steps are required for OpenRCT2.app
-    if (NOT MACOS_BUNDLE)
+    # Also skip for iOS builds which handle installation differently
+    if (NOT MACOS_BUNDLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
         install(TARGETS "libopenrct2" LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
                                     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
         if(NOT DISABLE_GUI)
