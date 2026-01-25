@@ -10,12 +10,12 @@
 | M1: Xcode Foundation | ✅ Complete | 5/5 | C++ lib compiles for visionOS |
 | M2: VisionOSUiContext | ✅ Complete | 5/5 | Pixel buffer accessible from Swift |
 | M3: Metal Bridge | ✅ Complete | 4/4 | DrawableQueue renders at 90 Hz |
-| M4: RealityKit Display | 🔴 Not Started | 0/4 | Live gameplay in window ≥30fps |
+| M4: RealityKit Display | � In Progress | 1/4 | Live gameplay in window ≥30fps |
 | M5: Input | 🔴 Not Started | 0/5 | Look+pinch interaction works |
 | M6: Audio | 🔴 Not Started | 0/4 | Music + SFX via AVFoundation |
 
-**Total Progress**: 14/27 tasks (52%)  
-**Estimated Remaining**: ~50 hours
+**Total Progress**: 15/27 tasks (56%)  
+**Estimated Remaining**: ~46 hours
 
 ---
 
@@ -71,7 +71,7 @@
 
 | Ticket | Description | Status | Effort | Completed | Notes |
 |--------|-------------|--------|--------|-----------|-------|
-| VOS-030 | Create RealityView with Plane Entity | 🔴 Not Started | 4h | - | |
+| VOS-030 | Create RealityView with Plane Entity | ✅ Completed | 4h | 2026-01-25 | GameView with 1.28m×0.72m plane |
 | VOS-031 | Apply TextureResource to Plane Material | 🔴 Not Started | 4h | - | Depends: VOS-030, VOS-020 |
 | VOS-032 | Connect Game Loop to Render Pipeline | 🔴 Not Started | 4h | - | Depends: VOS-030, VOS-031 |
 | VOS-033 | Handle Window Resize | 🔴 Not Started | 3h | - | Depends: VOS-032 |
@@ -114,6 +114,7 @@
 | 2026-01-25 | VOS-001→005 | M1: Xcode Project Foundation | `7d6ed54fa0` | All 5 tickets |
 | 2026-01-25 | VOS-010→014 | M2: VisionOSUiContext Implementation | `ba2e0afc6c` | Full IUiContext |
 | 2026-01-25 | VOS-020→023 | M3: Metal Texture Bridge | `82ff67358d` | DrawableQueue pipeline |
+| 2026-01-25 | VOS-030 | RealityView with Plane Entity | `fa94f1c2c6` | GameView + InputTargetComponent |
 
 ---
 
