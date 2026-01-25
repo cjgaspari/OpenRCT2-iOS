@@ -143,11 +143,13 @@
 
 ### Known Issues
 
-1. **visionOS SDK CHAR_BIT Issue**: The visionOS SDK has a header ordering issue where `<climits>` must be included BEFORE any C++ stdlib headers like `<chrono>`, `<ratio>`, etc. Otherwise, undefined `CHAR_BIT` and `INT_MAX` errors occur. **Fix**: Include `<limits.h>` and `<climits>` at the very top of .cpp files before any other includes.
+1. ~~**visionOS SDK CHAR_BIT Issue**: The visionOS SDK has a header ordering issue where `<climits>` must be included BEFORE any C++ stdlib headers like `<chrono>`, `<ratio>`, etc. Otherwise, undefined `CHAR_BIT` and `INT_MAX` errors occur.~~ **FIXED**: Added comprehensive limit macro definitions (`CHAR_BIT`, `INT_MAX`, `ULONG_MAX`, etc.) to `Config/Debug.xcconfig` and `Config/Release.xcconfig` via `GCC_PREPROCESSOR_DEFINITIONS`.
 
 2. **PaletteIndex Enum Values**: `PaletteIndex::pi4` doesn't exist - use `pi10`, `pi14`, etc. Check `src/openrct2/drawing/PaletteIndex.h` for valid values.
 
-3. **SwiftUICore Linker Error**: Build currently fails at link stage with "cannot link directly with 'SwiftUICore'" - this is a project/SDK configuration issue requiring further investigation.
+3. ~~**SwiftUICore Linker Error**: Build currently fails at link stage with "cannot link directly with 'SwiftUICore'" - this is a project/SDK configuration issue requiring further investigation.~~ **FIXED**: This was resolved by fixing the SDK header issues.
+
+4. ~~**Network Framework Header Collision**: The Apple `Network.framework` conflicts with OpenRCT2's `src/openrct2/Network/Network.h` when `src/openrct2` is in the header search path.~~ **FIXED**: Removed `$(SRCROOT)/src/openrct2` from `HEADER_SEARCH_PATHS` in project.pbxproj. All OpenRCT2 headers should be included as `<openrct2/...>` not directly.
 
 ### Useful Commands
 
@@ -163,7 +165,23 @@ runTests
 
 # Verify environment
 mcp_xcodebuildmcp_doctor
+
+# Build via xcodebuild
+xcodebuild -project OpenRCT2.xcodeproj -scheme OpenRCT2 -destination 'generic/platform=visionOS Simulator' build
 ```
+
+### Files Changed for visionOS Build Fix (2026-01-25)
+
+| File | Change |
+|------|--------|
+| `Config/Debug.xcconfig` | Created with limit macro definitions |
+| `Config/Release.xcconfig` | Created with limit macro definitions |
+| `Config/Tests.xcconfig` | Created (empty placeholder) |
+| `Package.swift` | Added limit macros to cxxSettings, removed conflicting header path |
+| `OpenRCT2.xcodeproj/project.pbxproj` | Removed `$(SRCROOT)/src/openrct2` from header search paths |
+| `Sources/OpenRCT2Core/visionos/X8DrawingEngineVisionOS.cpp` | Created minimal X8DrawingEngine impl |
+| `Sources/OpenRCT2Core/visionos/InvalidationGridVisionOS.cpp` | Created visionOS-compatible copy |
+| `Sources/OpenRCT2Core/visionos/RenderTargetVisionOS.cpp` | Created visionOS-compatible copy |
 
 ---
 

@@ -15,7 +15,7 @@ namespace OpenRCT2
     namespace Ui
     {
         struct IUiContext;
-        
+
         // Factory - returns raw pointer, caller takes ownership
         // Use std::unique_ptr<IUiContext>(CreateVisionOSUiContext()) at call site
         [[nodiscard]] IUiContext* CreateVisionOSUiContext();

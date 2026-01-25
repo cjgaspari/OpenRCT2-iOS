@@ -22,6 +22,9 @@ let package = Package(
             sources: [
                 "OpenRCT2Shim.cpp",
                 "visionos/VisionOSUiContext.cpp",
+                "visionos/X8DrawingEngineVisionOS.cpp",
+                "visionos/InvalidationGridVisionOS.cpp",
+                "visionos/RenderTargetVisionOS.cpp",
             ],
             publicHeadersPath: "include",
             cSettings: [
@@ -34,10 +37,25 @@ let package = Package(
             ],
             cxxSettings: [
                 .headerSearchPath("../../src"),
-                .headerSearchPath("../../src/openrct2"),
                 .define("OPENRCT2_IOS", to: "1"),
                 .define("__VISIONOS__", to: "1"),
                 .define("CHAR_BIT", to: "8"),
+                .define("SCHAR_MAX", to: "127"),
+                .define("SCHAR_MIN", to: "(-128)"),
+                .define("UCHAR_MAX", to: "255"),
+                .define("SHRT_MAX", to: "32767"),
+                .define("SHRT_MIN", to: "(-32768)"),
+                .define("USHRT_MAX", to: "65535"),
+                .define("INT_MAX", to: "2147483647"),
+                .define("INT_MIN", to: "(-2147483647-1)"),
+                .define("UINT_MAX", to: "4294967295U"),
+                .define("LONG_MAX", to: "9223372036854775807L"),
+                .define("LONG_MIN", to: "(-9223372036854775807L-1)"),
+                .define("ULONG_MAX", to: "18446744073709551615UL"),
+                .define("LLONG_MAX", to: "9223372036854775807LL"),
+                .define("LLONG_MIN", to: "(-9223372036854775807LL-1)"),
+                .define("ULLONG_MAX", to: "18446744073709551615ULL"),
+                .unsafeFlags(["-std=c++20"]),
             ]
         ),
 

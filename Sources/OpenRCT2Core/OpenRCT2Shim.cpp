@@ -1,6 +1,6 @@
 /****************************************************************************
  * OpenRCT2Shim - C interface for Swift interoperability
- * 
+ *
  * This file is intentionally minimal. All implementation lives in
  * VisionOSUiContext.cpp which has access to the full C++ type definitions.
  ****************************************************************************/

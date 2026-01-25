@@ -4,19 +4,19 @@
 
 // Force include limits headers early for visionOS SDK compatibility
 // This MUST come before any C++ stdlib headers
-#include <limits.h>
+#include "VisionOSUiContext.h"
+
 #include <climits>
 #include <cstdint>
-
-#include "VisionOSUiContext.h"
+#include <limits.h>
 
 // Use mach time instead of <chrono> to avoid visionOS SDK header issues
 #include <mach/mach_time.h>
 
 // Include UiContext for IUiContext base class definition
 // NOTE: This must come AFTER limits headers due to visionOS SDK issues
-#include <openrct2/ui/UiContext.h>
 #include <openrct2/drawing/X8DrawingEngine.h>
+#include <openrct2/ui/UiContext.h>
 // NOTE: WindowManager.h is NOT included to avoid sfl/static_vector.hpp dependency
 // We provide a minimal stub that returns nullptr for GetWindowManager()
 
@@ -340,7 +340,7 @@ static bool g_initialized = false;
 bool openrct2_init(const char* configPath)
 {
     (void)configPath; // Unused for now
-    
+
     if (g_initialized)
         return true;
 
