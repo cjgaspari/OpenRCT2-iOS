@@ -156,6 +156,7 @@ mkdir build-ios && cd build-ios
 export SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
 export MIN_IOS=15.0
 
+# Note: --disable-tools is critical - ICU tools use system() which is unavailable on iOS
 ../configure \
     --host=arm-apple-darwin \
     --with-cross-build=$(pwd)/../build-host \
@@ -163,6 +164,8 @@ export MIN_IOS=15.0
     --disable-shared \
     --disable-samples \
     --disable-tests \
+    --disable-tools \
+    --disable-extras \
     --prefix=$(pwd)/../../icu-ios \
     CC="clang -arch arm64 -isysroot $SDK_PATH -mios-simulator-version-min=$MIN_IOS" \
     CXX="clang++ -arch arm64 -isysroot $SDK_PATH -mios-simulator-version-min=$MIN_IOS -std=c++17 -stdlib=libc++" \
