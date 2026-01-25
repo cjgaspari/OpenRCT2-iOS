@@ -101,3 +101,15 @@ void openrct2_touch_up(float x, float y)
     (void)x;
     (void)y;
 }
+
+int32_t openrct2_get_pitch(void)
+{
+    if (!g_initialized || !g_uiContext)
+        return 1280;  // Default width
+
+    auto* visionosCtx = AsVisionOSUiContext(const_cast<IUiContext*>(g_uiContext.get()));
+    if (!visionosCtx)
+        return 1280;
+
+    return visionosCtx->GetBufferPitch();
+}

@@ -27,9 +27,14 @@ void openrct2_tick(void);
 /// @return Pointer to pixel data (size: ORCT2_SCREEN_WIDTH * ORCT2_SCREEN_HEIGHT bytes)
 const uint8_t* openrct2_get_frame_buffer(void);
 
-/// Get pointer to color palette (RGB format)
-/// @return Pointer to palette data (size: 256 * 3 bytes for RGB entries)
+/// Get pointer to color palette (BGRA format)
+/// @return Pointer to palette data (size: 256 * 4 bytes for BGRA uint32_t entries)
+/// @note Returns as uint8_t* for C compatibility; cast to uint32_t* for use
 const uint8_t* openrct2_get_palette(void);
+
+/// Get pitch (stride) of frame buffer in bytes
+/// @return Bytes per row in frame buffer (may be >= width for alignment)
+int32_t openrct2_get_pitch(void);
 
 #ifdef __cplusplus
 }
