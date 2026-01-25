@@ -1,7 +1,6 @@
 {
     "version": "0.2.0",
     "configurations": [
-        
         {
             "name": "C++ Launch",
             "type": "cppdbg",
@@ -49,6 +48,26 @@
             "windows": {
                 "MIMode": "gdb"
             }
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:OpenRCT2-iOS}",
+            "name": "Debug OpenRCT2App",
+            "target": "OpenRCT2App",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug OpenRCT2App"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:OpenRCT2-iOS}",
+            "name": "Release OpenRCT2App",
+            "target": "OpenRCT2App",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release OpenRCT2App"
         }
     ]
 }
