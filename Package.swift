@@ -19,14 +19,23 @@ let package = Package(
             dependencies: [],
             path: "Sources/OpenRCT2Core",
             exclude: [],
-            sources: ["OpenRCT2Shim.c"],
+            sources: [
+                "OpenRCT2Shim.c",
+                "visionos/VisionOSUiContext.cpp"
+            ],
             publicHeadersPath: "include",
             cSettings: [
                 .headerSearchPath("include"),
+                .headerSearchPath("../../src"),
+                .headerSearchPath("../../src/openrct2"),
                 .define("OPENRCT2_IOS", to: "1"),
+                .define("__VISIONOS__", to: "1"),
             ],
             cxxSettings: [
+                .headerSearchPath("../../src"),
+                .headerSearchPath("../../src/openrct2"),
                 .define("OPENRCT2_IOS", to: "1"),
+                .define("__VISIONOS__", to: "1"),
             ]
         ),
 

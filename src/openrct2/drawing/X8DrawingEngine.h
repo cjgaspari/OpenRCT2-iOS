@@ -13,6 +13,7 @@
 #include "IDrawingEngine.h"
 #include "InvalidationGrid.h"
 #include "RenderTarget.h"
+#include "ColourPalette.h"
 
 #include <memory>
 
@@ -66,6 +67,8 @@ namespace OpenRCT2
             size_t _bitsSize = 0;
             uint8_t* _bits = nullptr;
 
+            std::array<uint32_t, OpenRCT2::Drawing::kGamePaletteSize> _paletteBGRA{};
+
             RenderTarget _mainRT = {};
 
             bool _lastLightFXenabled = false;
@@ -110,6 +113,13 @@ namespace OpenRCT2
             RenderTarget* getRT() override;
             DrawingEngineFlags GetFlags() override;
             void InvalidateImage(uint32_t image) override;
+
+            // VisionOS bridge accessors
+            uint8_t* GetPixelBuffer();
+            uint32_t GetBufferWidth() const;
+            uint32_t GetBufferHeight() const;
+            int32_t GetBufferPitch() const;
+            const uint32_t* GetPaletteBGRA() const;
 
         protected:
             void ConfigureBits(uint32_t width, uint32_t height, uint32_t pitch);

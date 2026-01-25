@@ -43,7 +43,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "8B41F65B2DEDD0D6001A66F9"
-               BuildableName = "OpenRCT2.xctest"
+               BuildableName = ".xctest"
                BlueprintName = "OpenRCT2UITests"
                ReferencedContainer = "container:OpenRCT2.xcodeproj">
             </BuildableReference>
