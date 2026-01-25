@@ -320,3 +320,6 @@ discord-rpc
 
 # CMake
 cmake-build-*/
+/build-ios
+/ios-deps
+/ios-vcpkg
