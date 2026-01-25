@@ -6,6 +6,7 @@ let package = Package(
     platforms: [
         .iOS(.v17),
         .macOS(.v14),
+        .visionOS(.v2),
     ],
     products: [
         .library(name: "OpenRCT2Core", targets: ["OpenRCT2Core"]),
@@ -22,6 +23,9 @@ let package = Package(
             publicHeadersPath: "include",
             cSettings: [
                 .headerSearchPath("include"),
+                .define("OPENRCT2_IOS", to: "1"),
+            ],
+            cxxSettings: [
                 .define("OPENRCT2_IOS", to: "1"),
             ]
         ),
