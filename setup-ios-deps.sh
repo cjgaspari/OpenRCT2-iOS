@@ -97,6 +97,7 @@ if [ "$SKIP_VCPKG" = false ]; then
         "openssl:arm64-ios-simulator"
         "bzip2:arm64-ios-simulator"
         "brotli:arm64-ios-simulator"
+        "nlohmann-json:arm64-ios-simulator"
     )
     
     for pkg in "${PACKAGES[@]}"; do
@@ -144,6 +145,11 @@ if [ "$SKIP_SDL2" = false ]; then
             -quiet
         
         cp -R ./build/Build/Products/Release-iphonesimulator/SDL2.framework "$DEPS_DIR/"
+        
+        # Fix SDL2 header include paths - headers use <SDL2/xxx.h> but are in flat Headers dir
+        cd "$DEPS_DIR/SDL2.framework/Headers"
+        ln -sf . SDL2
+        
         echo "✓ SDL2.framework built"
         
         cd "$WORKSPACE"
