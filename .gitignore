@@ -327,3 +327,9 @@ cmake-build-*/
 /visionos-deps
 /visionos-res
 /visionos-resources
+/build-visionos-device
+/.build/.lock
+/.build/index-build/.lock
+/.build/index-build/build.db
+/.build/index-build/debug.yaml
+/.build/index-build/plugin-tools.yaml
