@@ -15,6 +15,7 @@
 #include <string_view>
 
 #ifndef _WIN32
+    #include <cerrno>
     #include <sys/stat.h>
 #else
     #include <io.h>
@@ -66,6 +67,11 @@ namespace OpenRCT2
                 throw;
         }
 
+        // Diagnostic logging for visionOS file access
+        printf("[FileStream] Attempting to open: %s (mode: %s)\n", path, mode);
+        fprintf(stderr, "[FileStream] Attempting to open: %s (mode: %s)\n", path, mode);
+        fflush(stderr);
+
         // Make sure the directory exists before writing to a file inside it
         if (_canWrite)
         {
@@ -84,8 +90,22 @@ namespace OpenRCT2
         if (fileMode == FileMode::open)
         {
             struct stat fileStat;
+            // Check if file exists and is a regular file
+            int statResult = stat(path, &fileStat);
+            printf("[FileStream] stat() result for %s: %d\n", path, statResult);
+            if (statResult != 0)
+            {
+                printf("[FileStream] File not found or inaccessible: %s (errno: %d)\n", path, errno);
+                fprintf(stderr, "[FileStream] File not found or inaccessible: %s (errno: %d)\n", path, errno);
+            }
+            else
+            {
+                printf(
+                    "[FileStream] File exists, size: %zu, is_regular: %d\n", static_cast<size_t>(fileStat.st_size),
+                    S_ISREG(fileStat.st_mode) ? 1 : 0);
+            }
             // Only allow regular files to be opened as its possible to open directories.
-            if (stat(path, &fileStat) == 0 && S_ISREG(fileStat.st_mode))
+            if (statResult == 0 && S_ISREG(fileStat.st_mode))
             {
                 _file = fopen(path, mode);
             }
@@ -97,8 +117,13 @@ namespace OpenRCT2
 #endif
         if (_file == nullptr)
         {
+            printf("[FileStream] FAILED to open: %s\n", path);
+            fprintf(stderr, "[FileStream] FAILED to open: %s\n", path);
+            fflush(stderr);
             throw IOException(String::stdFormat("Unable to open '%s'", path));
         }
+        printf("[FileStream] Successfully opened: %s\n", path);
+        fflush(stdout);
 
 #ifdef _WIN32
         _fileSize = _filelengthi64(_fileno(_file));

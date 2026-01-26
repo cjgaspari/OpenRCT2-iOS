@@ -422,9 +422,13 @@ namespace OpenRCT2
 
         bool Initialise() final override
         {
+            printf("[Context::Initialise] ENTERED - diagnostic printf\n");
+            fprintf(stderr, "[Context::Initialise] ENTERED - diagnostic fprintf\n");
+            fflush(stderr);
             LOG_WARNING("[Context::Initialise] Starting...");
             if (_initialised)
             {
+                printf("[Context::Initialise] ERROR: Already initialised, throwing exception\n");
                 throw std::runtime_error("Context already initialised.");
             }
             _initialised = true;
@@ -559,13 +563,20 @@ namespace OpenRCT2
 
             if (!gOpenRCT2NoGraphics)
             {
+                printf("[Context::Initialise] About to call LoadBaseGraphics\n");
+                fprintf(stderr, "[Context::Initialise] About to call LoadBaseGraphics\n");
+                fflush(stderr);
                 LOG_WARNING("[Context::Initialise] Loading base graphics...");
                 if (!LoadBaseGraphics())
                 {
+                    printf("[Context::Initialise] LoadBaseGraphics FAILED - returning false\n");
+                    fprintf(stderr, "[Context::Initialise] LoadBaseGraphics FAILED - returning false\n");
+                    fflush(stderr);
                     LOG_WARNING("[Context::Initialise] FAILED: LoadBaseGraphics returned false");
                     fprintf(stderr, "[OpenRCT2] [Context] LoadBaseGraphics failed; returning false\n");
                     return false;
                 }
+                printf("[Context::Initialise] LoadBaseGraphics succeeded\n");
                 LOG_WARNING("[Context::Initialise] Base graphics loaded");
                 Drawing::LightFx::Init();
             }
