@@ -255,9 +255,9 @@
 **Description**: Swap GameView to host MetalLayerView.
 
 **Tasks**:
-- [ ] Create UIViewRepresentable wrapper
-- [ ] Wire lifecycle to start/stop display link
-- [ ] Remove RealityKit/DQ dependencies
+- [x] Create UIViewRepresentable wrapper
+- [x] Wire lifecycle to start/stop display link
+- [x] Remove RealityKit/DQ dependencies
 
 **Acceptance Criteria**:
 - GameView shows Metal-backed surface in window
@@ -270,9 +270,9 @@
 **Description**: Handle window size changes and framebuffer resize.
 
 **Tasks**:
-- [ ] Observe GeometryReader size changes
-- [ ] Compute contained framebuffer size (maintain aspect)
-- [ ] Call `openrct2_set_screen_size`; recreate texture on change
+- [x] Observe GeometryReader size changes
+- [x] Compute contained framebuffer size (maintain aspect)
+- [x] Call `openrct2_set_screen_size`; recreate texture on change
 
 **Acceptance Criteria**:
 - Resize works without tearing; letterboxing correct
@@ -285,9 +285,9 @@
 **Description**: Tie game tick + upload + draw together.
 
 **Tasks**:
-- [ ] Decide tick driver (MetalLayerView vs existing engineQueue)
-- [ ] Ensure `dt` passed to C++ tick; avoid double-ticking
-- [ ] Log-frame pacing for debugging
+- [x] Decide tick driver (MetalLayerView vs existing engineQueue)
+- [x] Ensure `dt` passed to C++ tick; avoid double-ticking
+- [x] Log-frame pacing for debugging
 
 **Acceptance Criteria**:
 - Continuous frames rendered from live game buffer

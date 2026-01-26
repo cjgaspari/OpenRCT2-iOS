@@ -99,11 +99,14 @@ final class MetalLayerRenderer {
         }
 
         let bytesPerRow = max(strideBytes, width)
+        if strideBytes < width {
+            print("🧰 [MetalRenderer] warning: strideBytes (\(strideBytes)) < width (\(width))")
+        }
         let region = MTLRegionMake2D(0, 0, width, height)
         indexedTexture.replace(region: region, mipmapLevel: 0, withBytes: framePtr, bytesPerRow: bytesPerRow)
     }
 
-    func draw(to layer: CAMetalLayer) throws {
+    func draw(to layer: CAMetalLayer, viewport: MTLViewport) throws {
         guard let drawable = layer.nextDrawable() else {
             return
         }
@@ -126,8 +129,10 @@ final class MetalLayerRenderer {
             let threadWidth = computePipelineState.threadExecutionWidth
             let threadHeight = max(1, computePipelineState.maxTotalThreadsPerThreadgroup / threadWidth)
             let threadsPerThreadgroup = MTLSize(width: threadWidth, height: threadHeight, depth: 1)
-            let threadsPerGrid = MTLSize(width: currentWidth, height: currentHeight, depth: 1)
-            computeEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+            let groupWidth = (currentWidth + threadWidth - 1) / threadWidth
+            let groupHeight = (currentHeight + threadHeight - 1) / threadHeight
+            let threadgroups = MTLSize(width: groupWidth, height: groupHeight, depth: 1)
+            computeEncoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerThreadgroup)
             computeEncoder.endEncoding()
         }
 
@@ -139,6 +144,7 @@ final class MetalLayerRenderer {
 
         if let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: passDescriptor) {
             renderEncoder.setRenderPipelineState(renderPipelineState)
+            renderEncoder.setViewport(viewport)
             renderEncoder.setFragmentTexture(outputTexture, index: 0)
             renderEncoder.setFragmentSamplerState(samplerState, index: 0)
             renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
@@ -159,6 +165,7 @@ final class MetalLayerRenderer {
         if paletteBuffer == nil {
             throw RendererError.paletteBufferUnavailable
         }
+        print("🧰 [MetalRenderer] palette buffer allocated (\(paletteSize) bytes)")
     }
 
     private func ensureTextures(width: Int, height: Int) throws {
@@ -204,6 +211,7 @@ final class MetalLayerRenderer {
         outputIndex = 0
         currentWidth = width
         currentHeight = height
+        print("🧱 [MetalRenderer] textures allocated \(width)x\(height) (doubleBuffering=\(useDoubleBuffering))")
     }
 
     private var currentOutputTexture: MTLTexture? {
