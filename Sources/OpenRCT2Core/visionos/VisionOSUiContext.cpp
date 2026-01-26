@@ -58,6 +58,7 @@ static inline os_log_t getOpenRCT2Log()
     #include <openrct2/audio/AudioContext.h>
     #include <openrct2/core/File.h>
     #include <openrct2/core/FileStream.h>
+    #include <openrct2/drawing/Drawing.h>
     #include <openrct2/drawing/G1Element.h>
     #include <openrct2/drawing/IDrawingEngine.h>
     #include <openrct2/paint/Painter.h>
@@ -1114,6 +1115,7 @@ bool openrct2_init_full(void)
     fprintf(stderr, "[OpenRCT2] openrct2_init_full starting...\n");
     fflush(stderr);
     printf("[OpenRCT2] openrct2_init_full starting...\n");
+    printf("[OpenRCT2] visionOS build marker: VOS-G2FIX-2026-01-26-01\n");
 
     if (!g_initialized)
     {
@@ -1167,6 +1169,12 @@ bool openrct2_init_full(void)
         gOpenRCT2StartupAction = StartupAction::Title;
         gOpenRCT2Headless = false;
         printf("[OpenRCT2] Set gOpenRCT2StartupAction=Title, gOpenRCT2Headless=false\n");
+        gOpenRCT2NoGraphics = false;
+        printf("[OpenRCT2] Set gOpenRCT2NoGraphics=false\n");
+
+        printf("[OpenRCT2] Preloading g2/fonts/tracks...\n");
+        GfxLoadG2FontsAndTracks();
+        printf("[OpenRCT2] Preloading g2/fonts/tracks done\n");
 
         printf("[OpenRCT2] Calling g_context->Initialise()...\n");
         os_log_info(getOpenRCT2Log(), "Calling g_context->Initialise()...");

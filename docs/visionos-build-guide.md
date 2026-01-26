@@ -12,7 +12,7 @@
 cmake -S . -B build-visionos \
   -DCMAKE_TOOLCHAIN_FILE=cmake/visionos-simulator.toolchain.cmake \
   -DCMAKE_BUILD_TYPE=Release \
-  -DDISABLE_GUI=ON \
+  -DDISABLE_GUI=OFF \
   -DDISABLE_SDL=ON \
   -DDISABLE_DISCORD_RPC=ON \
   -DDISABLE_OPENGL=ON \
@@ -92,4 +92,38 @@ xcrun simctl install 9EC16DBE-2A87-4655-B4BE-966355FDE0DC \
   /Users/cjgaspari/Library/Developer/Xcode/DerivedData/OpenRCT2-avzzmbdocphjaeahkchvjqlqakdd/Build/Products/Debug-xrsimulator/OpenRCT2.app
 
 xcrun simctl launch 9EC16DBE-2A87-4655-B4BE-966355FDE0DC com.openrct2.visionos
+```
+
+### Issue: g2.dat invalid entry (use macOS build/ dat files)
+```sh
+cp -f build/g2.dat build/fonts.dat build/tracks.dat visionos-resources/
+
+xcodebuild -project OpenRCT2.xcodeproj -scheme OpenRCT2 \
+  -destination 'platform=visionOS Simulator,id=9EC16DBE-2A87-4655-B4BE-966355FDE0DC' \
+  -configuration Debug \
+  build
+
+xcrun simctl install 9EC16DBE-2A87-4655-B4BE-966355FDE0DC \
+  /Users/cjgaspari/Library/Developer/Xcode/DerivedData/OpenRCT2-avzzmbdocphjaeahkchvjqlqakdd/Build/Products/Debug-xrsimulator/OpenRCT2.app
+
+xcrun simctl launch 9EC16DBE-2A87-4655-B4BE-966355FDE0DC com.openrct2.visionos
+```
+
+### Verify rebuild (temporary build marker)
+Added a temporary log line in `Sources/OpenRCT2Core/visionos/VisionOSUiContext.cpp`:
+```
+[OpenRCT2] visionOS build marker: VOS-G2FIX-2026-01-26-01
+```
+
+Rebuild + launch to confirm the marker prints:
+```sh
+xcodebuild -project OpenRCT2.xcodeproj -scheme OpenRCT2 \
+  -destination 'platform=visionOS Simulator,id=9EC16DBE-2A87-4655-B4BE-966355FDE0DC' \
+  -configuration Debug \
+  build
+
+xcrun simctl install 9EC16DBE-2A87-4655-B4BE-966355FDE0DC \
+  /Users/cjgaspari/Library/Developer/Xcode/DerivedData/OpenRCT2-avzzmbdocphjaeahkchvjqlqakdd/Build/Products/Debug-xrsimulator/OpenRCT2.app
+
+xcrun simctl launch --console 9EC16DBE-2A87-4655-B4BE-966355FDE0DC com.openrct2.visionos
 ```
