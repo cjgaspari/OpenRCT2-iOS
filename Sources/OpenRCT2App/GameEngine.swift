@@ -5,6 +5,35 @@ import os.log
 
 private let gameEngineLog = OSLog(subsystem: "io.openrct2.OpenRCT2", category: "GameEngine")
 
+final class OpenRCT2TickCoordinator {
+    enum Owner {
+        case engineQueue
+        case displayLink
+    }
+
+    static let shared = OpenRCT2TickCoordinator()
+    private let lock = NSLock()
+    private var owner: Owner?
+
+    func acquire(_ newOwner: Owner) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        if owner == nil || owner == newOwner {
+            owner = newOwner
+            return true
+        }
+        return false
+    }
+
+    func release(_ existingOwner: Owner) {
+        lock.lock()
+        defer { lock.unlock() }
+        if owner == existingOwner {
+            owner = nil
+        }
+    }
+}
+
 /// C interop bindings for OpenRCT2
 @_silgen_name("openrct2_set_paths")
 func openrct2_set_paths(
@@ -143,6 +172,10 @@ final class GameEngine: @unchecked Sendable {
     /// Game ticks are independent from display refresh (90/120 Hz)
     func start() {
         guard !isRunning else { return }
+        guard OpenRCT2TickCoordinator.shared.acquire(.engineQueue) else {
+            os_log(.error, log: gameEngineLog, "Tick loop already owned by another driver.")
+            return
+        }
         isRunning = true
 
         engineQueue.async { [weak self] in
@@ -153,6 +186,7 @@ final class GameEngine: @unchecked Sendable {
     /// Stops the game loop
     func stop() {
         isRunning = false
+        OpenRCT2TickCoordinator.shared.release(.engineQueue)
     }
 
     /// Main game loop cycle

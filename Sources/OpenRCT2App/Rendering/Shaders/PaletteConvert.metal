@@ -77,3 +77,30 @@ kernel void testPattern(
         outTexture.write(half4(0, 0, 0, 1), gid);  // Black
     }
 }
+
+/// Converts indexed pixels stored in a texture to BGRA output using palette buffer.
+kernel void convertIndexedTextureToRGBA(
+    texture2d<uint, access::read> indexedTexture [[texture(0)]],
+    device const uint32_t* paletteBuffer [[buffer(0)]],
+    texture2d<half, access::write> outTexture [[texture(1)]],
+    uint2 gid [[thread_position_in_grid]])
+{
+    uint width = outTexture.get_width();
+    uint height = outTexture.get_height();
+
+    if (gid.x >= width || gid.y >= height) {
+        return;
+    }
+
+    uint4 indexValue = indexedTexture.read(gid);
+    uint paletteIndex = indexValue.r & 0xFF;
+    uint32_t bgraValue = paletteBuffer[paletteIndex];
+
+    uint8_t b = (bgraValue >> 0) & 0xFF;
+    uint8_t g = (bgraValue >> 8) & 0xFF;
+    uint8_t r = (bgraValue >> 16) & 0xFF;
+    uint8_t a = (bgraValue >> 24) & 0xFF;
+
+    half4 rgba = half4(half(r) / 255.0, half(g) / 255.0, half(b) / 255.0, half(a) / 255.0);
+    outTexture.write(rgba, gid);
+}

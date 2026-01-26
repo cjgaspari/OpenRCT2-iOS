@@ -1,4 +1,4 @@
-// Shaders.metal - Simple fullscreen quad shader for displaying game frame buffer
+// Shaders.metal - Fullscreen triangle shader for displaying game frame buffer
 #include <metal_stdlib>
 using namespace metal;
 
@@ -7,34 +7,30 @@ struct VertexOut {
     float2 texCoord;
 };
 
-// Fullscreen quad vertices (2 triangles)
-constant float2 quadVertices[] = {
-    float2(-1, -1),  // bottom-left
-    float2( 1, -1),  // bottom-right
-    float2(-1,  1),  // top-left
-    float2( 1, -1),  // bottom-right
-    float2( 1,  1),  // top-right
-    float2(-1,  1),  // top-left
+// Fullscreen triangle (3 vertices) to cover the screen without gaps.
+constant float2 triangleVertices[] = {
+    float2(-1.0, -1.0),
+    float2( 3.0, -1.0),
+    float2(-1.0,  3.0)
 };
 
-constant float2 quadTexCoords[] = {
-    float2(0, 1),  // bottom-left (flipped Y for Metal)
-    float2(1, 1),  // bottom-right
-    float2(0, 0),  // top-left
-    float2(1, 1),  // bottom-right
-    float2(1, 0),  // top-right
-    float2(0, 0),  // top-left
+constant float2 triangleTexCoords[] = {
+    float2(0.0, 1.0),
+    float2(2.0, 1.0),
+    float2(0.0, -1.0)
 };
 
-vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {
+vertex VertexOut vertex_main(uint vertexID [[vertex_id]]) {
     VertexOut out;
-    out.position = float4(quadVertices[vertexID], 0, 1);
-    out.texCoord = quadTexCoords[vertexID];
+    out.position = float4(triangleVertices[vertexID], 0.0, 1.0);
+    out.texCoord = triangleTexCoords[vertexID];
     return out;
 }
 
-fragment float4 fragmentShader(VertexOut in [[stage_in]],
-                                texture2d<float> gameTexture [[texture(0)]]) {
-    constexpr sampler textureSampler(mag_filter::nearest, min_filter::nearest);
-    return gameTexture.sample(textureSampler, in.texCoord);
+fragment float4 fragment_main(
+    VertexOut in [[stage_in]],
+    texture2d<float> frameTexture [[texture(0)]],
+    sampler frameSampler [[sampler(0)]]
+) {
+    return frameTexture.sample(frameSampler, in.texCoord);
 }

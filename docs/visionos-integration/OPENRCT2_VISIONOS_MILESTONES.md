@@ -176,9 +176,9 @@
 **Description**: UIView subclass with CAMetalLayer and render loop.
 
 **Tasks**:
-- [ ] Override `layerClass` → CAMetalLayer; set pixelFormat BGRA8
-- [ ] Own `MTLDevice`/`MTLCommandQueue`
-- [ ] Manage `CADisplayLink` tick hook
+- [x] Override `layerClass` → CAMetalLayer; set pixelFormat BGRA8
+- [x] Own `MTLDevice`/`MTLCommandQueue`
+- [x] Manage `CADisplayLink` tick hook
 
 **Acceptance Criteria**:
 - MetalLayerView draws a clear color to the layer without crashing
@@ -191,10 +191,10 @@
 **Description**: Minimal vertex/fragment pipeline for fullscreen triangle.
 
 **Tasks**:
-- [ ] Add Shaders.metal (vertex_main/fragment_main, nearest sampler)
-- [ ] Create `MTLRenderPipelineState`
-- [ ] Create `MTLSamplerState` (nearest, clamp)
-- [ ] Optional fragment swizzle path if C++ cannot emit BGRA
+- [x] Add Shaders.metal (vertex_main/fragment_main, nearest sampler)
+- [x] Create `MTLRenderPipelineState`
+- [x] Create `MTLSamplerState` (nearest, clamp)
+- [x] Optional fragment swizzle path if C++ cannot emit BGRA
 
 **Acceptance Criteria**:
 - Pipeline compiles; triangle renders with a test texture
@@ -207,9 +207,9 @@
 **Description**: Manage reusable `MTLTexture` for framebuffer uploads.
 
 **Tasks**:
-- [ ] `ensureTexture(width:height:)` recreates on size change only
-- [ ] `upload(framePtr:strideBytes:)` using `replaceRegion`
-- [ ] Optional double-buffering toggle
+- [x] `ensureTexture(width:height:)` recreates on size change only
+- [x] `upload(framePtr:strideBytes:)` using `replaceRegion`
+- [x] Optional double-buffering toggle
 
 **Acceptance Criteria**:
 - Upload shows correct colors; no per-frame recreation; stride uses `bytesPerRow = width + pitch` from C ABI
@@ -222,9 +222,9 @@
 **Description**: Encode draw pass to CAMetalLayer drawable.
 
 **Tasks**:
-- [ ] Create render pass descriptor targeting drawable
-- [ ] Bind texture + sampler; draw 3-vertex triangle
-- [ ] Present drawable; handle nil drawable gracefully
+- [x] Create render pass descriptor targeting drawable
+- [x] Bind texture + sampler; draw 3-vertex triangle
+- [x] Present drawable; handle nil drawable gracefully
 
 **Acceptance Criteria**:
 - Frame presents without GPU validation errors
@@ -237,9 +237,9 @@
 **Description**: Use CAMetalLayer view’s `CADisplayLink` to drive game tick + upload + draw.
 
 **Tasks**:
-- [ ] Create display link inside MetalLayerView; call `rct2_update/openrct2_tick`
-- [ ] Keep rendering on main; pause when app inactive or drawable nil
-- [ ] Ensure no double-ticking if background engine thread remains
+- [x] Create display link inside MetalLayerView; call `rct2_update/openrct2_tick`
+- [x] Keep rendering on main; pause when app inactive or drawable nil
+- [x] Ensure no double-ticking if background engine thread remains
 
 **Acceptance Criteria**:
 - Single loop drives tick/upload/draw; no duplicate ticks; resumes cleanly after pause
