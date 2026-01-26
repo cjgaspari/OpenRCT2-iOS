@@ -49,8 +49,12 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 # (SDK path already obtained above)
 
 # Dependency paths
-set(VCPKG_ROOT "/Users/cjgaspari/Developer/OpenRCT2-iOS/ios-vcpkg/installed/arm64-xros-simulator")
-set(ICU_ROOT "/Users/cjgaspari/Developer/OpenRCT2-iOS/ios-deps/icu-ios")
+get_filename_component(OPENRCT2_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+set(VCPKG_ROOT "${OPENRCT2_ROOT}/ios-vcpkg/installed/arm64-xros-simulator")
+set(ICU_ROOT "${OPENRCT2_ROOT}/visionos-deps/icu-visionos")
+if(NOT EXISTS "${ICU_ROOT}/include")
+    set(ICU_ROOT "${OPENRCT2_ROOT}/ios-deps/icu-ios")
+endif()
 
 # Set up CMake search paths
 set(CMAKE_FIND_ROOT_PATH 
@@ -72,12 +76,16 @@ set(CMAKE_FIND_FRAMEWORK LAST)
 add_compile_definitions(__VISIONOS__)
 add_compile_definitions(__VISIONOS_SIMULATOR__)
 
-# Tell CMake about our ICU installation
-set(ICU_ROOT "${ICU_ROOT}" CACHE PATH "ICU installation")
-set(ICU_INCLUDE_DIR "${ICU_ROOT}/include" CACHE PATH "ICU includes")
-set(ICU_UC_LIBRARY "${ICU_ROOT}/lib/libicuuc.a" CACHE FILEPATH "ICU uc library")
-set(ICU_I18N_LIBRARY "${ICU_ROOT}/lib/libicui18n.a" CACHE FILEPATH "ICU i18n library")
-set(ICU_DATA_LIBRARY "${ICU_ROOT}/lib/libicudata.a" CACHE FILEPATH "ICU data library")
+# Tell CMake about our ICU installation if present
+if(EXISTS "${ICU_ROOT}/include")
+    set(ICU_ROOT "${ICU_ROOT}" CACHE PATH "ICU installation")
+    set(ICU_INCLUDE_DIR "${ICU_ROOT}/include" CACHE PATH "ICU includes")
+    set(ICU_UC_LIBRARY "${ICU_ROOT}/lib/libicuuc.a" CACHE FILEPATH "ICU uc library")
+    set(ICU_I18N_LIBRARY "${ICU_ROOT}/lib/libicui18n.a" CACHE FILEPATH "ICU i18n library")
+    set(ICU_DATA_LIBRARY "${ICU_ROOT}/lib/libicudata.a" CACHE FILEPATH "ICU data library")
+else()
+    message(WARNING "visionOS simulator ICU not found at ${ICU_ROOT}")
+endif()
 
 # Tell CMake about FreeType
 set(FREETYPE_INCLUDE_DIR_freetype2 "${VCPKG_ROOT}/include/freetype2" CACHE PATH "")

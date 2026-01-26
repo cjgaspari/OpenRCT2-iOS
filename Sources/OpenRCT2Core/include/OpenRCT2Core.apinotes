@@ -1,5 +1,5 @@
 ---
-Name: OpenRCT2
+Name: OpenRCT2Core
 
 Functions:
   - Name: openrct2_init

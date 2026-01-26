@@ -1,4 +1,4 @@
 module OpenRCT2Core {
-    header "OpenRCT2CoreWrapper.h"
+    header "OpenRCT2Core.h"
     export *
 }

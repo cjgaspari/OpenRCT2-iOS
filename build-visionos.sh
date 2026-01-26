@@ -1,43 +1,57 @@
 #!/bin/bash
-# build-visionos.sh - Build OpenRCT2 for visionOS Simulator
+# build-visionos.sh - Build OpenRCT2 for visionOS (simulator or device)
 #
 # This script builds the full libopenrct2.a static library for visionOS.
 # After building, the library can be linked into the Xcode project.
 #
-# Usage: ./build-visionos.sh [--skip-deps] [--clean] [--install-deps] [--boot-sim]
+# Usage: ./build-visionos.sh [--simulator|--device] [--skip-deps] [--clean] [--install-deps] [--build-icu] [--build-libzip] [--boot-sim]
 #
 # Prerequisites:
-#   - Xcode with visionOS SDK + Simulator runtime + device type profiles
+#   - Xcode with visionOS SDK (simulator runtime optional for device-only builds)
 #   - vcpkg dependencies (run with --install-deps first time)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="$SCRIPT_DIR"
-BUILD_DIR="$WORKSPACE/build-visionos"
 VCPKG_ROOT="$WORKSPACE/ios-vcpkg"
-VCPKG_INSTALLED="$VCPKG_ROOT/installed/arm64-xros-simulator"
-ICU_ROOT="$WORKSPACE/ios-deps/icu-visionos"
-TRIPLET="arm64-xros-simulator"
 
 # Parse arguments
+BUILD_TARGET="simulator"
+if [[ "${DEVICE:-}" == "1" ]]; then
+    BUILD_TARGET="device"
+fi
+if [[ "${SIMULATOR:-}" == "1" ]]; then
+    BUILD_TARGET="simulator"
+fi
+
 SKIP_DEPS=false
 CLEAN_BUILD=false
 INSTALL_DEPS=false
+BUILD_ICU=false
+BUILD_LIBZIP=false
 BOOT_SIM=false
 
 for arg in "$@"; do
     case $arg in
+        --device) BUILD_TARGET="device" ;;
+        --simulator) BUILD_TARGET="simulator" ;;
         --skip-deps) SKIP_DEPS=true ;;
         --clean) CLEAN_BUILD=true ;;
         --install-deps) INSTALL_DEPS=true ;;
+        --build-icu) BUILD_ICU=true ;;
+        --build-libzip) BUILD_LIBZIP=true ;;
         --boot-sim) BOOT_SIM=true ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
+            echo "  --simulator     Build for visionOS Simulator (default)"
+            echo "  --device        Build for visionOS device"
             echo "  --skip-deps     Skip vcpkg dependency check"
             echo "  --install-deps  Install vcpkg dependencies (first time setup)"
+            echo "  --build-icu     Build ICU for the selected platform"
+            echo "  --build-libzip  Build libzip for the selected platform"
             echo "  --clean         Clean build directory before building"
             echo "  --boot-sim      Boot the selected visionOS simulator (optional)"
             exit 0
@@ -45,32 +59,73 @@ for arg in "$@"; do
     esac
 done
 
+if [[ "$INSTALL_DEPS" == "true" ]]; then
+    BUILD_ICU=true
+    BUILD_LIBZIP=true
+fi
+
+if [[ "$BUILD_TARGET" == "device" ]] && [[ "$BOOT_SIM" == "true" ]]; then
+    echo "⚠ --boot-sim ignored for device builds"
+    BOOT_SIM=false
+fi
+
+if [[ "$BUILD_TARGET" == "device" ]]; then
+    BUILD_DIR="$WORKSPACE/build-visionos-device"
+    TRIPLET="arm64-xros"
+    TOOLCHAIN_FILE="$WORKSPACE/cmake/visionos-arm64.toolchain.cmake"
+    VCPKG_INSTALLED="$VCPKG_ROOT/installed/$TRIPLET"
+    ICU_ROOT="$WORKSPACE/visionos-deps/icu-visionos-device"
+    LIBZIP_ROOT="$WORKSPACE/visionos-deps/libzip-visionos-device"
+    SDK_NAME="xros"
+    SDK_LABEL="visionOS Device"
+else
+    BUILD_DIR="$WORKSPACE/build-visionos"
+    TRIPLET="arm64-xros-simulator"
+    TOOLCHAIN_FILE="$WORKSPACE/cmake/visionos-simulator.toolchain.cmake"
+    VCPKG_INSTALLED="$VCPKG_ROOT/installed/$TRIPLET"
+    ICU_ROOT="$WORKSPACE/visionos-deps/icu-visionos"
+    LIBZIP_ROOT="$WORKSPACE/visionos-deps/libzip-visionos"
+    SDK_NAME="xrsimulator"
+    SDK_LABEL="visionOS Simulator"
+fi
+
 echo "=============================================="
-echo "Building OpenRCT2 for visionOS Simulator"
+echo "Building OpenRCT2 for ${SDK_LABEL}"
 echo "=============================================="
 echo ""
 
 # ------------------------------
 # Xcode + visionOS SDK check
 # ------------------------------
-# Discover the correct visionOS Simulator SDK name from Xcode (e.g. xrsimulator26.1)
-VISIONOS_SIM_SDK="$(xcodebuild -showsdks | awk '/Simulator - visionOS/{print $NF; exit}')"
+if [[ "$BUILD_TARGET" == "simulator" ]]; then
+    # Discover the correct visionOS Simulator SDK name from Xcode (e.g. xrsimulator26.1)
+    VISIONOS_SIM_SDK="$(xcodebuild -showsdks | awk '/Simulator - visionOS/{print $NF; exit}')"
 
-if [[ -z "${VISIONOS_SIM_SDK}" ]]; then
-    echo "❌ visionOS Simulator SDK not found!"
-    echo "   Install visionOS platform in Xcode (Xcode > Settings > Platforms)"
-    echo "   Debug: xcodebuild -showsdks"
-    exit 1
+    if [[ -z "${VISIONOS_SIM_SDK}" ]]; then
+        echo "❌ visionOS Simulator SDK not found!"
+        echo "   Install visionOS platform in Xcode (Xcode > Settings > Platforms)"
+        echo "   Debug: xcodebuild -showsdks"
+        exit 1
+    fi
+
+    if ! xcrun --sdk "${VISIONOS_SIM_SDK}" --show-sdk-path &>/dev/null; then
+        echo "❌ visionOS Simulator SDK not usable via xcrun: ${VISIONOS_SIM_SDK}"
+        echo "   Debug: xcodebuild -showsdks"
+        exit 1
+    fi
+
+    XROS_SDK="$(xcrun --sdk "${VISIONOS_SIM_SDK}" --show-sdk-path)"
+    echo "✓ visionOS Simulator SDK (${VISIONOS_SIM_SDK}): $XROS_SDK"
+else
+    if ! xcrun --sdk xros --show-sdk-path &>/dev/null; then
+        echo "❌ visionOS device SDK not usable via xcrun: xros"
+        echo "   Install visionOS platform in Xcode (Xcode > Settings > Platforms)"
+        exit 1
+    fi
+
+    XROS_SDK="$(xcrun --sdk xros --show-sdk-path)"
+    echo "✓ visionOS Device SDK (xros): $XROS_SDK"
 fi
-
-if ! xcrun --sdk "${VISIONOS_SIM_SDK}" --show-sdk-path &>/dev/null; then
-    echo "❌ visionOS Simulator SDK not usable via xcrun: ${VISIONOS_SIM_SDK}"
-    echo "   Debug: xcodebuild -showsdks"
-    exit 1
-fi
-
-XROS_SDK="$(xcrun --sdk "${VISIONOS_SIM_SDK}" --show-sdk-path)"
-echo "✓ visionOS Simulator SDK (${VISIONOS_SIM_SDK}): $XROS_SDK"
 
 # ------------------------------
 # Simulator device selection
@@ -78,6 +133,7 @@ echo "✓ visionOS Simulator SDK (${VISIONOS_SIM_SDK}): $XROS_SDK"
 #  visionOS simulator runtime + device type profiles exist, and we select
 #  a device UDID for downstream steps / sanity checks.)
 # ------------------------------
+if [[ "$BUILD_TARGET" == "simulator" ]]; then
 
 # Check for Vision Pro device types - use explicit matching
 # Also check the device type identifier pattern for visionOS
@@ -186,6 +242,10 @@ if [[ "${BOOT_SIM}" == "true" ]] && [[ -n "${VISIONOS_SIM_UDID}" ]]; then
 fi
 
 fi  # end of device selection block
+else
+    XROS_RUNTIME_ID=""
+    VISIONOS_SIM_UDID=""
+fi
 
 # Export for downstream scripts (if they source this script)
 export XROS_RUNTIME_ID
@@ -228,44 +288,63 @@ if [ "$INSTALL_DEPS" = true ]; then
 fi
 
 # ------------------------------
+# Build ICU/libzip (optional)
+# ------------------------------
+if [ "$BUILD_ICU" = true ]; then
+    if [ -f "$ICU_ROOT/lib/libicuuc.a" ]; then
+        echo "✓ ICU already present at $ICU_ROOT"
+    else
+        echo ""
+        echo "=== Building ICU (${BUILD_TARGET}) ==="
+        if [[ "$BUILD_TARGET" == "device" ]]; then
+            ./build-icu-visionos.sh --device
+        else
+            ./build-icu-visionos.sh --simulator
+        fi
+    fi
+fi
+
+if [ "$BUILD_LIBZIP" = true ]; then
+    if [ -f "$LIBZIP_ROOT/lib/libzip.a" ]; then
+        echo "✓ libzip already present at $LIBZIP_ROOT"
+    else
+        echo ""
+        echo "=== Building libzip (${BUILD_TARGET}) ==="
+        if [[ "$BUILD_TARGET" == "device" ]]; then
+            ./build-libzip-visionos.sh --device
+        else
+            ./build-libzip-visionos.sh --simulator
+        fi
+    fi
+fi
+
+# ------------------------------
 # Check dependencies exist
 # ------------------------------
 if [ "$SKIP_DEPS" = false ]; then
     if [ ! -d "$VCPKG_INSTALLED/lib" ]; then
         echo ""
-        echo "⚠ vcpkg dependencies not found at $VCPKG_INSTALLED"
+        echo "❌ vcpkg dependencies not found at $VCPKG_INSTALLED"
         echo "   Run with --install-deps to install them, or --skip-deps to skip check"
-        echo ""
-        echo "   Attempting to use iOS Simulator dependencies as fallback..."
-
-        IOS_VCPKG="$VCPKG_ROOT/installed/arm64-ios-simulator"
-        if [ -d "$IOS_VCPKG/lib" ]; then
-            echo "   Found iOS Simulator dependencies, using those"
-            VCPKG_INSTALLED="$IOS_VCPKG"
-        else
-            echo "❌ No dependencies found. Run: ./build-visionos.sh --install-deps"
-            exit 1
-        fi
+        exit 1
     fi
     echo "✓ Using dependencies from: $VCPKG_INSTALLED"
-fi
 
-# ------------------------------
-# Check ICU
-# ------------------------------
-if [ ! -d "$ICU_ROOT" ]; then
-    echo ""
-    echo "⚠ ICU for visionOS not found at $ICU_ROOT"
-    echo "   Checking for iOS ICU as fallback..."
-
-    IOS_ICU="$WORKSPACE/ios-deps/icu-ios"
-    if [ -d "$IOS_ICU" ]; then
-        echo "   Found iOS ICU"
-        ICU_ROOT="$IOS_ICU"
-    else
-        echo "⚠ ICU not found - build may fail for localization features"
-        ICU_ROOT=""
+    if [ ! -f "$LIBZIP_ROOT/lib/libzip.a" ]; then
+        echo ""
+        echo "❌ libzip not found at $LIBZIP_ROOT"
+        echo "   Run: ./build-libzip-visionos.sh --${BUILD_TARGET}"
+        exit 1
     fi
+    echo "✓ Using libzip from: $LIBZIP_ROOT"
+
+    if [ ! -f "$ICU_ROOT/lib/libicuuc.a" ]; then
+        echo ""
+        echo "❌ ICU not found at $ICU_ROOT"
+        echo "   Run: ./build-icu-visionos.sh --${BUILD_TARGET}"
+        exit 1
+    fi
+    echo "✓ Using ICU from: $ICU_ROOT"
 fi
 
 # ------------------------------
@@ -288,7 +367,7 @@ echo "=== Configuring CMake ==="
 
 CMAKE_ARGS=(
     "$WORKSPACE"
-    "-DCMAKE_TOOLCHAIN_FILE=$WORKSPACE/cmake/visionos-simulator.toolchain.cmake"
+    "-DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN_FILE"
     "-DCMAKE_BUILD_TYPE=Release"
 
     # Dependency paths
@@ -302,8 +381,8 @@ CMAKE_ARGS=(
     "-DZLIB_LIBRARY=$VCPKG_INSTALLED/lib/libz.a"
     "-DPNG_PNG_INCLUDE_DIR=$VCPKG_INSTALLED/include"
     "-DPNG_LIBRARY=$VCPKG_INSTALLED/lib/libpng16.a"
-    "-DLIBZIP_LIBRARY=$VCPKG_INSTALLED/lib/libzip.a"
-    "-DLIBZIP_INCLUDE_DIR=$VCPKG_INSTALLED/include"
+    "-DLIBZIP_LIBRARY=$LIBZIP_ROOT/lib/libzip.a"
+    "-DLIBZIP_INCLUDE_DIR=$LIBZIP_ROOT/include"
 
     "-DOPENSSL_CRYPTO_LIBRARY=$VCPKG_INSTALLED/lib/libcrypto.a"
     "-DBZIP2_LIBRARY=$VCPKG_INSTALLED/lib/libbz2.a"

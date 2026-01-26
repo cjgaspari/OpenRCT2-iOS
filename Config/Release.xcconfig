@@ -18,7 +18,8 @@ HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT)/src/thirdparty
 OTHER_CPLUSPLUSFLAGS = $(inherited) -fno-char8_t
 
 // Library search paths for libopenrct2.a, vcpkg dependencies, ICU, and libzip
-LIBRARY_SEARCH_PATHS = $(inherited) $(SRCROOT)/build-visionos $(SRCROOT)/ios-vcpkg/installed/arm64-xros-simulator/lib $(SRCROOT)/visionos-deps/icu-visionos/lib $(SRCROOT)/visionos-deps/libzip-visionos/lib
+LIBRARY_SEARCH_PATHS[sdk=xrsimulator*] = $(inherited) $(SRCROOT)/build-visionos $(SRCROOT)/ios-vcpkg/installed/arm64-xros-simulator/lib $(SRCROOT)/visionos-deps/icu-visionos/lib $(SRCROOT)/visionos-deps/libzip-visionos/lib
+LIBRARY_SEARCH_PATHS[sdk=xros*] = $(inherited) $(SRCROOT)/build-visionos-device $(SRCROOT)/ios-vcpkg/installed/arm64-xros/lib $(SRCROOT)/visionos-deps/icu-visionos-device/lib $(SRCROOT)/visionos-deps/libzip-visionos-device/lib
 
 // Link against libopenrct2.a and all its dependencies including ICU and libzip
 OTHER_LDFLAGS = $(inherited) -lopenrct2 -lz -lpng16 -lfreetype -lzstd -lbz2 -lbrotlidec -lbrotlicommon -licuuc -licui18n -licudata -lzip -lc++ -framework Foundation

@@ -67,7 +67,7 @@ Nearest sampler → CAMetalLayer drawable
 
 ### Build Config (Reused)
 - cmake/visionos-*.toolchain.cmake
-- vcpkg/triplets/community/arm64-xros*.cmake
+- ios-vcpkg/triplets/community/arm64-xros*.cmake
 
 ## Critical Implementation Notes
 
@@ -97,13 +97,13 @@ Nearest sampler → CAMetalLayer drawable
 
 ```bash
 # Build for visionOS Simulator
-SIMULATOR=1 ./build-visionos.sh
+./build-visionos.sh --simulator
 
 # Build for device
-./build-visionos.sh
+./build-visionos.sh --device
 
-# Install vcpkg dependencies
-./vcpkg/vcpkg install --triplet=arm64-xros-simulator icu libpng libzip speexdsp nlohmann-json
+# Install dependencies (vcpkg + ICU + libzip)
+./build-visionos.sh --install-deps --simulator
 ```
 
 ## XcodeBuildMCP Tools

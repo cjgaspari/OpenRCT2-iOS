@@ -1,18 +1,42 @@
 #!/bin/bash
-# Build libzip for visionOS Simulator (arm64)
+# Build libzip for visionOS (arm64)
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LIBZIP_VERSION="1.10.1"
 BUILD_DIR="$SCRIPT_DIR/visionos-deps/libzip-build"
-INSTALL_DIR="$SCRIPT_DIR/visionos-deps/libzip-visionos"
+
+BUILD_TARGET="simulator"
+for arg in "$@"; do
+    case $arg in
+        --device) BUILD_TARGET="device" ;;
+        --simulator) BUILD_TARGET="simulator" ;;
+        --help|-h)
+            echo "Usage: $0 [--simulator|--device]"
+            exit 0
+            ;;
+    esac
+done
+
+if [[ "$BUILD_TARGET" == "device" ]]; then
+    INSTALL_DIR="$SCRIPT_DIR/visionos-deps/libzip-visionos-device"
+    SDK_NAME="xros"
+    TARGET_SUFFIX=""
+    VCPKG_PREFIX="$SCRIPT_DIR/ios-vcpkg/installed/arm64-xros"
+else
+    INSTALL_DIR="$SCRIPT_DIR/visionos-deps/libzip-visionos"
+    SDK_NAME="xrsimulator"
+    TARGET_SUFFIX="-simulator"
+    VCPKG_PREFIX="$SCRIPT_DIR/ios-vcpkg/installed/arm64-xros-simulator"
+fi
 
 # visionOS SDK settings
-XROS_SDK=$(xcrun --sdk xrsimulator --show-sdk-path)
+XROS_SDK=$(xcrun --sdk "$SDK_NAME" --show-sdk-path)
 XROS_MIN_VERSION="2.0"
 ARCH="arm64"
+TARGET_TRIPLE="arm64-apple-xros${XROS_MIN_VERSION}${TARGET_SUFFIX}"
 
-echo "=== Building libzip $LIBZIP_VERSION for visionOS Simulator ==="
+echo "=== Building libzip $LIBZIP_VERSION for visionOS ${BUILD_TARGET} ==="
 echo "Using SDK: $XROS_SDK"
 
 # Download if needed
@@ -33,9 +57,6 @@ tar xzf "$TARBALL"
 cd "libzip-$LIBZIP_VERSION"
 mkdir -p build && cd build
 
-# Get vcpkg zlib path
-VCPKG_PREFIX="$SCRIPT_DIR/ios-vcpkg/installed/arm64-xros-simulator"
-
 # Create a CMake toolchain file for visionOS
 cat > visionos-toolchain.cmake << EOF
 set(CMAKE_SYSTEM_NAME Darwin)
@@ -46,12 +67,12 @@ set(CMAKE_OSX_ARCHITECTURES arm64)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "2.0")
 
 # Set target triple
-set(CMAKE_C_COMPILER_TARGET arm64-apple-xros2.0-simulator)
-set(CMAKE_CXX_COMPILER_TARGET arm64-apple-xros2.0-simulator)
+set(CMAKE_C_COMPILER_TARGET ${TARGET_TRIPLE})
+set(CMAKE_CXX_COMPILER_TARGET ${TARGET_TRIPLE})
 
 # Force compilers to use sysroot
-set(CMAKE_C_FLAGS_INIT "-isysroot \${CMAKE_OSX_SYSROOT} -target arm64-apple-xros2.0-simulator -D_FILE_OFFSET_BITS=64")
-set(CMAKE_CXX_FLAGS_INIT "-isysroot \${CMAKE_OSX_SYSROOT} -target arm64-apple-xros2.0-simulator -D_FILE_OFFSET_BITS=64")
+set(CMAKE_C_FLAGS_INIT "-isysroot \${CMAKE_OSX_SYSROOT} -target ${TARGET_TRIPLE} -D_FILE_OFFSET_BITS=64")
+set(CMAKE_CXX_FLAGS_INIT "-isysroot \${CMAKE_OSX_SYSROOT} -target ${TARGET_TRIPLE} -D_FILE_OFFSET_BITS=64")
 
 # Prevent CMake from trying to run test executables during configuration
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)

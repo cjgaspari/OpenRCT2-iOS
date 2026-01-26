@@ -1,4 +1,5 @@
 import Foundation
+import OpenRCT2Core
 import RealityKit
 import os.log
 
@@ -69,6 +70,12 @@ final class GameEngine: @unchecked Sendable {
         self.renderer = try OpenRCT2Renderer()
         self.screenWidth = Self.DEFAULT_WIDTH
         self.screenHeight = Self.DEFAULT_HEIGHT
+
+        #if DEBUG
+        // C++ interop smoke test for OpenRCT2Core.
+        let smoke = OpenRCT2CppSmokeTest(21)
+        _ = smoke.doubleValue()
+        #endif
 
         // Set paths from Swift bundle info before initializing OpenRCT2
         let bundleResourcePath = Bundle.main.bundlePath + "/visionos-resources"

@@ -13,10 +13,10 @@
 **Description**: Create new visionOS app project (WindowGroup) and baseline scaffolding.
 
 **Tasks**:
-- [ ] Use `mcp_xcodebuildmcp_scaffold_ios_project` (visionOS) or Xcode template
-- [ ] Set deployment target to visionOS 2.0
-- [ ] Add placeholder SwiftUI view
-- [ ] Verify build/run in Simulator
+- [x] Use `mcp_xcodebuildmcp_scaffold_ios_project` (visionOS) or Xcode template
+- [x] Set deployment target to visionOS 2.0
+- [x] Add placeholder SwiftUI view
+- [x] Verify build/run in Simulator
 
 **Acceptance Criteria**:
 - Empty visionOS app launches in Simulator
@@ -35,9 +35,9 @@
 **Description**: Ensure Swift 5.9+ C++ interop works with the existing C ABI.
 
 **Tasks**:
-- [ ] module.modulemap + umbrella header + apinotes
-- [ ] Enable `-cxx-interoperability-mode=default`
-- [ ] Smoke test importing a C++ type from Swift
+- [x] module.modulemap + umbrella header + apinotes
+- [x] Enable `-cxx-interoperability-mode=default`
+- [x] Smoke test importing a C++ type from Swift
 
 **Acceptance Criteria**:
 - Swift can import OpenRCT2Core headers and call a trivial C++ symbol
@@ -55,9 +55,9 @@
 **Description**: Create vcpkg triplets for device + simulator.
 
 **Tasks**:
-- [ ] arm64-xros.cmake
-- [ ] arm64-xros-simulator.cmake
-- [ ] Test `vcpkg install nlohmann-json --triplet=arm64-xros-simulator`
+- [x] arm64-xros.cmake
+- [x] arm64-xros-simulator.cmake
+- [x] Test `vcpkg install nlohmann-json --triplet=arm64-xros-simulator`
 
 **Acceptance Criteria**:
 - Dependency installs succeed for simulator triplet
@@ -70,9 +70,9 @@
 **Description**: CMake toolchains for device and simulator builds.
 
 **Tasks**:
-- [ ] visionos-arm64.toolchain.cmake
-- [ ] visionos-simulator.toolchain.cmake
-- [ ] Add `__VISIONOS__` define; disable SDL/OpenGL
+- [x] visionos-arm64.toolchain.cmake
+- [x] visionos-simulator.toolchain.cmake
+- [x] Add `__VISIONOS__` define; disable SDL/OpenGL
 
 **Acceptance Criteria**:
 - CMake configure succeeds for simulator
@@ -85,8 +85,8 @@
 **Description**: Ensure SDL headers are not pulled when `__VISIONOS__` is set.
 
 **Tasks**:
-- [ ] Guard SDL includes or add stubs as needed
-- [ ] Verify libopenrct2 builds for simulator
+- [x] Guard SDL includes or add stubs as needed
+- [x] Verify libopenrct2 builds for simulator
 
 **Acceptance Criteria**:
 - `libopenrct2.a` builds with visionOS toolchain without SDL includes
