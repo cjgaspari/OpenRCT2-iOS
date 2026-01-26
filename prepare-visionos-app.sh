@@ -71,118 +71,86 @@ echo ""
 echo "=== Getting OpenRCT2 Data Files ==="
 
 DATA_SOURCE=""
+BUILD_HOST_GRAPHICS="$WORKSPACE/build-macos-host"
 
-# Check for local OpenRCT2 installation first
-if [ "$FORCE_DOWNLOAD" = false ] && [ -d "/Applications/OpenRCT2.app/Contents/Resources" ]; then
-    DATA_SOURCE="/Applications/OpenRCT2.app/Contents/Resources"
-    echo "Found local OpenRCT2 installation at $DATA_SOURCE"
-fi
-
-# Download from GitHub if no local install
-if [ -z "$DATA_SOURCE" ]; then
-    echo "Downloading OpenRCT2 data from GitHub..."
+# Priority 1: Use freshly built graphics from build-macos-host (from build-graphics.sh)
+if [ -f "$BUILD_HOST_GRAPHICS/g2.dat" ] && [ -f "$BUILD_HOST_GRAPHICS/fonts.dat" ] && [ -f "$BUILD_HOST_GRAPHICS/tracks.dat" ]; then
+    echo "✓ Using graphics built from current branch source ($BUILD_HOST_GRAPHICS)"
+    cp "$BUILD_HOST_GRAPHICS/g2.dat" "$RESOURCES_DIR/"
+    cp "$BUILD_HOST_GRAPHICS/fonts.dat" "$RESOURCES_DIR/"
+    cp "$BUILD_HOST_GRAPHICS/tracks.dat" "$RESOURCES_DIR/"
+    echo "✓ Copied g2.dat, fonts.dat, tracks.dat (from build-graphics.sh)"
     
-    RELEASE_VERSION="0.4.30"
-    RELEASE_URL="https://github.com/OpenRCT2/OpenRCT2/releases/download/v${RELEASE_VERSION}/OpenRCT2-v${RELEASE_VERSION}-macos-universal.zip"
+    # Still need objects/sequences/assetpacks from a data source
+    DATA_SOURCE_FOR_EXTRAS=""
+    if [ "$FORCE_DOWNLOAD" = false ] && [ -d "/Applications/OpenRCT2.app/Contents/Resources" ]; then
+        DATA_SOURCE_FOR_EXTRAS="/Applications/OpenRCT2.app/Contents/Resources"
+    fi
     
-    TEMP_DIR=$(mktemp -d)
-    cd "$TEMP_DIR"
+    if [ -z "$DATA_SOURCE_FOR_EXTRAS" ]; then
+        echo ""
+        echo "Downloading OpenRCT2 data for objects/sequences..."
+        RELEASE_VERSION="0.4.30"
+        RELEASE_URL="https://github.com/OpenRCT2/OpenRCT2/releases/download/v${RELEASE_VERSION}/OpenRCT2-v${RELEASE_VERSION}-macos-universal.zip"
+        
+        TEMP_DIR=$(mktemp -d)
+        cd "$TEMP_DIR"
+        echo "Downloading v$RELEASE_VERSION..."
+        curl -L -o OpenRCT2-macos.zip "$RELEASE_URL"
+        echo "Extracting..."
+        unzip -q OpenRCT2-macos.zip
+        DATA_SOURCE_FOR_EXTRAS="$TEMP_DIR/OpenRCT2.app/Contents/Resources"
+        cd "$WORKSPACE"
+    fi
     
-    echo "Downloading v$RELEASE_VERSION..."
-    curl -L -o OpenRCT2-macos.zip "$RELEASE_URL"
+    # Copy additional data files
+    if [ -d "$DATA_SOURCE_FOR_EXTRAS" ]; then
+        [ -d "$DATA_SOURCE_FOR_EXTRAS/object" ] && cp -R "$DATA_SOURCE_FOR_EXTRAS/object" "$RESOURCES_DIR/" && echo "✓ Copied objects"
+        [ -d "$DATA_SOURCE_FOR_EXTRAS/sequence" ] && cp -R "$DATA_SOURCE_FOR_EXTRAS/sequence" "$RESOURCES_DIR/" && echo "✓ Copied sequences"
+        [ -d "$DATA_SOURCE_FOR_EXTRAS/assetpack" ] && cp -R "$DATA_SOURCE_FOR_EXTRAS/assetpack" "$RESOURCES_DIR/" && echo "✓ Copied assetpacks"
+    fi
+else
+    echo "⚠ Graphics not found in build-macos-host/"
+    echo "  Run ./build-graphics.sh to build from current branch source"
+    echo "  Falling back to local install or download..."
     
-    echo "Extracting..."
-    unzip -q OpenRCT2-macos.zip
+    # Priority 2: Check for local OpenRCT2 installation
+    if [ "$FORCE_DOWNLOAD" = false ] && [ -d "/Applications/OpenRCT2.app/Contents/Resources" ]; then
+        DATA_SOURCE="/Applications/OpenRCT2.app/Contents/Resources"
+        echo "Found local OpenRCT2 installation at $DATA_SOURCE"
+    fi
     
-    DATA_SOURCE="$TEMP_DIR/OpenRCT2.app/Contents/Resources"
-    cd "$WORKSPACE"
-fi
-
-# Copy data files
-if [ -d "$DATA_SOURCE" ]; then
-    # g2.dat - OpenRCT2 graphics (required)
-    if [ -f "$DATA_SOURCE/g2.dat" ]; then
-        cp "$DATA_SOURCE/g2.dat" "$RESOURCES_DIR/"
-        echo "✓ Copied g2.dat"
+    # Priority 3: Download from GitHub if no local install
+    if [ -z "$DATA_SOURCE" ]; then
+        echo "Downloading OpenRCT2 data from GitHub..."
+        
+        RELEASE_VERSION="0.4.30"
+        RELEASE_URL="https://github.com/OpenRCT2/OpenRCT2/releases/download/v${RELEASE_VERSION}/OpenRCT2-v${RELEASE_VERSION}-macos-universal.zip"
+        
+        TEMP_DIR=$(mktemp -d)
+        cd "$TEMP_DIR"
+        
+        echo "Downloading v$RELEASE_VERSION..."
+        curl -L -o OpenRCT2-macos.zip "$RELEASE_URL"
+        
+        echo "Extracting..."
+        unzip -q OpenRCT2-macos.zip
+        
+        DATA_SOURCE="$TEMP_DIR/OpenRCT2.app/Contents/Resources"
+        cd "$WORKSPACE"
+    fi
+    
+    # Copy all data files from fallback source
+    if [ -d "$DATA_SOURCE" ]; then
+        [ -f "$DATA_SOURCE/g2.dat" ] && cp "$DATA_SOURCE/g2.dat" "$RESOURCES_DIR/" && echo "✓ Copied g2.dat"
+        [ -f "$DATA_SOURCE/fonts.dat" ] && cp "$DATA_SOURCE/fonts.dat" "$RESOURCES_DIR/" && echo "✓ Copied fonts.dat"
+        [ -f "$DATA_SOURCE/tracks.dat" ] && cp "$DATA_SOURCE/tracks.dat" "$RESOURCES_DIR/" && echo "✓ Copied tracks.dat"
+        [ -d "$DATA_SOURCE/object" ] && cp -R "$DATA_SOURCE/object" "$RESOURCES_DIR/" && echo "✓ Copied objects"
+        [ -d "$DATA_SOURCE/sequence" ] && cp -R "$DATA_SOURCE/sequence" "$RESOURCES_DIR/" && echo "✓ Copied sequences"
+        [ -d "$DATA_SOURCE/assetpack" ] && cp -R "$DATA_SOURCE/assetpack" "$RESOURCES_DIR/" && echo "✓ Copied assetpacks"
     else
-        echo "⚠ g2.dat not found!"
+        echo "⚠ Could not find data source"
     fi
-    
-    # Optional files
-    [ -f "$DATA_SOURCE/fonts.dat" ] && cp "$DATA_SOURCE/fonts.dat" "$RESOURCES_DIR/" && echo "✓ Copied fonts.dat"
-    [ -d "$DATA_SOURCE/object" ] && cp -R "$DATA_SOURCE/object" "$RESOURCES_DIR/" && echo "✓ Copied objects"
-    [ -d "$DATA_SOURCE/sequence" ] && cp -R "$DATA_SOURCE/sequence" "$RESOURCES_DIR/" && echo "✓ Copied sequences"
-    [ -d "$DATA_SOURCE/assetpack" ] && cp -R "$DATA_SOURCE/assetpack" "$RESOURCES_DIR/" && echo "✓ Copied assetpacks"
-else
-    echo "⚠ Could not find data source"
-fi
-
-# Find and copy RCT2 base game files (g1.dat, etc.)
-echo ""
-echo "=== Looking for RCT2 Base Game Files ==="
-
-RCT2_SOURCE=""
-
-# Common locations for RCT2 game files
-RCT2_SEARCH_PATHS=(
-    "$HOME/RCT Game Files/RCT2/Data"
-    "/Applications/RCT Game Files/RCT2/Data"
-    "$HOME/Library/Application Support/OpenRCT2/rct2/Data"
-    "$HOME/GOG Games/RollerCoaster Tycoon 2 Triple Thrill Pack/Data"
-    "$HOME/Library/Application Support/Steam/steamapps/common/Rollercoaster Tycoon 2 Triple Thrill Pack/Data"
-    "/Applications/RollerCoaster Tycoon 2.app/Contents/Resources/Data"
-)
-
-for path in "${RCT2_SEARCH_PATHS[@]}"; do
-    if [ -f "$path/g1.dat" ]; then
-        RCT2_SOURCE="$path"
-        echo "Found RCT2 game files at: $RCT2_SOURCE"
-        break
-    fi
-done
-
-if [ -n "$RCT2_SOURCE" ]; then
-    # Create rct2 folder in resources
-    mkdir -p "$RESOURCES_DIR/rct2/Data"
-    
-    # Copy essential RCT2 files
-    for f in g1.dat CSS1.DAT CSS2.DAT CSS4.DAT CSS5.DAT CSS6.DAT CSS7.DAT CSS8.DAT CSS9.DAT; do
-        if [ -f "$RCT2_SOURCE/$f" ]; then
-            cp "$RCT2_SOURCE/$f" "$RESOURCES_DIR/rct2/Data/"
-            echo "✓ Copied $f"
-        elif [ -f "$RCT2_SOURCE/$(echo $f | tr '[:upper:]' '[:lower:]')" ]; then
-            # Try lowercase version
-            cp "$RCT2_SOURCE/$(echo $f | tr '[:upper:]' '[:lower:]')" "$RESOURCES_DIR/rct2/Data/$f"
-            echo "✓ Copied $f"
-        fi
-    done
-    
-    # Copy ObjData folder if it exists
-    if [ -d "$RCT2_SOURCE/../ObjData" ]; then
-        cp -R "$RCT2_SOURCE/../ObjData" "$RESOURCES_DIR/rct2/"
-        echo "✓ Copied ObjData"
-    fi
-    
-    # Copy Scenarios if they exist
-    if [ -d "$RCT2_SOURCE/../Scenarios" ]; then
-        cp -R "$RCT2_SOURCE/../Scenarios" "$RESOURCES_DIR/rct2/"
-        echo "✓ Copied Scenarios"
-    fi
-    
-    # Copy Tracks if they exist
-    if [ -d "$RCT2_SOURCE/../Tracks" ]; then
-        cp -R "$RCT2_SOURCE/../Tracks" "$RESOURCES_DIR/rct2/"
-        echo "✓ Copied Tracks"
-    fi
-else
-    echo "⚠ RCT2 base game files not found!"
-    echo "  Searched locations:"
-    for path in "${RCT2_SEARCH_PATHS[@]}"; do
-        echo "    - $path"
-    done
-    echo ""
-    echo "  You can set RCT2_PATH environment variable to specify location:"
-    echo "    RCT2_PATH=/path/to/rct2/Data ./prepare-visionos-app.sh"
 fi
 
 # Check for RCT2_PATH environment variable override
