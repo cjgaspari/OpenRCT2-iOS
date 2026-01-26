@@ -4,5 +4,6 @@
 
 #include "OpenRCT2CoreWrapper.h"
 #include "OpenRCT2CppSmoke.h"
+#include "../visionos/VisionOSUiContext.h"
 
 #endif // OPENRCT2_CORE_H

@@ -70,7 +70,7 @@ const uint8_t* openrct2_get_frame_buffer(void);
 /// @note Returns as uint8_t* for C compatibility; cast to uint32_t* for use
 const uint8_t* openrct2_get_palette(void);
 
-/// Get pitch (stride) of frame buffer in bytes.
+/// Get pitch (stride) of frame buffer in bytes (bytesPerRow).
 /// @return Bytes per row in frame buffer (may be >= width for alignment)
 int32_t openrct2_get_pitch(void);
 

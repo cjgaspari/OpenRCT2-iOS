@@ -102,9 +102,9 @@
 **Description**: Implement `IUiContext` stub for visionOS.
 
 **Tasks**:
-- [ ] Create VisionOSUiContext.h/.cpp
-- [ ] Implement required virtuals (window stubs acceptable)
-- [ ] Factory: `CreateVisionOSUiContext()` exported to Swift
+- [x] Create VisionOSUiContext.h/.cpp
+- [x] Implement required virtuals (window stubs acceptable)
+- [x] Factory: `CreateVisionOSUiContext()` exported to Swift
 
 **Acceptance Criteria**:
 - Compiles and links; Swift can instantiate via C ABI
@@ -117,8 +117,8 @@
 **Description**: Expose X8DrawingEngine buffer to Swift.
 
 **Tasks**:
-- [ ] `GetPixelBuffer()`, `GetBufferWidth()`, `GetBufferHeight()`, `GetBufferPitch()`
-- [ ] Document that stride = width + pitch (bytesPerRow)
+- [x] `GetPixelBuffer()`, `GetBufferWidth()`, `GetBufferHeight()`, `GetBufferPitch()`
+- [x] Document that stride = width + pitch (bytesPerRow)
 
 **Acceptance Criteria**:
 - Swift can read buffer pointer + dimensions after `Draw()`
@@ -131,8 +131,8 @@
 **Description**: Expose current palette for optional shader swizzle.
 
 **Tasks**:
-- [ ] `const uint32_t* GetPalette()` or BGRA struct view
-- [ ] Note BGRA byte order
+- [x] `const uint32_t* GetPalette()` or BGRA struct view
+- [x] Note BGRA byte order
 
 **Acceptance Criteria**:
 - Swift can copy 256-entry palette when needed
@@ -145,8 +145,8 @@
 **Description**: Advance game tick without SDL loop.
 
 **Tasks**:
-- [ ] Call into core tick; target ~40 Hz when driven externally
-- [ ] No SDL references
+- [x] Call into core tick; target ~40 Hz when driven externally
+- [x] No SDL references
 
 **Acceptance Criteria**:
 - Game state advances on call
@@ -159,8 +159,8 @@
 **Description**: Render into X8DrawingEngine buffer.
 
 **Tasks**:
-- [ ] Invoke drawing pipeline; populate buffer
-- [ ] Ensure pitch/stride reported correctly
+- [x] Invoke drawing pipeline; populate buffer
+- [x] Ensure pitch/stride reported correctly
 
 **Acceptance Criteria**:
 - Buffer holds a valid frame after Draw()
