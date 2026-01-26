@@ -189,7 +189,7 @@ final class MetalLayerView: UIView {
             let elapsed = now - lastFrameTimestamp
             if elapsed > 0 {
                 let fps = Double(frameCount) / elapsed
-                print(String(format: "MetalLayerView FPS: %.1f", fps))
+//                print(String(format: "MetalLayerView FPS: %.1f", fps))
             }
             lastFrameTimestamp = now
             frameCount = 0

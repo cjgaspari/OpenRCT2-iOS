@@ -400,6 +400,26 @@ namespace OpenRCT2
             ContextOpenWindow(WindowClass::savePrompt);
         }
 
+        void StepFrame() override
+        {
+            RunFrame();
+        }
+
+        void StartBackgroundTasks() override
+        {
+            // Start version check if not already running
+            if (!_versionCheckFuture.valid())
+            {
+                _versionCheckFuture = std::async(std::launch::async, [this] {
+                    _newVersionInfo = GetLatestVersion();
+                    if (!String::startsWith(gVersionInfoTag, _newVersionInfo.tag))
+                    {
+                        _hasNewVersionInfo = true;
+                    }
+                });
+            }
+        }
+
         bool Initialise() final override
         {
             LOG_WARNING("[Context::Initialise] Starting...");

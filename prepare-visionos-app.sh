@@ -153,6 +153,26 @@ else
     fi
 fi
 
+# Copy RCT2 base game files (g1.dat, etc.) from user's RCT2 installation
+echo ""
+echo "=== Copying RCT2 Base Game Files ==="
+
+RCT2_DATA_PATH="/Users/cjgaspari/RCT Game Files/RCT2/Data"
+if [ -f "$RCT2_DATA_PATH/g1.dat" ]; then
+    echo "✓ Found RCT2 base game files at $RCT2_DATA_PATH"
+    mkdir -p "$RESOURCES_DIR/rct2/Data"
+    
+    for f in g1.dat CSS1.DAT CSS2.DAT CSS4.DAT CSS5.DAT CSS6.DAT CSS7.DAT CSS8.DAT CSS9.DAT; do
+        if [ -f "$RCT2_DATA_PATH/$f" ]; then
+            cp "$RCT2_DATA_PATH/$f" "$RESOURCES_DIR/rct2/Data/"
+            echo "✓ Copied $f"
+        fi
+    done
+else
+    echo "⚠ RCT2 base game files not found at $RCT2_DATA_PATH"
+    echo "  Game will require g1.dat to be provided manually"
+fi
+
 # Check for RCT2_PATH environment variable override
 if [ -n "$RCT2_PATH" ] && [ -f "$RCT2_PATH/g1.dat" ]; then
     echo ""

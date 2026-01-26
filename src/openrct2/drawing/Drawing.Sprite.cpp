@@ -542,21 +542,16 @@ static bool GfxLoadOpenRCT2Gx(std::string filename, Gx& target, size_t expectedN
     try
     {
         auto fs = FileStream(path, FileMode::open);
+        printf("[visionOS] Opening g2.dat from path: %s\n", path.c_str());
         target.header = fs.ReadValue<G1Header>();
         printf(
-            "[OpenRCT2] [GfxLoad] %s header entries=%u totalSize=%u fileSize=%llu\n",
-            filename.c_str(),
-            target.header.numEntries,
-            target.header.totalSize,
-            static_cast<unsigned long long>(fs.GetLength()));
+            "[OpenRCT2] [GfxLoad] %s header entries=%u totalSize=%u fileSize=%llu\n", filename.c_str(),
+            target.header.numEntries, target.header.totalSize, static_cast<unsigned long long>(fs.GetLength()));
         if (filename == "g2.dat")
         {
             LOG_WARNING(
-                "[visionOS] g2.dat header: path=%s entries=%u expected=%zu fileSize=%llu",
-                path.c_str(),
-                target.header.numEntries,
-                expectedNumItems,
-                static_cast<unsigned long long>(fs.GetLength()));
+                "[visionOS] g2.dat header: path=%s entries=%u expected=%zu fileSize=%llu", path.c_str(),
+                target.header.numEntries, expectedNumItems, static_cast<unsigned long long>(fs.GetLength()));
         }
 
         // Read element headers
@@ -617,6 +612,8 @@ static bool GfxLoadOpenRCT2Gx(std::string filename, Gx& target, size_t expectedN
 
 void GfxLoadG2FontsAndTracks()
 {
+    fprintf(stderr, "[Drawing.Sprite.cpp - DIAGNOSTIC] GfxLoadG2FontsAndTracks CALLED\n");
+    fflush(stderr);
     GfxLoadOpenRCT2Gx("g2.dat", _g2, kG2SpriteCount);
     printf("[OpenRCT2] [GfxLoad] g2 entries loaded=%u expected=%zu\n", _g2.header.numEntries, kG2SpriteCount);
     GfxLoadOpenRCT2Gx("fonts.dat", _fonts, kFontsDatSpriteCount);
@@ -1079,10 +1076,8 @@ const G1Element* GfxGetG1Element(ImageIndex image_id)
         {
             g2WarningLogged = true;
             LOG_WARNING(
-                "[visionOS] g2.dat missing entries: header=%u expected=%zu firstMissingIdx=%zu",
-                _g2.header.numEntries,
-                kG2SpriteCount,
-                idx);
+                "[visionOS] g2.dat missing entries: header=%u expected=%zu firstMissingIdx=%zu", _g2.header.numEntries,
+                kG2SpriteCount, idx);
         }
         LOG_WARNING("Invalid entry in g2.dat requested, idx = %u. You may have to update your g2.dat.", idx);
     }

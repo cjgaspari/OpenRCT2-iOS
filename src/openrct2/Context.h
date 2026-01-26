@@ -118,6 +118,20 @@ namespace OpenRCT2
 
         virtual int32_t RunOpenRCT2(int argc, const char** argv) = 0;
 
+        /**
+         * Step the game simulation and rendering by one frame.
+         * For platforms with external event loops (e.g., visionOS) that drive the game loop
+         * from outside rather than blocking in RunOpenRCT2()/RunGameLoop().
+         * Call this once per display refresh after Initialise() and InitialiseDrawingEngine().
+         */
+        virtual void StepFrame() = 0;
+
+        /**
+         * Start background tasks like version checking.
+         * For platforms using StepFrame() instead of RunOpenRCT2().
+         */
+        virtual void StartBackgroundTasks() = 0;
+
         virtual bool Initialise() = 0;
         virtual void ResetSubsystems() = 0;
 

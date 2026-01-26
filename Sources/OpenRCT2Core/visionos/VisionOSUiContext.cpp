@@ -747,11 +747,7 @@ static void LogResourceCheck(const char* label, const std::string& path)
     }
 
     auto size = OpenRCT2::File::GetSize(path);
-    printf(
-        "[OpenRCT2] Resource present: %s (%s, %llu bytes)\n",
-        label,
-        path.c_str(),
-        static_cast<unsigned long long>(size));
+    printf("[OpenRCT2] Resource present: %s (%s, %llu bytes)\n", label, path.c_str(), static_cast<unsigned long long>(size));
 }
 
 static void LogGxHeader(const char* label, const std::string& path)
@@ -766,11 +762,7 @@ static void LogGxHeader(const char* label, const std::string& path)
     {
         OpenRCT2::FileStream fs(path, OpenRCT2::FileMode::open);
         auto header = fs.ReadValue<OpenRCT2::G1Header>();
-        printf(
-            "[OpenRCT2] %s header: entries=%u totalSize=%u\n",
-            label,
-            header.numEntries,
-            header.totalSize);
+        printf("[OpenRCT2] %s header: entries=%u totalSize=%u\n", label, header.numEntries, header.totalSize);
     }
     catch (const std::exception& ex)
     {
@@ -1154,12 +1146,12 @@ bool openrct2_init_full(void)
         LogGxHeader("g2.dat", CombinePath(openrct2Path, "g2.dat"));
         LogGxHeader("fonts.dat", CombinePath(openrct2Path, "fonts.dat"));
         LogGxHeader("tracks.dat", CombinePath(openrct2Path, "tracks.dat"));
-        LogResourceCheck("language dir", CombinePath(openrct2Path, "language"));
-        LogResourceCheck("object dir", CombinePath(openrct2Path, "object"));
-        LogResourceCheck("scenario_patches dir", CombinePath(openrct2Path, "scenario_patches"));
-        LogResourceCheck("sequence dir", CombinePath(openrct2Path, "sequence"));
-        LogResourceCheck("shaders dir", CombinePath(openrct2Path, "shaders"));
-        LogResourceCheck("assetpack dir", CombinePath(openrct2Path, "assetpack"));
+//        LogResourceCheck("language dir", CombinePath(openrct2Path, "language"));
+//        LogResourceCheck("object dir", CombinePath(openrct2Path, "object"));
+//        LogResourceCheck("scenario_patches dir", CombinePath(openrct2Path, "scenario_patches"));
+//        LogResourceCheck("sequence dir", CombinePath(openrct2Path, "sequence"));
+//        LogResourceCheck("shaders dir", CombinePath(openrct2Path, "shaders"));
+//        LogResourceCheck("assetpack dir", CombinePath(openrct2Path, "assetpack"));
 
         // Set the RCT2 data path to our bundled data to skip the directory browser
         auto rct2Path = CombinePath(g_bundlePath, "rct2");
@@ -1168,6 +1160,13 @@ bool openrct2_init_full(void)
         LogGxHeader("g1.dat", CombinePath(rct2DataPath, "g1.dat"));
         printf("[OpenRCT2] Setting gCustomRCT2DataPath to: %s\n", rct2Path.c_str());
         gCustomRCT2DataPath = rct2Path;
+
+        // Set startup action to Title for visionOS (no command line arguments)
+        extern StartupAction gOpenRCT2StartupAction;
+        extern bool gOpenRCT2Headless;
+        gOpenRCT2StartupAction = StartupAction::Title;
+        gOpenRCT2Headless = false;
+        printf("[OpenRCT2] Set gOpenRCT2StartupAction=Title, gOpenRCT2Headless=false\n");
 
         printf("[OpenRCT2] Calling g_context->Initialise()...\n");
         os_log_info(getOpenRCT2Log(), "Calling g_context->Initialise()...");
@@ -1185,15 +1184,37 @@ bool openrct2_init_full(void)
         g_context->InitialiseDrawingEngine();
         printf("[OpenRCT2] InitialiseDrawingEngine() succeeded\n");
 
-        auto* titleScene = g_context->GetTitleScene();
-        if (titleScene)
+        printf("[OpenRCT2] Starting background tasks (version check)...\n");
+        g_context->StartBackgroundTasks();
+        printf("[OpenRCT2] Background tasks started\n");
+
+        //  Note: Context::Initialise() sets up the PreloaderScene with repository/script jobs
+        // and makes it active. However, it doesn't set the PreloaderScene's completion callback.
+        // On desktop, Context::Launch() sets this callback to call SwitchToStartUpScene().
+        // For visionOS, we need to set this callback ourselves to transition to the title screen.
+
+        auto* preloaderScene = g_context->GetPreloaderScene();
+        if (preloaderScene)
         {
-            printf("[OpenRCT2] Setting title scene as active\n");
-            g_context->SetActiveScene(titleScene);
+            printf("[OpenRCT2] Setting PreloaderScene completion callback to transition to title screen\n");
+            preloaderScene->SetOnComplete([context = g_context.get()]() {
+                printf("[OpenRCT2] PreloaderScene completed, transitioning to title screen\n");
+                // Transition to title screen (visionOS always starts with title)
+                auto* titleScene = context->GetTitleScene();
+                if (titleScene)
+                {
+                    context->SetActiveScene(titleScene);
+                    printf("[OpenRCT2] Title scene now active\n");
+                }
+                else
+                {
+                    printf("[OpenRCT2] ERROR: Could not get title scene\n");
+                }
+            });
         }
         else
         {
-            printf("[OpenRCT2] Warning: GetTitleScene() returned null\n");
+            printf("[OpenRCT2] Warning: No PreloaderScene found after Initialise()\n");
         }
 
         g_contextInitialized = true;
@@ -1247,24 +1268,18 @@ void openrct2_tick(void)
         return;
 
 #ifdef OPENRCT2_FULL_CONTEXT
-    // If full context is ready, use it
+    // If full context is ready, use the full desktop frame stepping logic
+    // This includes: timing accumulators, fixed-step tick, input handling,
+    // window updates, background worker dispatch, and rendering
     if (g_context && g_contextInitialized)
     {
-        g_context->GetUiContext().ProcessMessages();
-
-        auto* activeScene = g_context->GetActiveScene();
-        if (activeScene)
-            activeScene->Tick();
-
-        auto* drawingEngine = g_context->GetDrawingEngine();
-        auto* painter = g_context->GetPainter();
-
-        if (drawingEngine && painter)
+        static bool s_firstFrame = true;
+        if (s_firstFrame)
         {
-            drawingEngine->BeginDraw();
-            painter->Paint(*drawingEngine);
-            drawingEngine->EndDraw();
+            printf("[OpenRCT2] First StepFrame() call - PreloaderScene should be active\n");
+            s_firstFrame = false;
         }
+        g_context->StepFrame();
         return;
     }
 #endif
