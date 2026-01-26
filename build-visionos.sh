@@ -166,10 +166,19 @@ else
 
 # Pick newest AVAILABLE xrOS runtime and a usable Vision Pro device in it.
 # If no device exists, create one.
-read -r XROS_RUNTIME_ID VISIONOS_SIM_UDID < <(python3 - <<'PY'
-import json, re, sys, subprocess
+read -r XROS_RUNTIME_ID VISIONOS_SIM_UDID < <(SIMCTL_JSON="$SIMCTL_JSON" python3 - <<'PY'
+import json, os, re
 
-data = json.loads(sys.stdin.read())
+raw = os.environ.get("SIMCTL_JSON", "")
+if not raw.strip():
+    print("", "")
+    raise SystemExit(0)
+
+try:
+    data = json.loads(raw)
+except json.JSONDecodeError:
+    print("", "")
+    raise SystemExit(0)
 
 # Runtime availability helper
 
@@ -212,7 +221,7 @@ if runtime_id:
 
 print(runtime_id, udid)
 PY
-<<<"$SIMCTL_JSON")
+)
 
 if [[ -z "${XROS_RUNTIME_ID}" ]]; then
     echo "⚠ No AVAILABLE visionOS (xrOS) runtime found."

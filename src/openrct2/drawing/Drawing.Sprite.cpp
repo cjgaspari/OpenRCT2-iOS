@@ -537,11 +537,27 @@ static bool GfxLoadOpenRCT2Gx(std::string filename, Gx& target, size_t expectedN
     auto& env = GetContext()->GetPlatformEnvironment();
 
     std::string path = Path::Combine(env.GetDirectoryPath(DirBase::openrct2), filename.c_str());
+    printf("[OpenRCT2] [GfxLoad] loading %s from %s\n", filename.c_str(), path.c_str());
 
     try
     {
         auto fs = FileStream(path, FileMode::open);
         target.header = fs.ReadValue<G1Header>();
+        printf(
+            "[OpenRCT2] [GfxLoad] %s header entries=%u totalSize=%u fileSize=%llu\n",
+            filename.c_str(),
+            target.header.numEntries,
+            target.header.totalSize,
+            static_cast<unsigned long long>(fs.GetLength()));
+        if (filename == "g2.dat")
+        {
+            LOG_WARNING(
+                "[visionOS] g2.dat header: path=%s entries=%u expected=%zu fileSize=%llu",
+                path.c_str(),
+                target.header.numEntries,
+                expectedNumItems,
+                static_cast<unsigned long long>(fs.GetLength()));
+        }
 
         // Read element headers
         target.elements.resize(target.header.numEntries);
@@ -583,12 +599,13 @@ static bool GfxLoadOpenRCT2Gx(std::string filename, Gx& target, size_t expectedN
         }
         return true;
     }
-    catch (const std::exception&)
+    catch (const std::exception& ex)
     {
         target.elements.clear();
         target.elements.shrink_to_fit();
 
-        LOG_FATAL("Unable to load %s graphics", filename.c_str());
+        LOG_FATAL("Unable to load %s graphics: %s", filename.c_str(), ex.what());
+        fprintf(stderr, "[OpenRCT2] [GfxLoad] failed to load %s: %s\n", filename.c_str(), ex.what());
         if (!gOpenRCT2Headless)
         {
             auto& uiContext = GetContext()->GetUiContext();
@@ -601,8 +618,11 @@ static bool GfxLoadOpenRCT2Gx(std::string filename, Gx& target, size_t expectedN
 void GfxLoadG2FontsAndTracks()
 {
     GfxLoadOpenRCT2Gx("g2.dat", _g2, kG2SpriteCount);
+    printf("[OpenRCT2] [GfxLoad] g2 entries loaded=%u expected=%zu\n", _g2.header.numEntries, kG2SpriteCount);
     GfxLoadOpenRCT2Gx("fonts.dat", _fonts, kFontsDatSpriteCount);
+    printf("[OpenRCT2] [GfxLoad] fonts entries loaded=%u expected=%zu\n", _fonts.header.numEntries, kFontsDatSpriteCount);
     GfxLoadOpenRCT2Gx("tracks.dat", _tracks, kTracksDatSpriteCount);
+    printf("[OpenRCT2] [GfxLoad] tracks entries loaded=%u expected=%zu\n", _tracks.header.numEntries, kTracksDatSpriteCount);
 }
 
 bool GfxLoadCsg()
@@ -1054,6 +1074,16 @@ const G1Element* GfxGetG1Element(ImageIndex image_id)
             return &_g2.elements[idx];
         }
 
+        static bool g2WarningLogged = false;
+        if (!g2WarningLogged)
+        {
+            g2WarningLogged = true;
+            LOG_WARNING(
+                "[visionOS] g2.dat missing entries: header=%u expected=%zu firstMissingIdx=%zu",
+                _g2.header.numEntries,
+                kG2SpriteCount,
+                idx);
+        }
         LOG_WARNING("Invalid entry in g2.dat requested, idx = %u. You may have to update your g2.dat.", idx);
     }
     else if (offset < SPR_FONTS_END)

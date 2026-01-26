@@ -3,7 +3,7 @@
  *
  * VOS-035: Full GameContext Initialization
  * Creates the platform environment with proper paths for:
- * - App bundle resources (g1.dat, g2.dat, language files)
+ * - App bundle resources (g2.dat, language files, etc.)
  * - User data in Documents folder
  * - Cache in Caches folder
  * - Configuration in Application Support
@@ -107,8 +107,7 @@ namespace
 #ifdef __OBJC__
     /**
      * Get the app bundle's resource path.
-     * This is where g1.dat, g2.dat, language files, etc. are bundled.
-     * For visionOS, assets are in the visionos-resources subfolder.
+     * This is where g2.dat, language files, etc. are bundled.
      */
     static std::string GetBundleResourcePath()
     {
@@ -117,18 +116,7 @@ namespace
             NSBundle* bundle = [NSBundle mainBundle];
             if (bundle && bundle.resourcePath)
             {
-                // Check for visionos-resources subfolder first
-                NSString* resourcePath = bundle.resourcePath;
-                NSString* visionosResources = [resourcePath stringByAppendingPathComponent:@"visionos-resources"];
-
-                BOOL isDir = NO;
-                if ([[NSFileManager defaultManager] fileExistsAtPath:visionosResources isDirectory:&isDir] && isDir)
-                {
-                    return std::string(visionosResources.UTF8String);
-                }
-
-                // Fall back to root resource path
-                return std::string(resourcePath.UTF8String);
+                return std::string(bundle.resourcePath.UTF8String);
             }
             return std::string();
         }
@@ -324,12 +312,10 @@ namespace OpenRCT2
                     break;
 
                 case DirBase::openrct2:
-                    // visionOS bundle layout: files like g2.dat, fonts.dat are in root
-                    // of visionos-resources, not in a data/ subfolder.
+                    // Bundle resource root contains g2.dat, fonts.dat, tracks.dat directly.
                     // Only add subdirectory for specific DirIds that have actual subfolders.
                     if (did == DirId::data)
                     {
-                        // g2.dat, fonts.dat etc are directly in visionos-resources root
                         return basePath;
                     }
                     if (didIndex < std::size(kDirectoryNamesOpenRCT2))

@@ -220,17 +220,33 @@ final class MetalLayerView: UIView {
         }
 
         log("[Init] starting OpenRCT2 bootstrap")
-        let bundleResourcePath = Bundle.main.bundlePath + "/visionos-resources"
+        let bundleRoot = Bundle.main.resourcePath ?? Bundle.main.bundlePath
+        let resourceBasePath = bundleRoot
         let documentsPath =
             FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path ?? ""
         let cachePath =
             FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.path ?? ""
 
-        log("[Init] bundlePath=\(bundleResourcePath)")
+        let fileExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
+        let dirExists: (String) -> Bool = { path in
+            var isDir: ObjCBool = false
+            return FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && isDir.boolValue
+        }
+
+        let g2Path = bundleRoot + "/g2.dat"
+        let fontsPath = bundleRoot + "/fonts.dat"
+        let tracksPath = bundleRoot + "/tracks.dat"
+        let languagePath = bundleRoot + "/language"
+        let g1Path = bundleRoot + "/rct2/Data/g1.dat"
+
+        log("[Init] bundleRoot=\(bundleRoot)")
+        log("[Init] bundlePath=\(resourceBasePath)")
+        log("[Init] resources g2=\(fileExists(g2Path)) fonts=\(fileExists(fontsPath)) tracks=\(fileExists(tracksPath)) langDir=\(dirExists(languagePath))")
+        log("[Init] rct2 g1.dat=\(fileExists(g1Path))")
         log("[Init] userPath=\(documentsPath)")
         log("[Init] cachePath=\(cachePath)")
 
-        bundleResourcePath.withCString { bundleCStr in
+        resourceBasePath.withCString { bundleCStr in
             documentsPath.withCString { userCStr in
                 cachePath.withCString { cacheCStr in
                     openrct2_set_paths(bundleCStr, userCStr, cacheCStr)
@@ -247,7 +263,7 @@ final class MetalLayerView: UIView {
 
         if !openrct2_init_full() {
             let error = openrct2_get_init_error().map { String(cString: $0) } ?? "Unknown error"
-            emitError("openrct2_init_full failed: \(error). Check g2.dat in visionos-resources.")
+            emitError("openrct2_init_full failed: \(error). Check OpenRCT2 resources at \(resourceBasePath).")
         } else {
             log("[Init] openrct2_init_full succeeded")
             clearError()

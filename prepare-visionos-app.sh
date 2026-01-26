@@ -290,7 +290,7 @@ if [ -d "$RESOURCES_DIR/rct2" ]; then
 fi
 echo ""
 echo "Next steps:"
-echo "  1. In Xcode, add the visionos-resources folder to your project"
-echo "  2. Ensure files are added to 'Copy Bundle Resources' build phase"
-echo "  3. Build and run on visionOS Simulator"
+echo "  1. Ensure the visionos-resources folder exists in the repo (this script creates it)"
+echo "  2. Build in Xcode (resources are copied into the app bundle root at build time)"
+echo "  3. Run on visionOS Simulator"
 echo ""

@@ -56,6 +56,9 @@ static inline os_log_t getOpenRCT2Log()
     #include <openrct2/OpenRCT2.h>
     #include <openrct2/PlatformEnvironment.h>
     #include <openrct2/audio/AudioContext.h>
+    #include <openrct2/core/File.h>
+    #include <openrct2/core/FileStream.h>
+    #include <openrct2/drawing/G1Element.h>
     #include <openrct2/drawing/IDrawingEngine.h>
     #include <openrct2/paint/Painter.h>
     #include <openrct2/scenes/Scene.h>
@@ -735,6 +738,48 @@ const std::string& GetGlobalCachePath()
 }
 
 #ifdef OPENRCT2_FULL_CONTEXT
+static void LogResourceCheck(const char* label, const std::string& path)
+{
+    if (!OpenRCT2::File::Exists(path))
+    {
+        printf("[OpenRCT2] Resource missing: %s (%s)\n", label, path.c_str());
+        return;
+    }
+
+    auto size = OpenRCT2::File::GetSize(path);
+    printf(
+        "[OpenRCT2] Resource present: %s (%s, %llu bytes)\n",
+        label,
+        path.c_str(),
+        static_cast<unsigned long long>(size));
+}
+
+static void LogGxHeader(const char* label, const std::string& path)
+{
+    if (!OpenRCT2::File::Exists(path))
+    {
+        printf("[OpenRCT2] %s missing: %s\n", label, path.c_str());
+        return;
+    }
+
+    try
+    {
+        OpenRCT2::FileStream fs(path, OpenRCT2::FileMode::open);
+        auto header = fs.ReadValue<OpenRCT2::G1Header>();
+        printf(
+            "[OpenRCT2] %s header: entries=%u totalSize=%u\n",
+            label,
+            header.numEntries,
+            header.totalSize);
+    }
+    catch (const std::exception& ex)
+    {
+        printf("[OpenRCT2] %s header read failed: %s\n", label, ex.what());
+    }
+}
+#endif
+
+#ifdef OPENRCT2_FULL_CONTEXT
 // ============================================================================
 // VisionOS Platform Environment Implementation (uses Swift-provided paths)
 // ============================================================================
@@ -870,11 +915,9 @@ namespace OpenRCT2
                     break;
 
                 case DirBase::openrct2:
-                    // visionOS bundle layout: files like g2.dat, fonts.dat are in root
-                    // of visionos-resources, not in a data/ subfolder.
+                    // Bundle resource root contains g2.dat, fonts.dat, tracks.dat directly.
                     if (did == DirId::data)
                     {
-                        // g2.dat, fonts.dat etc are directly in visionos-resources root
                         return basePath;
                     }
                     if (didIndex < std::size(kDirectoryNamesOpenRCT2))
@@ -1106,8 +1149,23 @@ bool openrct2_init_full(void)
             return false;
         }
 
+        auto openrct2Path = g_bundlePath;
+        LogResourceCheck("openrct2 base", openrct2Path);
+        LogGxHeader("g2.dat", CombinePath(openrct2Path, "g2.dat"));
+        LogGxHeader("fonts.dat", CombinePath(openrct2Path, "fonts.dat"));
+        LogGxHeader("tracks.dat", CombinePath(openrct2Path, "tracks.dat"));
+        LogResourceCheck("language dir", CombinePath(openrct2Path, "language"));
+        LogResourceCheck("object dir", CombinePath(openrct2Path, "object"));
+        LogResourceCheck("scenario_patches dir", CombinePath(openrct2Path, "scenario_patches"));
+        LogResourceCheck("sequence dir", CombinePath(openrct2Path, "sequence"));
+        LogResourceCheck("shaders dir", CombinePath(openrct2Path, "shaders"));
+        LogResourceCheck("assetpack dir", CombinePath(openrct2Path, "assetpack"));
+
         // Set the RCT2 data path to our bundled data to skip the directory browser
         auto rct2Path = CombinePath(g_bundlePath, "rct2");
+        auto rct2DataPath = CombinePath(rct2Path, "Data");
+        LogResourceCheck("rct2 data dir", rct2DataPath);
+        LogGxHeader("g1.dat", CombinePath(rct2DataPath, "g1.dat"));
         printf("[OpenRCT2] Setting gCustomRCT2DataPath to: %s\n", rct2Path.c_str());
         gCustomRCT2DataPath = rct2Path;
 

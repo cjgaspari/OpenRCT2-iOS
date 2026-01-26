@@ -440,6 +440,7 @@ namespace OpenRCT2
                 {
                     LOG_FATAL("Failed to open fallback language: %s", eFallback.what());
                     LOG_WARNING("[Context::Initialise] FAILED: Could not load language file");
+                    fprintf(stderr, "[OpenRCT2] [Context] language load failed; returning false\n");
                     auto& uiContext = GetContext()->GetUiContext();
 #ifdef __ANDROID__
                     uiContext.ShowMessageBox(
@@ -466,6 +467,7 @@ namespace OpenRCT2
                 if (rct2InstallPath.empty())
                 {
                     LOG_WARNING("[Context::Initialise] FAILED: RCT2 path is empty");
+                    fprintf(stderr, "[OpenRCT2] [Context] RCT2 path empty; returning false\n");
                     return false;
                 }
                 _env->SetBasePath(DirBase::rct2, rct2InstallPath);
@@ -541,6 +543,7 @@ namespace OpenRCT2
                 if (!LoadBaseGraphics())
                 {
                     LOG_WARNING("[Context::Initialise] FAILED: LoadBaseGraphics returned false");
+                    fprintf(stderr, "[OpenRCT2] [Context] LoadBaseGraphics failed; returning false\n");
                     return false;
                 }
                 LOG_WARNING("[Context::Initialise] Base graphics loaded");

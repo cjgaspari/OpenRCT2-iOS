@@ -24,7 +24,7 @@ bool openrct2_init(const char* configPath);
 
 /// Set the base path for game resources (call before openrct2_init).
 /// This is needed because the C++ library can't access NSBundle directly.
-/// @param bundlePath Path to app bundle resources (e.g., .app/visionos-resources)
+/// @param bundlePath Path to app bundle resources root (e.g., .app/Contents/Resources)
 /// @param userPath Path to user documents directory
 /// @param cachePath Path to caches directory
 void openrct2_set_paths(const char* bundlePath, const char* userPath, const char* cachePath);

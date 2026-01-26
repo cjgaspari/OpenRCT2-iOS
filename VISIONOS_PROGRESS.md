@@ -238,7 +238,7 @@ To enable real game rendering (`OPENRCT2_FULL_CONTEXT` mode):
    ```bash
    ./prepare-visionos-app.sh
    ```
-   Then add `visionos-resources/` folder to Xcode project.
+   Then run the build; resources from `visionos-resources/` are copied into the app bundle root.
 
 ### Files Created for M4.5 (2026-01-25)
 

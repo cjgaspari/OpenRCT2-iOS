@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		8BC0A0012DEF000000AAAAAA /* visionos-resources in Resources */ = {isa = PBXBuildFile; fileRef = 8BC0A0002DEF000000AAAAAA /* visionos-resources */; };
+		8485CD592F27322E00619776 /* libopenrct2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8485CD582F27322E00619776 /* libopenrct2.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -21,10 +21,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8485CD582F27322E00619776 /* libopenrct2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libopenrct2.a; path = "build-visionos/libopenrct2.a"; sourceTree = "<group>"; };
 		8B41F6452DEDD0D5001A66F9 /* OpenRCT2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenRCT2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B41F65C2DEDD0D6001A66F9 /* .xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = .xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B9AAA012DEE000000123456 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
-		8BC0A0002DEF000000AAAAAA /* visionos-resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "visionos-resources"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -70,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8485CD592F27322E00619776 /* libopenrct2.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,7 +85,6 @@
 				8B9AAA032DEE000000123457 /* Sources/OpenRCT2App */,
 				8B9AAA042DEE000000123457 /* Sources/OpenRCT2Core */,
 				8BD71C052DEE41D800CEDD92 /* Config */,
-				8BC0A0002DEF000000AAAAAA /* visionos-resources */,
 				84D9DF762F26AC5700CBCCA3 /* visionos-resources */,
 				8B41F6472DEDD0D5001A66F9 /* OpenRCT2 */,
 				8B41F65F2DEDD0D6001A66F9 /* OpenRCT2UITests */,
@@ -105,6 +105,7 @@
 		8B41F6812DEDD23B001A66F9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				8485CD582F27322E00619776 /* libopenrct2.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -119,6 +120,7 @@
 				8B41F6412DEDD0D5001A66F9 /* Sources */,
 				8B41F6422DEDD0D5001A66F9 /* Frameworks */,
 				8B41F6432DEDD0D5001A66F9 /* Resources */,
+				8BC0A0102DEF000000AAAAAA /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -199,7 +201,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8BC0A0012DEF000000AAAAAA /* visionos-resources in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -211,6 +212,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		8BC0A0102DEF000000AAAAAA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/visionos-resources",
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/.openrct2_resources_stamp",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nSRC=\"${SRCROOT}/visionos-resources\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nSTAMP=\"${DST}/.openrct2_resources_stamp\"\nif [ ! -d \"$SRC\" ]; then\n  echo \"warning: OpenRCT2 resources not found at $SRC\"\n  exit 0\nfi\nrsync -a \"$SRC\"/ \"$DST\"/\ntouch \"$STAMP\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8B41F6412DEDD0D5001A66F9 /* Sources */ = {
@@ -386,6 +409,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 5ZV7828735;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_DISPLAY_NAME)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -394,6 +418,10 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build-visionos",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.openrct2.visionos;
 				PRODUCT_NAME = OpenRCT2;
@@ -412,6 +440,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 5ZV7828735;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_DISPLAY_NAME)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -420,6 +449,10 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build-visionos",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.openrct2.visionos;
 				PRODUCT_NAME = OpenRCT2;
