@@ -51,6 +51,7 @@ namespace OpenRCT2::Ui
     };
 
     [[nodiscard]] std::unique_ptr<IUiContext> CreateUiContext(IPlatformEnvironment& env);
+    [[nodiscard]] std::unique_ptr<IUiContext> CreateDummyUiContext();
     [[nodiscard]] std::unique_ptr<IPlatformUiContext> CreatePlatformUiContext();
 
     [[nodiscard]] InGameConsole& GetInGameConsole();

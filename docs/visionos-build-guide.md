@@ -127,3 +127,17 @@ xcrun simctl install 9EC16DBE-2A87-4655-B4BE-966355FDE0DC \
 
 xcrun simctl launch --console 9EC16DBE-2A87-4655-B4BE-966355FDE0DC com.openrct2.visionos
 ```
+
+### Normalize visionOS logging (os_log only)
+Swapped visionOS `printf`/`fprintf` logs to `os_log` for consistent visibility, and removed duplicate logs.
+
+Rebuild and view logs via:
+```sh
+xcodebuild -project OpenRCT2.xcodeproj -scheme OpenRCT2 \
+  -destination 'platform=visionOS Simulator,id=9EC16DBE-2A87-4655-B4BE-966355FDE0DC' \
+  -configuration Debug \
+  build
+
+xcrun simctl spawn 9EC16DBE-2A87-4655-B4BE-966355FDE0DC log stream \
+  --predicate 'process == "OpenRCT2"'
+```

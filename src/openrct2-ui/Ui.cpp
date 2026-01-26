@@ -89,7 +89,11 @@ static int OpenRCT2Main(int argc, const char** argv)
                 LOG_WARNING("Failed to create audio context. Using dummy audio context. Error message was: %s", e.what());
                 audioContext = CreateDummyAudioContext();
             }
+#ifdef OPENRCT2_VISIONOS
+            auto uiContext = CreateDummyUiContext();
+#else
             auto uiContext = CreateUiContext(*env);
+#endif
             context = CreateContext(std::move(env), std::move(audioContext), std::move(uiContext));
         }
         rc = context->RunOpenRCT2(argc, argv);

@@ -75,6 +75,7 @@
 #include "scripting/ScriptEngine.h"
 #include "ui/UiContext.h"
 #include "ui/WindowManager.h"
+#include "visionos.h"
 #include "world/MapAnimation.h"
 #include "world/MapSelection.h"
 
@@ -90,6 +91,13 @@ using namespace OpenRCT2;
 using namespace OpenRCT2::Ui;
 
 using OpenRCT2::Audio::IAudioContext;
+
+#ifdef OPENRCT2_VISIONOS
+    #include <os/log.h>
+    #define VISIONOS_LOG_INFO(format, ...) os_log_info(OS_LOG_DEFAULT, format, ##__VA_ARGS__)
+    #define VISIONOS_LOG_ERROR(format, ...) os_log_error(OS_LOG_DEFAULT, format, ##__VA_ARGS__)
+    #define VISIONOS_LOG_DEBUG(format, ...) os_log_debug(OS_LOG_DEFAULT, format, ##__VA_ARGS__)
+#endif
 
 namespace OpenRCT2
 {
@@ -425,6 +433,9 @@ namespace OpenRCT2
             printf("[Context::Initialise] ENTERED - diagnostic printf\n");
             fprintf(stderr, "[Context::Initialise] ENTERED - diagnostic fprintf\n");
             fflush(stderr);
+#ifdef OPENRCT2_VISIONOS
+            VISIONOS_LOG_INFO("[Context::Initialise] ENTERED");
+#endif
             LOG_WARNING("[Context::Initialise] Starting...");
             if (_initialised)
             {
@@ -435,6 +446,9 @@ namespace OpenRCT2
 
             CrashInit();
             LOG_WARNING("[Context::Initialise] CrashInit done");
+#ifdef OPENRCT2_VISIONOS
+            VISIONOS_LOG_INFO("[Context::Initialise] CrashInit done");
+#endif
 
             if (String::equals(Config::Get().general.lastRunVersion, kOpenRCT2Version))
             {
@@ -452,6 +466,9 @@ namespace OpenRCT2
                 LOG_WARNING("[Context::Initialise] Opening language: %d", Config::Get().general.language);
                 _localisationService->OpenLanguage(Config::Get().general.language);
                 LOG_WARNING("[Context::Initialise] Language opened successfully");
+#ifdef OPENRCT2_VISIONOS
+                VISIONOS_LOG_INFO("[Context::Initialise] Language opened successfully");
+#endif
             }
             catch (const std::exception& e)
             {
@@ -497,12 +514,20 @@ namespace OpenRCT2
                 _env->SetBasePath(DirBase::rct2, rct2InstallPath);
             }
 
+#ifdef OPENRCT2_VISIONOS
+            VISIONOS_LOG_INFO("[Context::Initialise] RCT2 path set");
+#endif
+
             // The repositories are all dependent on the RCT2 path being set,
             // so they cannot be set in the constructor.
             _objectRepository = CreateObjectRepository(*_env);
             _objectManager = CreateObjectManager(*_objectRepository);
             _trackDesignRepository = CreateTrackDesignRepository(*_env);
             _scenarioRepository = CreateScenarioRepository(*_env);
+
+#ifdef OPENRCT2_VISIONOS
+            VISIONOS_LOG_INFO("[Context::Initialise] Repositories created");
+#endif
 
             if (!gOpenRCT2Headless)
             {
@@ -548,6 +573,10 @@ namespace OpenRCT2
                 _uiContext->CreateWindow();
             }
 
+#ifdef OPENRCT2_VISIONOS
+            VISIONOS_LOG_INFO("[Context::Initialise] Window created");
+#endif
+
             EnsureUserContentDirectoriesExist();
 
             if (!gOpenRCT2Headless)
@@ -581,10 +610,18 @@ namespace OpenRCT2
                 Drawing::LightFx::Init();
             }
 
+#ifdef OPENRCT2_VISIONOS
+            VISIONOS_LOG_INFO("[Context::Initialise] Base graphics loaded");
+#endif
+
             ContextInit();
             LOG_WARNING("[Context::Initialise] ContextInit done");
             ResetSubsystems();
             LOG_WARNING("[Context::Initialise] ResetSubsystems done");
+
+#ifdef OPENRCT2_VISIONOS
+            VISIONOS_LOG_INFO("[Context::Initialise] ContextInit and ResetSubsystems done");
+#endif
 
             if (!gOpenRCT2Headless)
             {
@@ -604,6 +641,9 @@ namespace OpenRCT2
             }
 
             LOG_WARNING("[Context::Initialise] SUCCESS - returning true");
+#ifdef OPENRCT2_VISIONOS
+            VISIONOS_LOG_INFO("[Context::Initialise] SUCCESS - returning true");
+#endif
             return true;
         }
 

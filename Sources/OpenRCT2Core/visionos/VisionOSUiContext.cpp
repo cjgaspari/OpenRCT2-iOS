@@ -21,7 +21,9 @@
 
 #include <climits>
 #include <cmath>
+#include <cstdarg>
 #include <cstdint>
+#include <cstdio>
 #include <limits.h>
 
 // Use mach time instead of <chrono> to avoid visionOS SDK header issues
@@ -29,6 +31,9 @@
 
 // os_log for reliable visionOS console logging
 #include <os/log.h>
+
+// execinfo for stack traces
+#include <execinfo.h>
 
 // Define a static log handle for OpenRCT2
 static os_log_t g_openrct2Log = nullptr;
@@ -40,6 +45,25 @@ static inline os_log_t getOpenRCT2Log()
     }
     return g_openrct2Log;
 }
+
+static inline void VOSLog(os_log_type_t type, const char* fmt, ...)
+{
+    if (fmt == nullptr)
+        return;
+
+    char buffer[1024];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+    os_log_with_type(getOpenRCT2Log(), type, "%{public}s", buffer);
+}
+
+#define VOS_LOG_INFO(...) VOSLog(OS_LOG_TYPE_INFO, __VA_ARGS__)
+#define VOS_LOG_WARN(...) VOSLog(OS_LOG_TYPE_DEFAULT, __VA_ARGS__)
+#define VOS_LOG_ERROR(...) VOSLog(OS_LOG_TYPE_ERROR, __VA_ARGS__)
+#define VOS_LOG_DEBUG(...) VOSLog(OS_LOG_TYPE_DEBUG, __VA_ARGS__)
 
 // Objective-C headers for bundle path discovery
 #ifdef __OBJC__
@@ -338,6 +362,7 @@ namespace OpenRCT2
         public:
             VisionOSUiContext()
             {
+                LOG_INFO("[DummyUiContext] Constructor called");
                 InitializeAssetPaths();
 #ifdef OPENRCT2_FULL_CONTEXT
                 _windowManager = CreateDummyWindowManager();
@@ -671,6 +696,7 @@ namespace OpenRCT2
 
         std::unique_ptr<IUiContext> CreateVisionOSUiContext()
         {
+            LOG_INFO("[DummyUiContext] CreateVisionOSUiContext called");
             return std::make_unique<VisionOSUiContext>();
         }
 
@@ -718,10 +744,10 @@ void openrct2_set_paths(const char* bundlePath, const char* userPath, const char
     if (cachePath)
         g_cachePath = cachePath;
 
-    printf("[OpenRCT2] Paths set from Swift:\n");
-    printf("  bundlePath: %s\n", g_bundlePath.c_str());
-    printf("  userPath: %s\n", g_userPath.c_str());
-    printf("  cachePath: %s\n", g_cachePath.c_str());
+    VOS_LOG_INFO("[OpenRCT2] Paths set from Swift:");
+    VOS_LOG_INFO("  bundlePath: %s", g_bundlePath.c_str());
+    VOS_LOG_INFO("  userPath: %s", g_userPath.c_str());
+    VOS_LOG_INFO("  cachePath: %s", g_cachePath.c_str());
 }
 
 // Accessor functions for VisionOSPlatformEnvironment
@@ -743,19 +769,20 @@ static void LogResourceCheck(const char* label, const std::string& path)
 {
     if (!OpenRCT2::File::Exists(path))
     {
-        printf("[OpenRCT2] Resource missing: %s (%s)\n", label, path.c_str());
+        VOS_LOG_WARN("[OpenRCT2] Resource missing: %s (%s)", label, path.c_str());
         return;
     }
 
     auto size = OpenRCT2::File::GetSize(path);
-    printf("[OpenRCT2] Resource present: %s (%s, %llu bytes)\n", label, path.c_str(), static_cast<unsigned long long>(size));
+    VOS_LOG_INFO(
+        "[OpenRCT2] Resource present: %s (%s, %llu bytes)", label, path.c_str(), static_cast<unsigned long long>(size));
 }
 
 static void LogGxHeader(const char* label, const std::string& path)
 {
     if (!OpenRCT2::File::Exists(path))
     {
-        printf("[OpenRCT2] %s missing: %s\n", label, path.c_str());
+        VOS_LOG_WARN("[OpenRCT2] %s missing: %s", label, path.c_str());
         return;
     }
 
@@ -763,11 +790,11 @@ static void LogGxHeader(const char* label, const std::string& path)
     {
         OpenRCT2::FileStream fs(path, OpenRCT2::FileMode::open);
         auto header = fs.ReadValue<OpenRCT2::G1Header>();
-        printf("[OpenRCT2] %s header: entries=%u totalSize=%u\n", label, header.numEntries, header.totalSize);
+        VOS_LOG_INFO("[OpenRCT2] %s header: entries=%u totalSize=%u", label, header.numEntries, header.totalSize);
     }
     catch (const std::exception& ex)
     {
-        printf("[OpenRCT2] %s header read failed: %s\n", label, ex.what());
+        VOS_LOG_ERROR("[OpenRCT2] %s header read failed: %s", label, ex.what());
     }
 }
 #endif
@@ -868,12 +895,12 @@ namespace OpenRCT2
             // RCT1 is optional, user-provided
             _basePath[static_cast<size_t>(DirBase::rct1)] = CombinePath(userDataPath, "rct1");
 
-            printf("[OpenRCT2] VisionOSPlatformEnvironmentImpl initialized:\n");
-            printf("  openrct2: %s\n", _basePath[static_cast<size_t>(DirBase::openrct2)].c_str());
-            printf("  user: %s\n", _basePath[static_cast<size_t>(DirBase::user)].c_str());
-            printf("  rct2: %s\n", _basePath[static_cast<size_t>(DirBase::rct2)].c_str());
-            printf("  config: %s\n", _basePath[static_cast<size_t>(DirBase::config)].c_str());
-            printf("  cache: %s\n", _basePath[static_cast<size_t>(DirBase::cache)].c_str());
+            VOS_LOG_INFO("[OpenRCT2] VisionOSPlatformEnvironmentImpl initialized:");
+            VOS_LOG_INFO("  openrct2: %s", _basePath[static_cast<size_t>(DirBase::openrct2)].c_str());
+            VOS_LOG_INFO("  user: %s", _basePath[static_cast<size_t>(DirBase::user)].c_str());
+            VOS_LOG_INFO("  rct2: %s", _basePath[static_cast<size_t>(DirBase::rct2)].c_str());
+            VOS_LOG_INFO("  config: %s", _basePath[static_cast<size_t>(DirBase::config)].c_str());
+            VOS_LOG_INFO("  cache: %s", _basePath[static_cast<size_t>(DirBase::cache)].c_str());
         }
 
         u8string GetDirectoryPath(DirBase base) const override
@@ -1020,40 +1047,40 @@ bool openrct2_init(const char* configPath)
 
     try
     {
-        printf("[OpenRCT2] openrct2_init starting...\n");
+        VOS_LOG_INFO("[OpenRCT2] openrct2_init starting...");
 
 #ifdef OPENRCT2_FULL_CONTEXT
-        printf("[OpenRCT2] FULL_CONTEXT mode - creating complete OpenRCT2 context\n");
+        VOS_LOG_INFO("[OpenRCT2] FULL_CONTEXT mode - creating complete OpenRCT2 context");
 
         // Check if paths were set from Swift
         if (g_bundlePath.empty())
         {
-            printf("[OpenRCT2] ERROR: Bundle path not set! Call openrct2_set_paths() first.\n");
+            VOS_LOG_ERROR("[OpenRCT2] ERROR: Bundle path not set! Call openrct2_set_paths() first.");
             return false;
         }
 
-        printf("[OpenRCT2] Using paths from Swift:\n");
-        printf("  bundlePath: %s\n", g_bundlePath.c_str());
-        printf("  userPath: %s\n", g_userPath.c_str());
-        printf("  cachePath: %s\n", g_cachePath.c_str());
+        VOS_LOG_INFO("[OpenRCT2] Using paths from Swift:");
+        VOS_LOG_INFO("  bundlePath: %s", g_bundlePath.c_str());
+        VOS_LOG_INFO("  userPath: %s", g_userPath.c_str());
+        VOS_LOG_INFO("  cachePath: %s", g_cachePath.c_str());
 
         // Full context mode: create complete OpenRCT2 context with paths from Swift
         auto env = CreateVisionOSPlatformEnvironmentWithPaths(g_bundlePath, g_userPath, g_cachePath);
-        printf("[OpenRCT2] Created VisionOSPlatformEnvironmentWithPaths\n");
+        VOS_LOG_INFO("[OpenRCT2] Created VisionOSPlatformEnvironmentWithPaths");
 
         // Log the paths
-        printf("[OpenRCT2] Paths:\n");
-        printf("  openrct2: %s\n", env->GetDirectoryPath(DirBase::openrct2).c_str());
-        printf("  user: %s\n", env->GetDirectoryPath(DirBase::user).c_str());
-        printf("  rct2: %s\n", env->GetDirectoryPath(DirBase::rct2).c_str());
-        printf("  config: %s\n", env->GetDirectoryPath(DirBase::config).c_str());
-        printf("  cache: %s\n", env->GetDirectoryPath(DirBase::cache).c_str());
+        VOS_LOG_INFO("[OpenRCT2] Paths:");
+        VOS_LOG_INFO("  openrct2: %s", env->GetDirectoryPath(DirBase::openrct2).c_str());
+        VOS_LOG_INFO("  user: %s", env->GetDirectoryPath(DirBase::user).c_str());
+        VOS_LOG_INFO("  rct2: %s", env->GetDirectoryPath(DirBase::rct2).c_str());
+        VOS_LOG_INFO("  config: %s", env->GetDirectoryPath(DirBase::config).c_str());
+        VOS_LOG_INFO("  cache: %s", env->GetDirectoryPath(DirBase::cache).c_str());
 
         auto audioContext = Audio::CreateDummyAudioContext();
-        printf("[OpenRCT2] Created DummyAudioContext\n");
+        VOS_LOG_INFO("[OpenRCT2] Created DummyAudioContext");
 
         auto uiContext = CreateVisionOSUiContext();
-        printf("[OpenRCT2] Created VisionOSUiContext\n");
+        LOG_INFO("[DummyUiContext] Created");
 
         g_visionosUiContext = AsVisionOSUiContext(uiContext.get());
 
@@ -1062,22 +1089,22 @@ bool openrct2_init(const char* configPath)
         if (!g_context)
         {
             g_lastError = "CreateContext returned null";
-            printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
+            VOS_LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
             return false;
         }
-        printf("[OpenRCT2] CreateContext succeeded\n");
+        VOS_LOG_INFO("[OpenRCT2] CreateContext succeeded");
 
         if (g_visionosUiContext)
             g_visionosUiContext->SetContext(g_context.get());
 #else
-        printf("[OpenRCT2] Standalone mode - creating UI context only\n");
+        VOS_LOG_INFO("[OpenRCT2] Standalone mode - creating UI context only");
 
         // Standalone mode: just create UI context
         g_uiContext = CreateVisionOSUiContext();
         if (!g_uiContext)
         {
             g_lastError = "CreateVisionOSUiContext returned null";
-            printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
+            VOS_LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
             return false;
         }
 
@@ -1085,19 +1112,19 @@ bool openrct2_init(const char* configPath)
 #endif
 
         g_initialized = true;
-        printf("[OpenRCT2] openrct2_init completed successfully\n");
+        VOS_LOG_INFO("[OpenRCT2] openrct2_init completed successfully");
         return true;
     }
     catch (const std::exception& ex)
     {
         g_lastError = std::string("Exception in openrct2_init: ") + ex.what();
-        printf("[OpenRCT2] %s\n", g_lastError.c_str());
+        VOS_LOG_ERROR("[OpenRCT2] %s", g_lastError.c_str());
         return false;
     }
     catch (...)
     {
         g_lastError = "Unknown exception in openrct2_init";
-        printf("[OpenRCT2] %s\n", g_lastError.c_str());
+        VOS_LOG_ERROR("[OpenRCT2] %s", g_lastError.c_str());
         return false;
     }
 }
@@ -1110,36 +1137,30 @@ bool openrct2_init(const char* configPath)
  */
 bool openrct2_init_full(void)
 {
-    // Use os_log for reliable visionOS logging (appears in Console.app)
-    os_log_info(getOpenRCT2Log(), "openrct2_init_full starting...");
-    fprintf(stderr, "[OpenRCT2] openrct2_init_full starting...\n");
-    fflush(stderr);
-    printf("[OpenRCT2] openrct2_init_full starting...\n");
-    printf("[OpenRCT2] visionOS build marker: VOS-G2FIX-2026-01-26-01\n");
+    VOS_LOG_INFO("[OpenRCT2] openrct2_init_full starting...");
+    VOS_LOG_INFO("[OpenRCT2] visionOS build marker: VOS-G2FIX-2026-01-26-01");
 
     if (!g_initialized)
     {
         g_lastError = "openrct2_init not called";
-        printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
+        VOS_LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
         return false;
     }
 
     if (g_contextInitialized)
     {
-        printf("[OpenRCT2] Already fully initialized\n");
+        VOS_LOG_INFO("[OpenRCT2] Already fully initialized");
         return true;
     }
 
 #ifdef OPENRCT2_FULL_CONTEXT
-    os_log_info(getOpenRCT2Log(), "OPENRCT2_FULL_CONTEXT is defined - using full context initialization");
-    fprintf(stderr, "[OpenRCT2] OPENRCT2_FULL_CONTEXT is defined\n");
-    fflush(stderr);
+    VOS_LOG_INFO("[OpenRCT2] OPENRCT2_FULL_CONTEXT is defined - using full context initialization");
     try
     {
         if (!g_context)
         {
             g_lastError = "g_context is null";
-            printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
+            VOS_LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
             return false;
         }
 
@@ -1148,19 +1169,19 @@ bool openrct2_init_full(void)
         LogGxHeader("g2.dat", CombinePath(openrct2Path, "g2.dat"));
         LogGxHeader("fonts.dat", CombinePath(openrct2Path, "fonts.dat"));
         LogGxHeader("tracks.dat", CombinePath(openrct2Path, "tracks.dat"));
-//        LogResourceCheck("language dir", CombinePath(openrct2Path, "language"));
-//        LogResourceCheck("object dir", CombinePath(openrct2Path, "object"));
-//        LogResourceCheck("scenario_patches dir", CombinePath(openrct2Path, "scenario_patches"));
-//        LogResourceCheck("sequence dir", CombinePath(openrct2Path, "sequence"));
-//        LogResourceCheck("shaders dir", CombinePath(openrct2Path, "shaders"));
-//        LogResourceCheck("assetpack dir", CombinePath(openrct2Path, "assetpack"));
+        //        LogResourceCheck("language dir", CombinePath(openrct2Path, "language"));
+        //        LogResourceCheck("object dir", CombinePath(openrct2Path, "object"));
+        //        LogResourceCheck("scenario_patches dir", CombinePath(openrct2Path, "scenario_patches"));
+        //        LogResourceCheck("sequence dir", CombinePath(openrct2Path, "sequence"));
+        //        LogResourceCheck("shaders dir", CombinePath(openrct2Path, "shaders"));
+        //        LogResourceCheck("assetpack dir", CombinePath(openrct2Path, "assetpack"));
 
         // Set the RCT2 data path to our bundled data to skip the directory browser
         auto rct2Path = CombinePath(g_bundlePath, "rct2");
         auto rct2DataPath = CombinePath(rct2Path, "Data");
         LogResourceCheck("rct2 data dir", rct2DataPath);
         LogGxHeader("g1.dat", CombinePath(rct2DataPath, "g1.dat"));
-        printf("[OpenRCT2] Setting gCustomRCT2DataPath to: %s\n", rct2Path.c_str());
+        VOS_LOG_INFO("[OpenRCT2] Setting gCustomRCT2DataPath to: %s", rct2Path.c_str());
         gCustomRCT2DataPath = rct2Path;
 
         // Set startup action to Title for visionOS (no command line arguments)
@@ -1168,33 +1189,105 @@ bool openrct2_init_full(void)
         extern bool gOpenRCT2Headless;
         gOpenRCT2StartupAction = StartupAction::Title;
         gOpenRCT2Headless = false;
-        printf("[OpenRCT2] Set gOpenRCT2StartupAction=Title, gOpenRCT2Headless=false\n");
+        VOS_LOG_INFO("[OpenRCT2] Set gOpenRCT2StartupAction=Title, gOpenRCT2Headless=false");
         gOpenRCT2NoGraphics = false;
-        printf("[OpenRCT2] Set gOpenRCT2NoGraphics=false\n");
+        VOS_LOG_INFO("[OpenRCT2] Set gOpenRCT2NoGraphics=false");
 
-        printf("[OpenRCT2] Preloading g2/fonts/tracks...\n");
+        VOS_LOG_INFO("[OpenRCT2] Preloading g2/fonts/tracks...");
         GfxLoadG2FontsAndTracks();
-        printf("[OpenRCT2] Preloading g2/fonts/tracks done\n");
+        VOS_LOG_INFO("[OpenRCT2] Preloading g2/fonts/tracks done");
 
-        printf("[OpenRCT2] Calling g_context->Initialise()...\n");
-        os_log_info(getOpenRCT2Log(), "Calling g_context->Initialise()...");
-        fprintf(stderr, "[OpenRCT2] Calling g_context->Initialise()...\n");
-        fflush(stderr);
-        if (!g_context->Initialise())
+        // Check for required data files before initializing Context
+        auto g1Path = CombinePath(rct2DataPath, "g1.dat");
+        if (!OpenRCT2::File::Exists(g1Path))
         {
-            g_lastError = "Context::Initialise() returned false";
-            printf("[OpenRCT2] ERROR: %s\n", g_lastError.c_str());
+            g_lastError = std::string("Required game data file g1.dat not found at: ") + g1Path;
+            LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
             return false;
         }
-        printf("[OpenRCT2] Context::Initialise() succeeded\n");
 
-        printf("[OpenRCT2] Calling InitialiseDrawingEngine()...\n");
-        g_context->InitialiseDrawingEngine();
-        printf("[OpenRCT2] InitialiseDrawingEngine() succeeded\n");
+        auto g2Path = CombinePath(openrct2Path, "g2.dat");
+        if (!OpenRCT2::File::Exists(g2Path))
+        {
+            g_lastError = std::string("Required game data file g2.dat not found at: ") + g2Path;
+            LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
+            return false;
+        }
 
-        printf("[OpenRCT2] Starting background tasks (version check)...\n");
+        auto fontsPath = CombinePath(openrct2Path, "fonts.dat");
+        if (!OpenRCT2::File::Exists(fontsPath))
+        {
+            g_lastError = std::string("Required game data file fonts.dat not found at: ") + fontsPath;
+            LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
+            return false;
+        }
+
+        auto tracksPath = CombinePath(openrct2Path, "tracks.dat");
+        if (!OpenRCT2::File::Exists(tracksPath))
+        {
+            g_lastError = std::string("Required game data file tracks.dat not found at: ") + tracksPath;
+            LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
+            return false;
+        }
+
+        LOG_INFO("[OpenRCT2] All required data files found");
+
+        LOG_INFO("[OpenRCT2] Calling g_context->Initialise()...");
+        try
+        {
+            if (!g_context->Initialise())
+            {
+                g_lastError = "Context::Initialise() failed - check logs for detailed error information";
+                LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
+                return false;
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            g_lastError = std::string("Context::Initialise() threw exception: ") + ex.what();
+            LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
+            // Try to get stack trace if available
+    #ifdef __APPLE__
+            // On Apple platforms, we can try to get a basic stack trace
+            void* callstack[128];
+            int frames = backtrace(callstack, 128);
+            char** strs = backtrace_symbols(callstack, frames);
+            if (strs)
+            {
+                LOG_ERROR("[OpenRCT2] Stack trace:");
+                for (int i = 0; i < frames; ++i)
+                {
+                    LOG_ERROR("[OpenRCT2]   %s", strs[i]);
+                }
+                free(strs);
+            }
+    #endif
+            return false;
+        }
+        catch (...)
+        {
+            g_lastError = "Context::Initialise() threw unknown exception";
+            LOG_ERROR("[OpenRCT2] ERROR: %s", g_lastError.c_str());
+    #ifdef __APPLE__
+            void* callstack[128];
+            int frames = backtrace(callstack, 128);
+            char** strs = backtrace_symbols(callstack, frames);
+            if (strs)
+            {
+                LOG_ERROR("[OpenRCT2] Stack trace:");
+                for (int i = 0; i < frames; ++i)
+                {
+                    LOG_ERROR("[OpenRCT2]   %s", strs[i]);
+                }
+                free(strs);
+            }
+    #endif
+            return false;
+        }
+        LOG_INFO("[OpenRCT2] Context::Initialise() succeeded");
+        VOS_LOG_INFO("[OpenRCT2] Starting background tasks (version check)...");
         g_context->StartBackgroundTasks();
-        printf("[OpenRCT2] Background tasks started\n");
+        VOS_LOG_INFO("[OpenRCT2] Background tasks started");
 
         //  Note: Context::Initialise() sets up the PreloaderScene with repository/script jobs
         // and makes it active. However, it doesn't set the PreloaderScene's completion callback.
@@ -1204,50 +1297,48 @@ bool openrct2_init_full(void)
         auto* preloaderScene = g_context->GetPreloaderScene();
         if (preloaderScene)
         {
-            printf("[OpenRCT2] Setting PreloaderScene completion callback to transition to title screen\n");
+            VOS_LOG_INFO("[OpenRCT2] Setting PreloaderScene completion callback to transition to title screen");
             preloaderScene->SetOnComplete([context = g_context.get()]() {
-                printf("[OpenRCT2] PreloaderScene completed, transitioning to title screen\n");
+                VOS_LOG_INFO("[OpenRCT2] PreloaderScene completed, transitioning to title screen");
                 // Transition to title screen (visionOS always starts with title)
                 auto* titleScene = context->GetTitleScene();
                 if (titleScene)
                 {
                     context->SetActiveScene(titleScene);
-                    printf("[OpenRCT2] Title scene now active\n");
+                    VOS_LOG_INFO("[OpenRCT2] Title scene now active");
                 }
                 else
                 {
-                    printf("[OpenRCT2] ERROR: Could not get title scene\n");
+                    VOS_LOG_ERROR("[OpenRCT2] ERROR: Could not get title scene");
                 }
             });
         }
         else
         {
-            printf("[OpenRCT2] Warning: No PreloaderScene found after Initialise()\n");
+            VOS_LOG_WARN("[OpenRCT2] Warning: No PreloaderScene found after Initialise()");
         }
 
         g_contextInitialized = true;
-        printf("[OpenRCT2] openrct2_init_full completed successfully\n");
+        VOS_LOG_INFO("[OpenRCT2] openrct2_init_full completed successfully");
         return true;
     }
     catch (const std::exception& ex)
     {
         g_lastError = std::string("Exception in openrct2_init_full: ") + ex.what();
-        printf("[OpenRCT2] %s\n", g_lastError.c_str());
+        VOS_LOG_ERROR("[OpenRCT2] %s", g_lastError.c_str());
         return false;
     }
     catch (...)
     {
         g_lastError = "Unknown exception in openrct2_init_full";
-        printf("[OpenRCT2] %s\n", g_lastError.c_str());
+        VOS_LOG_ERROR("[OpenRCT2] %s", g_lastError.c_str());
         return false;
     }
 #else
     // Standalone mode: always "fully initialized"
     g_contextInitialized = true;
-    os_log_info(getOpenRCT2Log(), "Standalone mode - OPENRCT2_FULL_CONTEXT NOT defined");
-    fprintf(stderr, "[OpenRCT2] Standalone mode - OPENRCT2_FULL_CONTEXT NOT defined\n");
-    fflush(stderr);
-    printf("[OpenRCT2] Standalone mode - marking as fully initialized\n");
+    VOS_LOG_INFO("[OpenRCT2] Standalone mode - OPENRCT2_FULL_CONTEXT NOT defined");
+    VOS_LOG_INFO("[OpenRCT2] Standalone mode - marking as fully initialized");
     return true;
 #endif
 }
@@ -1284,7 +1375,7 @@ void openrct2_tick(void)
         static bool s_firstFrame = true;
         if (s_firstFrame)
         {
-            printf("[OpenRCT2] First StepFrame() call - PreloaderScene should be active\n");
+            VOS_LOG_INFO("[OpenRCT2] First StepFrame() call - PreloaderScene should be active");
             s_firstFrame = false;
         }
         g_context->StepFrame();

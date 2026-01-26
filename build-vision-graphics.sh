@@ -63,7 +63,7 @@ cd "$BUILD_HOST_DIR"
 
 CMAKE_ARGS=(
     "-DCMAKE_BUILD_TYPE=Release"
-    "-DDISABLE_GUI=ON"  # We only need the CLI for building graphics
+    "-DDISABLE_GUI=OFF"  # We only need the CLI for building graphics
     "-DWITH_TESTS=OFF"
 )
 
