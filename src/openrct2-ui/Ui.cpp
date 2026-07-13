@@ -14,6 +14,7 @@
 #include "audio/AudioContext.h"
 #include "drawing/BitmapReader.h"
 
+#include <SDL.h>
 #include <memory>
 #include <openrct2/Context.h>
 #include <openrct2/Diagnostic.h>
@@ -46,6 +47,10 @@ static std::shared_ptr<T> ToShared(std::unique_ptr<T>&& src)
 
 static int RunOpenRCT2(int argc, const char** argv)
 {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_SIMULATOR
+    SDL_SetHint(SDL_HINT_AUDIODRIVER, "dummy");
+#endif
+
 #ifdef __EMSCRIPTEN__
     MAIN_THREAD_EM_ASM({
         specialHTMLTargets["!canvas"] = Module.canvas;

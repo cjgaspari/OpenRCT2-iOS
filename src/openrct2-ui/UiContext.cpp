@@ -49,6 +49,10 @@
 #include <openrct2/world/Location.hpp>
 #include <vector>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
     #include <emscripten/html5.h>
@@ -181,6 +185,11 @@ public:
 
     void SetFullscreenMode(FullscreenMode mode) override
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        // UIKit owns the main window geometry. Applying saved desktop window sizes here
+        // produces a logical canvas whose aspect ratio differs from the Metal drawable.
+        static_cast<void>(mode);
+#else
 #ifndef __EMSCRIPTEN__
         static constexpr int32_t kSDLFullscreenFlags[] = {
             0,
@@ -222,6 +231,7 @@ public:
             emscripten_exit_fullscreen();
         }
 #endif // __EMSCRIPTEN__
+#endif
     }
 
     const std::vector<Resolution>& GetFullscreenResolutions() override
@@ -808,6 +818,9 @@ private:
 
         // Create window in window first rather than fullscreen so we have the display the window is on first
         uint32_t flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        flags |= SDL_WINDOW_BORDERLESS;
+#endif
         if (Config::Get().general.drawingEngine == DrawingEngine::OpenGL)
         {
             flags |= SDL_WINDOW_OPENGL;
@@ -822,6 +835,10 @@ private:
                 flags, error);
             SDLException::Throw(errorMessage.c_str());
         }
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        SDL_GetWindowSize(_window, &width, &height);
+#endif
 
         ApplyScreenSaverLockSetting();
 

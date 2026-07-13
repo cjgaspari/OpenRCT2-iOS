@@ -23,6 +23,12 @@ namespace OpenRCT2::Ui
     class iOSContext final : public IPlatformUiContext
     {
     public:
+        iOSContext()
+        {
+            SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+            SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "2");
+        }
+
         void SetWindowIcon([[maybe_unused]] SDL_Window* window) override
         {
         }

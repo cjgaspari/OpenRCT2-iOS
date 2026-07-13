@@ -197,7 +197,12 @@ namespace OpenRCT2::Platform
 
     std::vector<std::string> GetSearchablePathsRCT2()
     {
-        return {};
+        auto documentsPath = GetSearchPath(NSDocumentDirectory);
+        if (documentsPath.empty())
+        {
+            return {};
+        }
+        return { Path::Combine(documentsPath, u8"rct2") };
     }
 } // namespace OpenRCT2::Platform
 

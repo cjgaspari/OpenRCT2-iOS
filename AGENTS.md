@@ -26,6 +26,6 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 
 ## Current goal
 
-**Goal 4 — Software framebuffer to Metal presentation.** Present the existing OpenRCT2 software framebuffer through SDL's iOS Metal renderer with correct landscape geometry, Retina scale, safe areas, palette, aspect ratio, resize/lifecycle recreation, and a repeatable Simulator screenshot check.
+**Goal 5 — Sandbox paths and user-owned data import.** Make bundle resources read-only, map writable state into Documents/Library, and add a first-run Files folder picker that validates and safely imports the user's RCT2 installation without ever placing proprietary data in a distributable artifact.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.

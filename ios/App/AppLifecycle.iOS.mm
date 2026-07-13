@@ -36,6 +36,43 @@
 - (void)logLifecycle:(NSNotification*)notification
 {
     NSLog(@"[OpenRCT2Touch] lifecycle: %@", notification.name);
+
+    if ([notification.name isEqualToString:UIApplicationDidBecomeActiveNotification])
+    {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIWindow* activeWindow = nil;
+            for (UIScene* scene in [UIApplication sharedApplication].connectedScenes)
+            {
+                if (![scene isKindOfClass:[UIWindowScene class]])
+                {
+                    continue;
+                }
+
+                for (UIWindow* window in ((UIWindowScene*)scene).windows)
+                {
+                    if (window.isKeyWindow)
+                    {
+                        activeWindow = window;
+                        break;
+                    }
+                }
+                if (activeWindow != nil)
+                {
+                    break;
+                }
+            }
+
+            if (activeWindow != nil)
+            {
+                const CGRect bounds = activeWindow.bounds;
+                const UIEdgeInsets insets = activeWindow.safeAreaInsets;
+                NSLog(
+                    @"[OpenRCT2Touch] safe-area: bounds_points=%.0fx%.0f insets_points=top:%.0f,left:%.0f,bottom:%.0f,right:%.0f scale=%.2f",
+                    CGRectGetWidth(bounds), CGRectGetHeight(bounds), insets.top, insets.left, insets.bottom, insets.right,
+                    activeWindow.screen.scale);
+            }
+        });
+    }
 }
 
 @end

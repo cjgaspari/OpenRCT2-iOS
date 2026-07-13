@@ -88,9 +88,9 @@ Paths are relative to the repo root. Full detail in `PLAN.md` §6.
 
 ## Current phase
 
-**Phase 4 — Software framebuffer to Metal presentation.**
-**Goal:** render the existing OpenRCT2 software framebuffer correctly through SDL's iOS Metal renderer.
-**Exit criteria:** title and in-engine windows render correctly in landscape at Retina scale with correct palette, aspect ratio, and safe-area handling; resize and lifecycle recreation do not leave a black or stale frame; repeatable Simulator screenshot verification passes.
+**Phase 5 — Filesystem, sandbox & asset import.**
+**Goal:** implement real iOS path resolution and a user-facing RCT2 import flow, using ignored `ref/` data only as the local developer stand-in.
+**Exit criteria:** bundle resources are read-only; Documents/Library state is writable and survives relaunch; the Files folder picker validates `Data/g1.dat`, imports safely with useful progress/errors, and persists the path; a real scenario loads through the developer flow and one manual Files import succeeds on a physical iPad without proprietary data entering a distributable artifact.
 
 > Update this section as you progress. Copy the next phase's Goal + Exit criteria from `PLAN.md` §8. Keep a running "top device crashes" list here once on-device (Phase 9+).
 
