@@ -330,7 +330,7 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 **Files:** `scripts/build-macos.sh`, `scripts/run-macos-headless.sh`, `assets/engine/` populated by the build.
 **Tasks:**
 1. Configure + build upstream via CMake for macOS (native arm64). Produce the `openrct2` binary and the engine data (`assets/engine`).
-2. `run-macos-headless.sh`: launch with all four `--*-data-path` flags pointed into the repo + `--headless simulate testdata/parks/smoke.sc6 1000`.
+2. `run-macos-headless.sh`: launch the intrinsically headless `simulate` subcommand with its path overrides pointed into the repo, using the tracked `test/tests/testdata/parks/tile-element-tests.sv6` fixture. The fork extends `simulate` to accept these path options; upstream's unmodified subcommand declares no options.
 3. Add a GUI run script too (windowed) for your own eyeballing.
 4. Capture a **baseline screenshot** via the `screenshot` subcommand for later visual diffs.
 **Exit criteria:** headless run loads a park, simulates N ticks, exits 0, no crash. A windowed run plays with mouse/keyboard on the Mac using only repo-local data (nothing in `~/Library`). **This proves the whole data-path + harness model before iOS risk.**
@@ -462,12 +462,11 @@ This is what lets the agent "chew through it." The principle: **every change end
 `scripts/run-macos-headless.sh`:
 ```bash
 source scripts/env.sh
-"$ROOT/build/macos/openrct2" \
+"$ROOT/build/macos/install/bin/openrct2" \
+  simulate "$ROOT/test/tests/testdata/parks/tile-element-tests.sv6" 5000 \
   --rct2-data-path "$RCT2_DATA" \
   --openrct2-data-path "$OPENRCT2_DATA" \
-  --user-data-path "$USER_DATA" \
-  --headless \
-  simulate "$ROOT/testdata/parks/smoke.sc6" 5000
+  --user-data-path "$USER_DATA"
 echo "exit=$?"
 ```
 Wrap in a script that: builds → runs headless simulate on several parks → runs `screenshot` and diffs against a baseline → greps logs for `assert`/`FATAL` → returns non-zero on any failure. The agent loops: edit → this → read failure → patch.

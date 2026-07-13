@@ -26,6 +26,6 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 
 ## Current goal
 
-**Goal 1 — macOS keystone.** Build native arm64 from a clean repo-local build directory, run a deterministic headless simulation against the tracked smoke fixture, and prove a windowed run uses only repo-local paths plus the user's ignored RCT2 data.
+**Goal 2 — iOS build contract and dependency closure.** Split macOS-only Apple assumptions from iOS, establish an iOS-linkable engine/UI target, and link a trivial dependency smoke target for device arm64 and Simulator arm64 with a reproducible manifest.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.
