@@ -53,10 +53,13 @@ git checkout ipad
 ./scripts/build-macos.sh
 ./scripts/run-macos-headless.sh
 
-# 5. iOS: build dependencies, build the app, install to a tethered iPad
+# 5. iOS: build dependencies, build the app, verify it in an iPad Simulator
 ./scripts/build-ios-deps.sh
-./scripts/build-ios.sh
-./scripts/install-run-ios.sh
+./scripts/build-ios.sh sim
+./scripts/run-ios-sim.sh verify
+
+# 6. Physical-device install/signing is added at the device milestone
+# ./scripts/install-run-ios.sh
 ```
 
 ## Licensing

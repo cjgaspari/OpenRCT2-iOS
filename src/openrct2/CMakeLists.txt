@@ -4,6 +4,9 @@ file(GLOB_RECURSE OPENRCT2_CORE_HEADERS "${CMAKE_CURRENT_LIST_DIR}/*.h"
 
 if (APPLE)
     file(GLOB_RECURSE OPENRCT2_CORE_MM_SOURCES "${CMAKE_CURRENT_LIST_DIR}/*.mm")
+    if (OPENRCT2_IOS)
+        list(APPEND OPENRCT2_CORE_MM_SOURCES "${ROOT_DIR}/ios/platform/Platform.iOS.mm")
+    endif ()
     set_source_files_properties(${OPENRCT2_CORE_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules")
 endif ()
 

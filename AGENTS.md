@@ -26,6 +26,6 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 
 ## Current goal
 
-**Goal 3 — Simulator app boot.** Create the UIKit/SDL iPad app shell, link the iOS engine/UI archives, and launch to either the title UI or a clean missing-data/import state in an iPad Simulator with streamable logs and safe lifecycle transitions.
+**Goal 4 — Software framebuffer to Metal presentation.** Present the existing OpenRCT2 software framebuffer through SDL's iOS Metal renderer with correct landscape geometry, Retina scale, safe areas, palette, aspect ratio, resize/lifecycle recreation, and a repeatable Simulator screenshot check.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.

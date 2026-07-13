@@ -88,9 +88,9 @@ Paths are relative to the repo root. Full detail in `PLAN.md` §6.
 
 ## Current phase
 
-**Phase 3 — iOS app shell + SDL boots to title (Simulator).**
-**Goal:** run the engine under a UIKit app and reach either the title screen or a clean missing-data/import state in an iPad Simulator.
-**Exit criteria:** the UIKit/SDL entry point links and launches in an iPad Simulator; logs are streamable; background/foreground lifecycle transitions do not crash; the app bundle contains only redistributable engine assets.
+**Phase 4 — Software framebuffer to Metal presentation.**
+**Goal:** render the existing OpenRCT2 software framebuffer correctly through SDL's iOS Metal renderer.
+**Exit criteria:** title and in-engine windows render correctly in landscape at Retina scale with correct palette, aspect ratio, and safe-area handling; resize and lifecycle recreation do not leave a black or stale frame; repeatable Simulator screenshot verification passes.
 
 > Update this section as you progress. Copy the next phase's Goal + Exit criteria from `PLAN.md` §8. Keep a running "top device crashes" list here once on-device (Phase 9+).
 
