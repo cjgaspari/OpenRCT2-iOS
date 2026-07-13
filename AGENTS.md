@@ -26,6 +26,6 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 
 ## Current goal
 
-**Goal 2 — iOS build contract and dependency closure.** Split macOS-only Apple assumptions from iOS, establish an iOS-linkable engine/UI target, and link a trivial dependency smoke target for device arm64 and Simulator arm64 with a reproducible manifest.
+**Goal 3 — Simulator app boot.** Create the UIKit/SDL iPad app shell, link the iOS engine/UI archives, and launch to either the title UI or a clean missing-data/import state in an iPad Simulator with streamable logs and safe lifecycle transitions.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.

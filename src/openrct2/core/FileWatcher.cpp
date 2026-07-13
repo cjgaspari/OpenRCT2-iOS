@@ -26,7 +26,10 @@
     #include <sys/types.h>
     #include <unistd.h>
 #elif defined(__APPLE__)
-    #include <CoreServices/CoreServices.h>
+    #include <TargetConditionals.h>
+    #if TARGET_OS_OSX
+        #include <CoreServices/CoreServices.h>
+    #endif
 #endif
 
 #include "../core/Guard.hpp"
@@ -94,7 +97,7 @@ FileWatcher::WatchDescriptor::~WatchDescriptor()
 }
 #endif
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && TARGET_OS_OSX
 
 static int eventModified = kFSEventStreamEventFlagItemFinderInfoMod | kFSEventStreamEventFlagItemModified
     | kFSEventStreamEventFlagItemInodeMetaMod | kFSEventStreamEventFlagItemChangeOwner | kFSEventStreamEventFlagItemXattrMod;
@@ -148,7 +151,7 @@ FileWatcher::FileWatcher(u8string_view directoryPath)
             _watchDescs.emplace_back(_fileDesc.Fd, p.path().string());
         }
     }
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && TARGET_OS_OSX
     CFStringRef path = CFStringCreateWithCString(kCFAllocatorDefault, directoryPath.data(), kCFStringEncodingUTF8);
     CFArrayRef pathsToWatch = CFArrayCreate(kCFAllocatorDefault, reinterpret_cast<const void**>(&path), 1, nullptr);
     CFAbsoluteTime latencyInSeconds = 0.5;
@@ -180,7 +183,7 @@ FileWatcher::~FileWatcher()
     _finished = true;
     _watchThread.join();
     _fileDesc.Close();
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && TARGET_OS_OSX
     if (_stream)
     {
         FSEventStreamStop(_stream);
@@ -258,7 +261,7 @@ void FileWatcher::WatchDirectory()
         using namespace std::chrono_literals;
         usleep(std::chrono::microseconds(1s).count() / 2);
     }
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && TARGET_OS_OSX
     if (_stream)
     {
         FSEventStreamScheduleWithRunLoop(_stream, _runLoop, kCFRunLoopDefaultMode);

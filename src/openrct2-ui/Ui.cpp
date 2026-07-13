@@ -25,6 +25,10 @@
 #include <openrct2/platform/Platform.h>
 #include <openrct2/ui/UiContext.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
 #endif
@@ -91,8 +95,10 @@ int main(int argc, const char** argv)
     return rc;
 }
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || (defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS)
 extern "C" {
+int SDL_main(int argc, const char* argv[]);
+
 int SDL_main(int argc, const char* argv[])
 {
     return main(argc, argv);

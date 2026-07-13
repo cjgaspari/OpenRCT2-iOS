@@ -11,6 +11,10 @@
 
 #include <string>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 #define OPENRCT2_NAME "OpenRCT2"
 #define kOpenRCT2Version "0.5.3"
 
@@ -54,7 +58,9 @@
 #if defined(__linux__) && !defined(__ANDROID__)
     #define OPENRCT2_PLATFORM "Linux"
 #endif
-#if (defined(__APPLE__) && defined(__MACH__))
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+    #define OPENRCT2_PLATFORM "iOS"
+#elif defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
     #define OPENRCT2_PLATFORM "macOS"
 #endif
 #ifdef __FreeBSD__

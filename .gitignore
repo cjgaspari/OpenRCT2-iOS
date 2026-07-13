@@ -245,7 +245,8 @@ xcuserdata
 !/ref/README.md
 
 # Rebuildable port outputs and local runtime state.
-/vendor/
+/vendor/*
+!/vendor/MANIFEST.md
 /runtime/
 /assets/engine/
 *.ipa

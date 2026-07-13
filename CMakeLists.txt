@@ -27,7 +27,7 @@ if (OPENRCT2_USE_CCACHE)
     endif()
 endif (OPENRCT2_USE_CCACHE)
 
-if (APPLE)
+if (APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     execute_process(COMMAND /usr/bin/uname -m OUTPUT_VARIABLE SYSTEM_MACOS_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
     if (NOT DEFINED ARCH)
         set(ARCH "${SYSTEM_MACOS_ARCH}")
@@ -50,6 +50,17 @@ endif ()
 
 # C Language required for quickjs-ng
 project(openrct2 CXX C)
+
+# CMake's APPLE variable covers every Apple platform. Keep explicit platform
+# booleans so macOS-only frameworks, bundle rules, and host tooling never leak
+# into an iOS cross-build.
+set(OPENRCT2_IOS OFF)
+set(OPENRCT2_MACOS OFF)
+if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(OPENRCT2_IOS ON)
+elseif (APPLE)
+    set(OPENRCT2_MACOS ON)
+endif ()
 
 include(cmake/platform.cmake)
 include(CMakeDependentOption)
@@ -95,24 +106,24 @@ option(DOWNLOAD_OPENMUSIC "Download OpenMusic during installation." ON)
 CMAKE_DEPENDENT_OPTION(DOWNLOAD_REPLAYS "Download replays during installation." ON
     "WITH_TESTS" OFF)
 CMAKE_DEPENDENT_OPTION(MACOS_USE_DEPENDENCIES "Use OpenRCT2 dependencies instead of system libraries" ON
-    "APPLE" OFF)
+    "OPENRCT2_MACOS" OFF)
 CMAKE_DEPENDENT_OPTION(MACOS_BUNDLE "Build macOS application bundle (OpenRCT2.app)" ON
-     "MACOS_USE_DEPENDENCIES; NOT DISABLE_GUI" OFF)
+     "OPENRCT2_MACOS; MACOS_USE_DEPENDENCIES; NOT DISABLE_GUI" OFF)
 
 # Options
 option(STATIC "Create a static build.")
 option(USE_MMAP "Use mmap to try loading rct2's data segment into memory.")
 
-option(DISABLE_DISCORD_RPC "Disable Discord-RPC support." OFF)
+option(DISABLE_DISCORD_RPC "Disable Discord-RPC support." ${OPENRCT2_IOS})
 # Currently unused, disable by default.
 option(DISABLE_GOOGLE_BENCHMARK "Disable Google Benchmarks support." ON)
-option(DISABLE_HTTP "Disable HTTP support.")
-option(DISABLE_NETWORK "Disable multiplayer functionality. Mainly for testing.")
+option(DISABLE_HTTP "Disable HTTP support." ${OPENRCT2_IOS})
+option(DISABLE_NETWORK "Disable multiplayer functionality. Mainly for testing." ${OPENRCT2_IOS})
 option(DISABLE_TTF "Disable support for TTF provided by freetype2.")
 option(DISABLE_VERSION_CHECKER "Disable the check for newer versions.")
-option(DISABLE_FLAC     "Disable FLAC support.")
-option(DISABLE_VORBIS   "Disable OGG/VORBIS support.")
-option(DISABLE_OPENGL   "Disable OpenGL support.")
+option(DISABLE_FLAC     "Disable FLAC support." ${OPENRCT2_IOS})
+option(DISABLE_VORBIS   "Disable OGG/VORBIS support." ${OPENRCT2_IOS})
+option(DISABLE_OPENGL   "Disable OpenGL support." ${OPENRCT2_IOS})
 option(ENABLE_SCRIPTING "Enable script / plugin support." ON)
 option(ENABLE_ASAN "Enable the AddressSanitizer.")
 option(ENABLE_UBSAN "Enable the UndefinedBehaviourSanitizer.")
@@ -369,7 +380,7 @@ else ()
         set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     endif ()
 
-    if (HAIKU OR (APPLE AND NOT USE_MMAP))
+    if (HAIKU OR (OPENRCT2_MACOS AND NOT USE_MMAP))
         set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
     else ()
         set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -392,7 +403,9 @@ endif ()
 
 # Include sub-projects
 include("${ROOT_DIR}/src/openrct2/CMakeLists.txt" NO_POLICY_SCOPE)
-include("${ROOT_DIR}/src/openrct2-cli/CMakeLists.txt" NO_POLICY_SCOPE)
+if (NOT OPENRCT2_IOS)
+    include("${ROOT_DIR}/src/openrct2-cli/CMakeLists.txt" NO_POLICY_SCOPE)
+endif ()
 if(NOT DISABLE_GUI)
     include("${ROOT_DIR}/src/openrct2-ui/CMakeLists.txt" NO_POLICY_SCOPE)
 endif()
@@ -416,7 +429,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     add_custom_target(graphics DEPENDS OpenRCT2::openrct2-cli ${output_files})
 
     if(NOT DISABLE_GUI)
-        add_dependencies(openrct2 graphics)
+        add_dependencies(${OPENRCT2_UI_TARGET} graphics)
     endif()
     
 else ()
@@ -505,7 +518,12 @@ if (NOT MACOS_BUNDLE OR (MACOS_BUNDLE AND WITH_TESTS))
     install(DIRECTORY "data/" DESTINATION "${CMAKE_INSTALL_DATADIR}/openrct2")
 
     # even when building WITH_TESTS, none of the below install steps are required for OpenRCT2.app
-    if (NOT MACOS_BUNDLE)
+    if (OPENRCT2_IOS)
+        install(TARGETS "libopenrct2" ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+        if (NOT DISABLE_GUI)
+            install(TARGETS "openrct2-ui" ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+        endif ()
+    elseif (NOT MACOS_BUNDLE)
         install(TARGETS "libopenrct2" LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
                                     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
         if(NOT DISABLE_GUI)

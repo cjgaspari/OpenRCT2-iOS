@@ -88,9 +88,9 @@ Paths are relative to the repo root. Full detail in `PLAN.md` §6.
 
 ## Current phase
 
-**Phase 2 — iOS build contract and dependency closure.**
-**Goal:** separate macOS-only Apple assumptions from iOS, produce the required device and Simulator dependency slices, and establish an iOS-linkable engine/UI target.
-**Exit criteria:** trivial C++ smoke targets link for arm64 iOS and arm64 Simulator; every dependency version, source, hash, flag, licence, and slice is recorded in `vendor/MANIFEST.md`; the macOS headless loop remains green.
+**Phase 3 — iOS app shell + SDL boots to title (Simulator).**
+**Goal:** run the engine under a UIKit app and reach either the title screen or a clean missing-data/import state in an iPad Simulator.
+**Exit criteria:** the UIKit/SDL entry point links and launches in an iPad Simulator; logs are streamable; background/foreground lifecycle transitions do not crash; the app bundle contains only redistributable engine assets.
 
 > Update this section as you progress. Copy the next phase's Goal + Exit criteria from `PLAN.md` §8. Keep a running "top device crashes" list here once on-device (Phase 9+).
 
