@@ -88,8 +88,9 @@ Paths are relative to the repo root. Full detail in `PLAN.md` §6.
 
 ## Current phase
 
-**Phase 0 — Repo & tooling bootstrap.**
-**Exit criteria:** on branch `ipad`; `develop` untouched; `scripts/bootstrap.sh` runs clean; `ref/` present and confirmed git-ignored; a first `[touch]`-prefixed commit exists.
+**Phase 1 — macOS-from-source baseline (the keystone).**
+**Goal:** build OpenRCT2 from source and run it fully repo-local, including headless.
+**Exit criteria:** a headless run loads a park, simulates fixed ticks, exits 0, and has no fatal/assert log; a windowed run plays with mouse/keyboard using only repo-local runtime paths and the user's ignored RCT2 data.
 
 > Update this section as you progress. Copy the next phase's Goal + Exit criteria from `PLAN.md` §8. Keep a running "top device crashes" list here once on-device (Phase 9+).
 
