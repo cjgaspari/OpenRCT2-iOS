@@ -6,7 +6,8 @@ These instructions apply to the entire repository.
 
 1. `docs/AGENTS.md` — detailed operating manual.
 2. `docs/openrct2-ipados-BUILD-PLAN.md` — master reference plan.
-3. `GOAL-LOOP.md` — executable goal loop and corrected phase gates.
+3. `docs/DEVELOPMENT-STATUS.md` — verified checkpoint and remaining device gate.
+4. `GOAL-LOOP.md` — executable goal loop and corrected phase gates.
 
 If the documents disagree with the repository, preserve the non-negotiable safety rules here and update the plan before coding against a false assumption.
 

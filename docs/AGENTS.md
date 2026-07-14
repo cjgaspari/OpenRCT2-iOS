@@ -1,7 +1,7 @@
 # AGENTS.md — OpenRCT2 Touch
 
 > Operating manual for AI coding agents working on this repo. Read this fully before making changes.
-> This is your **working memory**; `PLAN.md` is the full reference manual. When in doubt, defer to `PLAN.md`.
+> This is your **working memory**; [`openrct2-ipados-BUILD-PLAN.md`](openrct2-ipados-BUILD-PLAN.md) is the full reference manual. When in doubt, defer to that plan.
 
 ---
 
@@ -58,13 +58,13 @@ UI rendering, asset-import plumbing, input wiring.
 ./scripts/collect-crash.sh        # pulls crash reports via idevicecrashreport
 ```
 
-If a script doesn't exist yet, creating it is part of the current phase (see `PLAN.md` §9).
+If a script doesn't exist yet, creating it is part of the current phase (see the [master plan §9](openrct2-ipados-BUILD-PLAN.md#9-the-automation-harness)).
 
 ---
 
 ## Where things live (the map)
 
-Paths are relative to the repo root. Full detail in `PLAN.md` §6.
+Paths are relative to the repo root. Full detail is in the [master plan §6](openrct2-ipados-BUILD-PLAN.md#6-upstream-architecture-youre-grafting-onto).
 
 - **Filesystem resolver:** `src/openrct2/PlatformEnvironment.cpp` / `.h` — seven roots (`DirBase`); everything the engine reads/writes goes through here.
 - **Per-OS platform layer:** `src/openrct2/platform/` — add **`Platform.iOS.mm`** beside `Platform.macOS.mm` (sandbox/bundle path resolution).
@@ -92,9 +92,12 @@ Paths are relative to the repo root. Full detail in `PLAN.md` §6.
 **Goal:** implement real iOS path resolution and a user-facing RCT2 import flow, using ignored `ref/` data only as the local developer stand-in.
 **Exit criteria:** bundle resources are read-only; Documents/Library state is writable and survives relaunch; the Files folder picker validates `Data/g1.dat`, imports safely with useful progress/errors, and persists the path; a real scenario loads through the developer flow and one manual Files import succeeds on a physical iPad without proprietary data entering a distributable artifact.
 
-> Update this section as you progress. Copy the next phase's Goal + Exit criteria from `PLAN.md` §8. Keep a running "top device crashes" list here once on-device (Phase 9+).
+The verified checkpoint and exact remaining device gate are recorded in
+`docs/DEVELOPMENT-STATUS.md`.
 
-## Phase ladder (from `PLAN.md` §8)
+> Update this section as you progress. Copy the next phase's Goal + Exit criteria from the [master plan §8](openrct2-ipados-BUILD-PLAN.md#8-the-phase-by-phase-engineering-plan). Keep a running "top device crashes" list here once on-device (Phase 9+).
+
+## Phase ladder (from the master plan §8)
 
 0. Repo & tooling bootstrap → 1. macOS-from-source baseline (keystone) → 2. iOS dependency toolchain (the pit) → 3. iOS app shell + SDL boots to title (Simulator) → 4. Software renderer → Metal surface → 5. Filesystem/sandbox + asset import → 6. Pointer/keyboard/mouse (playable fast) → 7. Touch controls → 8. Apple Pencil → 9. Performance/memory/stability → 10. Plugins, custom content, packaging.
 

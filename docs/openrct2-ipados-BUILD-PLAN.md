@@ -5,7 +5,7 @@
 **Author:** Chris (with Claude)
 **Date:** July 13, 2026
 **Companion doc:** `openrct2-ipados-feasibility.md` (the research/verdict). This document is the *how*.
-**Status:** Pre-flight. Nothing built yet. This is the guide an AI coding agent (and you) follow from empty folder to working demo.
+**Status:** Active implementation. Goals 0–4 are complete; Goal 5 is implemented in the Simulator and awaits its physical-iPad Files-import proof. See [`DEVELOPMENT-STATUS.md`](DEVELOPMENT-STATUS.md) for the live checkpoint and remaining goals. This document remains the master engineering plan from empty folder to working demo.
 
 ---
 

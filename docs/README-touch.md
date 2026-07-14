@@ -4,7 +4,7 @@
 
 > ⚠️ **Unofficial community project.** OpenRCT2 Touch is **not affiliated with, endorsed by, or supported by the OpenRCT2 team.** It is an independent fork that adapts their work to run natively on iPad. For the real, cross-platform OpenRCT2, go to **[openrct2.io](https://openrct2.io)** and **[OpenRCT2/OpenRCT2](https://github.com/OpenRCT2/OpenRCT2)**. Please do not send bug reports about this port to the upstream project.
 
-> 🚧 **Status: pre-alpha / work in progress.** This is an active porting effort. It may not build or run yet. Nothing here is a finished product.
+> 🚧 **Status: pre-alpha / work in progress.** The app builds and runs in an iPad Simulator; the current gate is a signed physical-iPad import test. See the [development status](DEVELOPMENT-STATUS.md) and [goal loop](../GOAL-LOOP.md) for verified progress and remaining work. Nothing here is a finished product.
 
 ---
 
@@ -34,7 +34,7 @@ Like OpenRCT2 itself, this is an **engine re-implementation** — it does **not*
 
 ## Building (early notes)
 
-This is an active port; expect rough edges. High level (see `PLAN.md` for the full guide):
+This is an active port; expect rough edges. High level (see the [master build plan](openrct2-ipados-BUILD-PLAN.md) for the full guide):
 
 ```bash
 # 1. Clone your fork and switch to the working branch
