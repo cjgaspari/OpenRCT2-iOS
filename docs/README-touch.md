@@ -66,9 +66,11 @@ OPENRCT2_DEVICE_UDID=<device> ./scripts/install-run-ios.sh
 The device build is audited before installation: it must contain only the
 redistributable engine assets, have an iOS binary, and carry a valid development
 signature. On first launch, select the folder from your own RCT2 installation in
-the iPadOS Files picker. It must contain `Data/g1.dat`, `ObjData`, `Scenarios`,
-and `Tracks`; these proprietary files are imported into the app's Documents
-container and are never built into or committed with the app.
+the iPadOS Files picker. A standard RCT2 folder must contain `Data/g1.dat`,
+`ObjData`, `Scenarios`, and `Tracks`. RCT Classic's `Assets/g1.dat` layout and
+the resource folder inside its macOS app bundle are also accepted. These
+proprietary files are imported into the app's Documents container and are never
+built into or committed with the app.
 
 ## Licensing
 

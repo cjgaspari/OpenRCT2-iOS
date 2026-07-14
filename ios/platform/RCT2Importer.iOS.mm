@@ -222,6 +222,69 @@ namespace OpenRCT2::Ui
         return nil;
     }
 
+    static NSURL* FindDescendant(NSFileManager* fileManager, NSURL* directoryURL, NSArray<NSString*>* components)
+    {
+        NSURL* result = directoryURL;
+        for (NSString* component in components)
+        {
+            result = FindChild(fileManager, result, component, YES);
+            if (result == nil)
+            {
+                return nil;
+            }
+        }
+        return result;
+    }
+
+    static BOOL ContainsG1(NSFileManager* fileManager, NSURL* directoryURL)
+    {
+        return directoryURL != nil && FindChild(fileManager, directoryURL, @"g1.dat", NO) != nil;
+    }
+
+    static NSURL* FindRCTClassicResources(NSFileManager* fileManager, NSURL* sourceURL)
+    {
+        NSMutableArray<NSURL*>* candidates = [NSMutableArray array];
+
+        NSURL* assetsURL = FindChild(fileManager, sourceURL, @"Assets", YES);
+        if (assetsURL != nil)
+        {
+            [candidates addObject:assetsURL];
+        }
+
+        for (NSString* appName in @[ @"RCT Classic.app", @"RCT Classic+.app" ])
+        {
+            NSURL* resourcesURL = FindDescendant(fileManager, sourceURL, @[ appName, @"Contents", @"Resources" ]);
+            if (resourcesURL != nil)
+            {
+                [candidates addObject:resourcesURL];
+            }
+        }
+
+        for (NSArray<NSString*>* relativePath in @[ @[ @"Contents", @"Resources" ], @[ @"Resources" ] ])
+        {
+            NSURL* resourcesURL = FindDescendant(fileManager, sourceURL, relativePath);
+            if (resourcesURL != nil)
+            {
+                [candidates addObject:resourcesURL];
+            }
+        }
+
+        NSString* sourceName = sourceURL.lastPathComponent;
+        if ([sourceName caseInsensitiveCompare:@"Assets"] == NSOrderedSame
+            || [sourceName caseInsensitiveCompare:@"Resources"] == NSOrderedSame)
+        {
+            [candidates addObject:sourceURL];
+        }
+        for (NSURL* candidate in candidates)
+        {
+            if (ContainsG1(fileManager, candidate))
+            {
+                return candidate;
+            }
+        }
+        return nil;
+    }
+
     static NSString* CopyRCT2Directory(
         NSURL* sourceURL, void (^updateProgress)(NSString*), NSString** errorMessage)
     {
@@ -229,24 +292,42 @@ namespace OpenRCT2::Ui
         NSArray<NSString*>* requiredDirectories = @[ @"Data", @"ObjData", @"Scenarios", @"Tracks" ];
         NSMutableDictionary<NSString*, NSURL*>* sourceDirectories = [NSMutableDictionary dictionary];
 
-        for (NSString* directoryName in requiredDirectories)
+        NSURL* dataURL = FindChild(fileManager, sourceURL, @"Data", YES);
+        NSURL* classicResourcesURL = nil;
+        if (ContainsG1(fileManager, dataURL))
         {
-            NSURL* child = FindChild(fileManager, sourceURL, directoryName, YES);
-            if (child == nil)
+            for (NSString* directoryName in requiredDirectories)
             {
-                *errorMessage = [[NSString stringWithFormat:@"The selected folder is missing %@.", directoryName] copy];
+                NSURL* child = FindChild(fileManager, sourceURL, directoryName, YES);
+                if (child == nil)
+                {
+                    *errorMessage = [[NSString stringWithFormat:@"The selected folder is missing %@.", directoryName] copy];
+                    [fileManager release];
+                    return nil;
+                }
+                sourceDirectories[directoryName] = child;
+            }
+            NSLog(@"[OpenRCT2Touch] import: validated layout=rct2");
+        }
+        else
+        {
+            classicResourcesURL = FindRCTClassicResources(fileManager, sourceURL);
+            if (classicResourcesURL == nil)
+            {
+                if (dataURL != nil)
+                {
+                    *errorMessage = [@"The selected folder does not contain Data/g1.dat." copy];
+                }
+                else
+                {
+                    *errorMessage = [@"The selected folder is not a supported RCT2 or RCT Classic installation. "
+                                      "Choose a folder containing Data/g1.dat, Assets/g1.dat, or the RCT Classic macOS app."
+                        copy];
+                }
                 [fileManager release];
                 return nil;
             }
-            sourceDirectories[directoryName] = child;
-        }
-
-        NSURL* dataURL = sourceDirectories[@"Data"];
-        if (FindChild(fileManager, dataURL, @"g1.dat", NO) == nil)
-        {
-            *errorMessage = [@"The selected folder does not contain Data/g1.dat." copy];
-            [fileManager release];
-            return nil;
+            NSLog(@"[OpenRCT2Touch] import: validated layout=rct-classic");
         }
 
         NSURL* documentsURL = [fileManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
@@ -266,37 +347,55 @@ namespace OpenRCT2::Ui
             return nil;
         }
 
-        NSUInteger completed = 0;
-        for (NSString* directoryName in requiredDirectories)
+        if (classicResourcesURL != nil)
         {
-            updateProgress(
-                [NSString stringWithFormat:@"Copying %@ (%lu of %lu)…", directoryName,
-                                           static_cast<unsigned long>(completed + 1),
-                                           static_cast<unsigned long>(requiredDirectories.count)]);
-            NSURL* targetURL = [temporaryURL URLByAppendingPathComponent:directoryName isDirectory:YES];
-            if (![fileManager copyItemAtURL:sourceDirectories[directoryName] toURL:targetURL error:&error])
+            updateProgress(@"Copying RCT Classic assets (1 of 1)…");
+            NSURL* targetURL = [temporaryURL URLByAppendingPathComponent:@"Assets" isDirectory:YES];
+            if (![fileManager copyItemAtURL:classicResourcesURL toURL:targetURL error:&error])
             {
                 [fileManager removeItemAtURL:temporaryURL error:nil];
-                *errorMessage = [[NSString stringWithFormat:@"Could not copy %@: %@", directoryName,
+                *errorMessage = [[NSString stringWithFormat:@"Could not copy RCT Classic assets: %@",
                                                             error.localizedDescription]
                     copy];
                 [fileManager release];
                 return nil;
             }
-            completed++;
         }
-
-        NSURL* executableURL = FindChild(fileManager, sourceURL, @"RCT2.EXE", NO);
-        if (executableURL != nil)
+        else
         {
-            NSURL* targetURL = [temporaryURL URLByAppendingPathComponent:@"RCT2.EXE" isDirectory:NO];
-            if (![fileManager copyItemAtURL:executableURL toURL:targetURL error:&error])
+            NSUInteger completed = 0;
+            for (NSString* directoryName in requiredDirectories)
             {
-                [fileManager removeItemAtURL:temporaryURL error:nil];
-                *errorMessage = [[NSString stringWithFormat:@"Could not copy RCT2.EXE: %@", error.localizedDescription]
-                    copy];
-                [fileManager release];
-                return nil;
+                updateProgress(
+                    [NSString stringWithFormat:@"Copying %@ (%lu of %lu)…", directoryName,
+                                               static_cast<unsigned long>(completed + 1),
+                                               static_cast<unsigned long>(requiredDirectories.count)]);
+                NSURL* targetURL = [temporaryURL URLByAppendingPathComponent:directoryName isDirectory:YES];
+                if (![fileManager copyItemAtURL:sourceDirectories[directoryName] toURL:targetURL error:&error])
+                {
+                    [fileManager removeItemAtURL:temporaryURL error:nil];
+                    *errorMessage = [[NSString stringWithFormat:@"Could not copy %@: %@", directoryName,
+                                                                error.localizedDescription]
+                        copy];
+                    [fileManager release];
+                    return nil;
+                }
+                completed++;
+            }
+
+            NSURL* executableURL = FindChild(fileManager, sourceURL, @"RCT2.EXE", NO);
+            if (executableURL != nil)
+            {
+                NSURL* targetURL = [temporaryURL URLByAppendingPathComponent:@"RCT2.EXE" isDirectory:NO];
+                if (![fileManager copyItemAtURL:executableURL toURL:targetURL error:&error])
+                {
+                    [fileManager removeItemAtURL:temporaryURL error:nil];
+                    *errorMessage = [[NSString stringWithFormat:@"Could not copy RCT2.EXE: %@",
+                                                                error.localizedDescription]
+                        copy];
+                    [fileManager release];
+                    return nil;
+                }
             }
         }
 
