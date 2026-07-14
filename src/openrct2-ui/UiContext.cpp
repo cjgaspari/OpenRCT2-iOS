@@ -74,6 +74,36 @@ class UiContext final : public IUiContext
 private:
     constexpr static uint32_t kTouchDoubleTimeout = 300;
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+    constexpr static int32_t kTouchDragThreshold = 8;
+    constexpr static int32_t kTouchPanStartThreshold = 3;
+    constexpr static float kTouchPinchThreshold = 24.0f;
+    constexpr static float kTouchPinchSpanRatio = 0.12f;
+    constexpr static float kTouchPinchDominance = 1.5f;
+    constexpr static float kTouchPanSensitivity = 0.5f;
+    constexpr static float kTouchZoomStep = 20.0f;
+    constexpr static uint32_t kTouchLongPressTimeout = 500;
+
+    enum class TouchGestureMode
+    {
+        none,
+        singlePending,
+        singleDrag,
+        longPressFired,
+        multiPending,
+        multiPan,
+        multiPinch,
+        suppressed,
+    };
+
+    struct TouchPoint
+    {
+        SDL_FingerID id = -1;
+        ScreenCoordsXY position{};
+        bool active = false;
+    };
+#endif
+
     const std::unique_ptr<IPlatformUiContext> _platformUiContext;
     const std::unique_ptr<IWindowManager> _windowManager;
 
@@ -96,11 +126,347 @@ private:
     uint32_t _lastKeyPressed = 0;
     const uint8_t* _keysState = nullptr;
     uint8_t _keysPressed[256] = {};
-    uint32_t _lastGestureTimestamp = 0;
-    float _gestureRadius = 0;
+    [[maybe_unused]] uint32_t _lastGestureTimestamp = 0;
+    [[maybe_unused]] float _gestureRadius = 0;
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+    TouchPoint _primaryTouch;
+    TouchPoint _secondaryTouch;
+    TouchGestureMode _touchGestureMode = TouchGestureMode::none;
+    ScreenCoordsXY _touchGestureStart{};
+    ScreenCoordsXY _touchLastCentroid{};
+    float _touchPanCursorX = 0;
+    float _touchPanCursorY = 0;
+    float _touchGestureStartSpan = 0;
+    float _touchLastSpan = 0;
+    float _touchPinchAccumulator = 0;
+    uint32_t _touchGestureStartTimestamp = 0;
+#endif
 
     InGameConsole _inGameConsole;
     std::unique_ptr<ITitleSequencePlayer> _titleSequencePlayer;
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+    ScreenCoordsXY GetTouchPosition(const SDL_TouchFingerEvent& event) const
+    {
+        return { static_cast<int32_t>(event.x * _width), static_cast<int32_t>(event.y * _height) };
+    }
+
+    static int64_t GetTouchDistanceSquared(const ScreenCoordsXY& first, const ScreenCoordsXY& second)
+    {
+        const int64_t deltaX = first.x - second.x;
+        const int64_t deltaY = first.y - second.y;
+        return deltaX * deltaX + deltaY * deltaY;
+    }
+
+    ScreenCoordsXY GetTouchCentroid() const
+    {
+        return { (_primaryTouch.position.x + _secondaryTouch.position.x) / 2,
+                 (_primaryTouch.position.y + _secondaryTouch.position.y) / 2 };
+    }
+
+    float GetTouchSpan() const
+    {
+        const auto deltaX = static_cast<float>(_primaryTouch.position.x - _secondaryTouch.position.x);
+        const auto deltaY = static_cast<float>(_primaryTouch.position.y - _secondaryTouch.position.y);
+        return std::hypot(deltaX, deltaY);
+    }
+
+    bool IsDeliberatePinch(float span, float centroidDistance) const
+    {
+        const auto spanDistance = std::abs(span - _touchGestureStartSpan);
+        const auto pinchThreshold = std::max(kTouchPinchThreshold, _touchGestureStartSpan * kTouchPinchSpanRatio);
+        return spanDistance >= pinchThreshold && spanDistance >= centroidDistance * kTouchPinchDominance;
+    }
+
+    void StoreTouchPress(MouseState state, const ScreenCoordsXY& position)
+    {
+        StoreMouseInput(state, position);
+        _cursorState.position = position;
+        _cursorState.touch = true;
+
+        if (state == MouseState::leftPress)
+        {
+            _cursorState.left = CURSOR_PRESSED;
+            _cursorState.old = 1;
+        }
+        else if (state == MouseState::rightPress)
+        {
+            _cursorState.right = CURSOR_PRESSED;
+            _cursorState.old = 2;
+        }
+    }
+
+    void StoreTouchRelease(MouseState state, const ScreenCoordsXY& position)
+    {
+        StoreMouseInput(state, position);
+        _cursorState.position = position;
+        _cursorState.touch = true;
+
+        if (state == MouseState::leftRelease)
+        {
+            _cursorState.left = CURSOR_RELEASED;
+            _cursorState.old = 3;
+        }
+        else if (state == MouseState::rightRelease)
+        {
+            _cursorState.right = CURSOR_RELEASED;
+            _cursorState.old = 4;
+        }
+    }
+
+    void FireTouchTap(const ScreenCoordsXY& position)
+    {
+        StoreTouchPress(MouseState::leftPress, position);
+        StoreTouchRelease(MouseState::leftRelease, position);
+    }
+
+    void FireTouchLongPress(const ScreenCoordsXY& position)
+    {
+        StoreTouchPress(MouseState::rightPress, position);
+        StoreTouchRelease(MouseState::rightRelease, position);
+        _touchGestureMode = TouchGestureMode::longPressFired;
+    }
+
+    void ResetTouchGesture()
+    {
+        _primaryTouch = {};
+        _secondaryTouch = {};
+        _touchGestureMode = TouchGestureMode::none;
+        _touchGestureStart = {};
+        _touchLastCentroid = {};
+        _touchPanCursorX = 0;
+        _touchPanCursorY = 0;
+        _touchGestureStartSpan = 0;
+        _touchLastSpan = 0;
+        _touchPinchAccumulator = 0;
+        _touchGestureStartTimestamp = 0;
+    }
+
+    void HandleTouchDown(const SDL_TouchFingerEvent& event)
+    {
+        const auto position = GetTouchPosition(event);
+        _cursorState.position = position;
+        _cursorState.touch = true;
+
+        if (!_primaryTouch.active)
+        {
+            _primaryTouch = { event.fingerId, position, true };
+            _touchGestureMode = TouchGestureMode::singlePending;
+            _touchGestureStart = position;
+            _touchGestureStartTimestamp = event.timestamp;
+            return;
+        }
+
+        if (_secondaryTouch.active || event.fingerId == _primaryTouch.id)
+        {
+            return;
+        }
+
+        if (_touchGestureMode == TouchGestureMode::singleDrag)
+        {
+            StoreTouchRelease(MouseState::leftRelease, _primaryTouch.position);
+        }
+
+        _secondaryTouch = { event.fingerId, position, true };
+        _touchGestureMode = TouchGestureMode::multiPending;
+        _touchGestureStart = GetTouchCentroid();
+        _touchLastCentroid = _touchGestureStart;
+        _touchPanCursorX = static_cast<float>(_touchGestureStart.x);
+        _touchPanCursorY = static_cast<float>(_touchGestureStart.y);
+        _touchGestureStartSpan = GetTouchSpan();
+        _touchLastSpan = _touchGestureStartSpan;
+        _touchPinchAccumulator = 0;
+        _touchGestureStartTimestamp = event.timestamp;
+        _cursorState.position = _touchGestureStart;
+    }
+
+    void HandleTouchMotion(const SDL_TouchFingerEvent& event)
+    {
+        const auto position = GetTouchPosition(event);
+        if (_primaryTouch.active && event.fingerId == _primaryTouch.id)
+        {
+            _primaryTouch.position = position;
+        }
+        else if (_secondaryTouch.active && event.fingerId == _secondaryTouch.id)
+        {
+            _secondaryTouch.position = position;
+        }
+        else
+        {
+            return;
+        }
+
+        const int64_t dragThresholdSquared = kTouchDragThreshold * kTouchDragThreshold;
+        if (_secondaryTouch.active)
+        {
+            const auto centroid = GetTouchCentroid();
+            const auto span = GetTouchSpan();
+            const auto centroidDistance = std::sqrt(
+                static_cast<float>(GetTouchDistanceSquared(centroid, _touchGestureStart)));
+
+            if (_touchGestureMode == TouchGestureMode::multiPending)
+            {
+                if (IsDeliberatePinch(span, centroidDistance))
+                {
+                    _touchGestureMode = TouchGestureMode::multiPinch;
+                    _touchPinchAccumulator = span - _touchGestureStartSpan;
+                    _touchLastSpan = span;
+                }
+                else if (centroidDistance >= kTouchPanStartThreshold)
+                {
+                    StoreTouchPress(MouseState::rightPress, _touchGestureStart);
+                    _touchGestureMode = TouchGestureMode::multiPan;
+                }
+            }
+
+            if (_touchGestureMode == TouchGestureMode::multiPan)
+            {
+                if (IsDeliberatePinch(span, centroidDistance))
+                {
+                    StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
+                    _touchGestureMode = TouchGestureMode::multiPinch;
+                    _touchPinchAccumulator = span - _touchGestureStartSpan;
+                    _touchLastSpan = span;
+                    _cursorState.position = centroid;
+                }
+                else
+                {
+                    const auto delta = centroid - _touchLastCentroid;
+                    _touchLastCentroid = centroid;
+                    _touchPanCursorX -= delta.x * kTouchPanSensitivity;
+                    _touchPanCursorY -= delta.y * kTouchPanSensitivity;
+                    _cursorState.position = { static_cast<int32_t>(std::lround(_touchPanCursorX)),
+                                              static_cast<int32_t>(std::lround(_touchPanCursorY)) };
+                }
+            }
+
+            if (_touchGestureMode == TouchGestureMode::multiPinch)
+            {
+                _touchPinchAccumulator += span - _touchLastSpan;
+                _touchLastSpan = span;
+                _cursorState.position = centroid;
+
+                while (std::abs(_touchPinchAccumulator) >= kTouchZoomStep)
+                {
+                    const bool zoomIn = _touchPinchAccumulator > 0;
+                    Windows::MainWindowZoom(zoomIn, true);
+                    _touchPinchAccumulator += zoomIn ? -kTouchZoomStep : kTouchZoomStep;
+                }
+            }
+            else if (_touchGestureMode == TouchGestureMode::multiPending)
+            {
+                _cursorState.position = centroid;
+            }
+            return;
+        }
+
+        if (_touchGestureMode == TouchGestureMode::suppressed)
+        {
+            return;
+        }
+
+        if (_touchGestureMode == TouchGestureMode::singlePending
+            && GetTouchDistanceSquared(position, _touchGestureStart) >= dragThresholdSquared)
+        {
+            if (ViewportFindFromPoint(_touchGestureStart) != nullptr)
+            {
+                _touchGestureMode = TouchGestureMode::suppressed;
+            }
+            else
+            {
+                StoreTouchPress(MouseState::leftPress, _touchGestureStart);
+                _touchGestureMode = TouchGestureMode::singleDrag;
+            }
+        }
+        _cursorState.position = position;
+    }
+
+    void SuppressRemainingTouch(SDL_FingerID releasedFingerId)
+    {
+        if (_primaryTouch.active && releasedFingerId == _primaryTouch.id && _secondaryTouch.active)
+        {
+            _primaryTouch = _secondaryTouch;
+            _secondaryTouch = {};
+        }
+        else if (_secondaryTouch.active && releasedFingerId == _secondaryTouch.id)
+        {
+            _secondaryTouch = {};
+        }
+        else
+        {
+            _primaryTouch = {};
+        }
+
+        if (_primaryTouch.active)
+        {
+            _touchGestureMode = TouchGestureMode::suppressed;
+        }
+        else
+        {
+            ResetTouchGesture();
+        }
+    }
+
+    void HandleTouchUp(const SDL_TouchFingerEvent& event)
+    {
+        const auto position = GetTouchPosition(event);
+        const bool isPrimary = _primaryTouch.active && event.fingerId == _primaryTouch.id;
+        const bool isSecondary = _secondaryTouch.active && event.fingerId == _secondaryTouch.id;
+        if (!isPrimary && !isSecondary)
+        {
+            return;
+        }
+
+        if (_secondaryTouch.active)
+        {
+            if (_touchGestureMode == TouchGestureMode::multiPan)
+            {
+                StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
+            }
+            SuppressRemainingTouch(event.fingerId);
+            return;
+        }
+
+        switch (_touchGestureMode)
+        {
+            case TouchGestureMode::singlePending:
+                if (event.timestamp - _touchGestureStartTimestamp >= kTouchLongPressTimeout)
+                {
+                    FireTouchLongPress(position);
+                }
+                else
+                {
+                    FireTouchTap(position);
+                }
+                break;
+            case TouchGestureMode::singleDrag:
+                StoreTouchRelease(MouseState::leftRelease, position);
+                break;
+            case TouchGestureMode::suppressed:
+            case TouchGestureMode::longPressFired:
+            case TouchGestureMode::none:
+            case TouchGestureMode::multiPending:
+            case TouchGestureMode::multiPan:
+            case TouchGestureMode::multiPinch:
+                break;
+        }
+        ResetTouchGesture();
+    }
+
+    void HandleTouchHold()
+    {
+        if (_touchGestureMode != TouchGestureMode::singlePending || !_primaryTouch.active)
+        {
+            return;
+        }
+
+        if (SDL_GetTicks() - _touchGestureStartTimestamp >= kTouchLongPressTimeout)
+        {
+            FireTouchLongPress(_primaryTouch.position);
+        }
+    }
+#endif
 
 public:
     InGameConsole& GetInGameConsole()
@@ -295,6 +661,12 @@ public:
 
     ScreenCoordsXY GetCursorPosition() override
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        if (_touchGestureMode == TouchGestureMode::multiPan)
+        {
+            return _cursorState.position;
+        }
+#endif
         ScreenCoordsXY cursorPosition;
         SDL_GetMouseState(&cursorPosition.x, &cursorPosition.y);
         return cursorPosition;
@@ -343,11 +715,21 @@ public:
 
     TextInputSession* StartTextInput(u8string& buffer, size_t maxLength) override
     {
-        return _textComposition.Start(buffer, maxLength);
+        auto* session = _textComposition.Start(buffer, maxLength);
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        _platformUiContext->BeginTextInput(_cursorState.touch);
+        LOG_INFO(
+            "[OpenRCT2Touch] text-input: active=%d screen_supported=%d screen_requested=%d",
+            SDL_IsTextInputActive(), SDL_HasScreenKeyboardSupport(), SDL_IsScreenKeyboardShown(_window));
+#endif
+        return session;
     }
 
     void StopTextInput() override
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        _platformUiContext->EndTextInput();
+#endif
         _textComposition.Stop();
     }
 
@@ -405,6 +787,14 @@ public:
                     }
                     break;
                 case SDL_MOUSEMOTION:
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                    if (e.motion.which == SDL_TOUCH_MOUSEID)
+                    {
+                        // SDL mirrors finger motion as mouse motion on iOS. The touch gesture layer has already
+                        // applied pan direction and sensitivity, so accepting this event would overwrite both.
+                        break;
+                    }
+#endif
                     _cursorState.position = { static_cast<int32_t>(e.motion.x / Config::Get().general.windowScale),
                                               static_cast<int32_t>(e.motion.y / Config::Get().general.windowScale) };
                     break;
@@ -491,11 +881,18 @@ public:
                 // Apple sends touchscreen events for trackpads, so ignore these events on macOS
 #ifndef __MACOSX__
                 case SDL_FINGERMOTION:
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                    HandleTouchMotion(e.tfinger);
+#else
                     _cursorState.position = { static_cast<int32_t>(e.tfinger.x * _width),
                                               static_cast<int32_t>(e.tfinger.y * _height) };
+#endif
                     break;
                 case SDL_FINGERDOWN:
                 {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                    HandleTouchDown(e.tfinger);
+#else
                     ScreenCoordsXY fingerPos = { static_cast<int32_t>(e.tfinger.x * _width),
                                                  static_cast<int32_t>(e.tfinger.y * _height) };
 
@@ -517,10 +914,14 @@ public:
                     }
                     _cursorState.touch = true;
                     _cursorState.touchDownTimestamp = e.tfinger.timestamp;
+#endif
                     break;
                 }
                 case SDL_FINGERUP:
                 {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                    HandleTouchUp(e.tfinger);
+#else
                     ScreenCoordsXY fingerPos = { static_cast<int32_t>(e.tfinger.x * _width),
                                                  static_cast<int32_t>(e.tfinger.y * _height) };
 
@@ -537,6 +938,7 @@ public:
                         _cursorState.old = 3;
                     }
                     _cursorState.touch = true;
+#endif
                     break;
                 }
 #endif
@@ -565,6 +967,9 @@ public:
                     break;
                 }
                 case SDL_MULTIGESTURE:
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                    // iPadOS touch handling classifies two-finger motion as pan or pinch above.
+#else
                     if (e.mgesture.numFingers == 2)
                     {
                         if (e.mgesture.timestamp > _lastGestureTimestamp + 1000)
@@ -583,6 +988,7 @@ public:
                             Windows::MainWindowZoom(gesturePixels > 0, true);
                         }
                     }
+#endif
                     break;
                 case SDL_TEXTEDITING:
                     _textComposition.HandleMessage(&e);
@@ -597,6 +1003,10 @@ public:
                 }
             }
         }
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        HandleTouchHold();
+#endif
 
         _cursorState.any = _cursorState.left | _cursorState.middle | _cursorState.right;
 

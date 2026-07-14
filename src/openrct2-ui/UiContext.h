@@ -48,6 +48,14 @@ namespace OpenRCT2::Ui
         virtual std::string ShowDirectoryDialog(SDL_Window* window, const std::string& title) = 0;
 
         virtual bool HasFilePicker() const = 0;
+
+        virtual void BeginTextInput([[maybe_unused]] bool preferTouchKeyboard)
+        {
+        }
+
+        virtual void EndTextInput()
+        {
+        }
     };
 
     [[nodiscard]] std::unique_ptr<IUiContext> CreateUiContext(IPlatformEnvironment& env);
