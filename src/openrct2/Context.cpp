@@ -980,6 +980,7 @@ namespace OpenRCT2
                             "An RCT2 install directory must be specified! Please edit \"game_path\" in %s.\n", path.c_str());
                         return std::string();
                     }
+                    Config::Save();
                 }
                 result = Config::Get().general.rct2Path;
             }

@@ -39,8 +39,9 @@ namespace OpenRCT2::Platform
             case SpecialFolder::userCache:
                 return GetSearchPath(NSCachesDirectory);
             case SpecialFolder::userConfig:
-            case SpecialFolder::userData:
                 return GetSearchPath(NSApplicationSupportDirectory);
+            case SpecialFolder::userData:
+                return GetSearchPath(NSDocumentDirectory);
             case SpecialFolder::userHome:
                 return std::string(NSHomeDirectory().fileSystemRepresentation);
             default:

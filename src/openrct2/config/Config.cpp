@@ -886,7 +886,7 @@ namespace OpenRCT2::Config
     u8string GetDefaultPath()
     {
         auto& env = GetContext()->GetPlatformEnvironment();
-        return Path::Combine(env.GetDirectoryPath(DirBase::user), u8"config.ini");
+        return env.GetFilePath(PathId::config);
     }
 
     bool SaveToPath(u8string_view path)

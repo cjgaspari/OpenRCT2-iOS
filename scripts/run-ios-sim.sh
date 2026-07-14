@@ -187,7 +187,9 @@ done
 for required_event in \
     'renderer: driver=metal' \
     'presentation: window_points=' \
-    'safe-area: bounds_points='; do
+    'safe-area: bounds_points=' \
+    'sandbox: bundle_role=read_only documents_writable=1 support_writable=1 caches_writable=1' \
+    'paths: documents='; do
     if ! grep -F "$required_event" "$LOG_PATH" >/dev/null; then
         echo "Missing presentation proof: $required_event" >&2
         exit 1
@@ -206,6 +208,8 @@ if [[ "$FINAL_PID" == "$FIRST_PID" ]]; then
     echo "Termination verification did not produce a new process." >&2
     exit 1
 fi
+sleep 2
+"$ROOT/scripts/verify-ios-sandbox.sh" "$UDID"
 
 echo "OpenRCT2 Touch Simulator verification passed."
 echo "Device: $UDID"

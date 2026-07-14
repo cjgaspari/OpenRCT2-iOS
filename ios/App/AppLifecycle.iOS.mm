@@ -71,6 +71,24 @@
                     CGRectGetWidth(bounds), CGRectGetHeight(bounds), insets.top, insets.left, insets.bottom, insets.right,
                     activeWindow.screen.scale);
             }
+
+            static dispatch_once_t onceToken;
+            dispatch_once(&onceToken, ^{
+                NSFileManager* fileManager = [NSFileManager defaultManager];
+                NSString* documentsPath = NSSearchPathForDirectoriesInDomains(
+                    NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+                NSString* supportPath = NSSearchPathForDirectoriesInDomains(
+                    NSApplicationSupportDirectory, NSUserDomainMask, YES).firstObject;
+                NSString* cachesPath = NSSearchPathForDirectoriesInDomains(
+                    NSCachesDirectory, NSUserDomainMask, YES).firstObject;
+                NSLog(
+                    @"[OpenRCT2Touch] sandbox: bundle_role=read_only documents_writable=%d support_writable=%d caches_writable=%d",
+                    [fileManager isWritableFileAtPath:documentsPath], [fileManager isWritableFileAtPath:supportPath],
+                    [fileManager isWritableFileAtPath:cachesPath]);
+                NSLog(
+                    @"[OpenRCT2Touch] paths: documents=%@ support=%@ caches=%@",
+                    documentsPath, supportPath, cachesPath);
+            });
         });
     }
 }
