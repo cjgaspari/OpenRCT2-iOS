@@ -3,7 +3,7 @@
 - **Last updated:** July 14, 2026
 - **Working branch:** `ipad`
 - **Current goal:** [Goal 5 — Sandbox paths and user-owned data import](../GOAL-LOOP.md#goal-5--sandbox-paths-and-user-owned-data-import)
-- **Code checkpoint:** `894a029a9d` (`[touch] Add finger-first iPad controls`)
+- **Code checkpoint:** `ccb8c51b7e` (`[touch] Add production iPad app icon`)
 
 The implementation has completed Goals 0–4. A signed build now runs on a
 physical M2 iPad Pro, persists developer-seeded user-owned RCT2 data across
@@ -60,6 +60,10 @@ progress, but their complete end-to-end exit scripts are also still pending.
 - The physical-device tester reports that the build appears stable and works
   with good controls. This is interaction acceptance for the current slice,
   not the Goal 9 performance or 30-minute stress proof.
+- The production `AppIcon` asset catalog compiles an opaque 1024px source into
+  the required iPad icon renditions. The signed build advanced to bundle build
+  2, installed without deleting the app sandbox, preserved imported data, and
+  visually replaced the placeholder icon on the physical iPad Home Screen.
 - The macOS headless loop completed 1,000 ticks with checksum
   `25232284e49cf2cb000000000000000000000000`.
 
