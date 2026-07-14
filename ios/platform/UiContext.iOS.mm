@@ -11,6 +11,8 @@
 
 #if TARGET_OS_IOS
 
+    #include "RCT2Importer.iOS.h"
+
     #include <openrct2-ui/UiContext.h>
 
     #include <SDL.h>
@@ -81,15 +83,14 @@ namespace OpenRCT2::Ui
         }
 
         std::string ShowDirectoryDialog(
-            [[maybe_unused]] SDL_Window* window, [[maybe_unused]] const std::string& title) override
+            SDL_Window* window, const std::string& title) override
         {
-            LOG_WARNING("The iOS document picker is not implemented yet.");
-            return {};
+            return ShowRCT2DirectoryImporter(window, title);
         }
 
         bool HasFilePicker() const override
         {
-            return false;
+            return true;
         }
     };
 

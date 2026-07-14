@@ -5,7 +5,8 @@ if (NOT TARGET SDL2::SDL2main)
 endif ()
 
 add_executable(openrct2-touch MACOSX_BUNDLE
-    "${CMAKE_CURRENT_LIST_DIR}/App/AppLifecycle.iOS.mm")
+    "${CMAKE_CURRENT_LIST_DIR}/App/AppLifecycle.iOS.mm"
+    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm")
 
 target_link_libraries(openrct2-touch PRIVATE
     SDL2::SDL2main
