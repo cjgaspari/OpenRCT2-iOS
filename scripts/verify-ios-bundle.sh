@@ -28,6 +28,40 @@ for required_asset in g2.dat fonts.dat palettes.dat tracks.dat language/en-GB.tx
     fi
 done
 
+if [[ "$(plutil -extract 'CFBundleIcons~ipad.CFBundlePrimaryIcon.CFBundleIconName' raw "$APP/Info.plist")" != "AppIcon" ]]; then
+    echo "App bundle does not declare the compiled AppIcon catalog." >&2
+    exit 1
+fi
+
+for icon_spec in "AppIcon60x60@2x.png:120" "AppIcon76x76@2x~ipad.png:152"; do
+    IFS=: read -r icon_name expected_size <<< "$icon_spec"
+    icon_path="$APP/$icon_name"
+    if [[ ! -f "$icon_path" ]]; then
+        echo "App bundle is missing compiled icon: $icon_name" >&2
+        exit 1
+    fi
+    if [[ "$(sips -g pixelWidth "$icon_path" | awk '/pixelWidth:/ { print $2 }')" != "$expected_size"
+        || "$(sips -g pixelHeight "$icon_path" | awk '/pixelHeight:/ { print $2 }')" != "$expected_size"
+        || "$(sips -g hasAlpha "$icon_path" | awk '/hasAlpha:/ { print $2 }')" != "no" ]]; then
+        echo "Compiled icon has unexpected dimensions or transparency: $icon_name" >&2
+        exit 1
+    fi
+done
+
+if [[ ! -f "$APP/Assets.car" ]]; then
+    echo "App bundle is missing the compiled asset catalog." >&2
+    exit 1
+fi
+ASSET_CATALOG_INFO="$(xcrun assetutil --info "$APP/Assets.car")"
+if [[ "$(printf '%s' "$ASSET_CATALOG_INFO" | plutil -extract 1.Name raw -)" != "AppIcon"
+    || "$(printf '%s' "$ASSET_CATALOG_INFO" | plutil -extract 1.AssetType raw -)" != "Icon Image"
+    || "$(printf '%s' "$ASSET_CATALOG_INFO" | plutil -extract 1.Opaque raw -)" != "true"
+    || "$(printf '%s' "$ASSET_CATALOG_INFO" | plutil -extract 1.PixelWidth raw -)" != "1024"
+    || "$(printf '%s' "$ASSET_CATALOG_INFO" | plutil -extract 1.PixelHeight raw -)" != "1024" ]]; then
+    echo "Compiled asset catalog does not contain the expected opaque 1024px AppIcon rendition." >&2
+    exit 1
+fi
+
 PROPRIETARY_MATCHES="$(
     find "$APP" -type f -print \
         | rg -i '(^|/)(g1\.dat|css1\.dat|css2\.dat|rct2\.exe)$|/(ObjData|Scenarios)/|\.(sv4|sv6|sc4|sc6|td4|td6)$' \
@@ -49,7 +83,7 @@ fi
 while IFS= read -r -d '' bundled_file; do
     relative_path="${bundled_file#"$APP"/}"
     case "$relative_path" in
-        Info.plist|OpenRCT2Touch|embedded.mobileprovision|_CodeSignature/CodeResources)
+        Info.plist|OpenRCT2Touch|embedded.mobileprovision|_CodeSignature/CodeResources|Assets.car|AppIcon60x60@2x.png|AppIcon76x76@2x~ipad.png)
             continue
             ;;
         PkgInfo)

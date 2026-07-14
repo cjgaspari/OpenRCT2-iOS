@@ -4,9 +4,15 @@ if (NOT TARGET SDL2::SDL2main)
     message(FATAL_ERROR "SDL2 did not provide the UIKit SDL2main target")
 endif ()
 
+set(OPENRCT2_TOUCH_ASSET_CATALOG "${CMAKE_CURRENT_LIST_DIR}/App/Assets.xcassets")
+
 add_executable(openrct2-touch MACOSX_BUNDLE
     "${CMAKE_CURRENT_LIST_DIR}/App/AppLifecycle.iOS.mm"
-    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm")
+    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm"
+    "${OPENRCT2_TOUCH_ASSET_CATALOG}")
+
+set_source_files_properties("${OPENRCT2_TOUCH_ASSET_CATALOG}" PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources)
 
 option(OPENRCT2_IOS_CODE_SIGNING "Allow Xcode to sign the iPadOS app" OFF)
 set(OPENRCT2_IOS_DEVELOPMENT_TEAM "" CACHE STRING "Apple development team used only for a signed iPadOS build")
@@ -38,6 +44,7 @@ set_target_properties(openrct2-touch PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic
     XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${OPENRCT2_IOS_DEVELOPMENT_TEAM}"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.openrct2.touch"
+    XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "2")
 
 if (CMAKE_GENERATOR STREQUAL "Xcode")
