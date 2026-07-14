@@ -45,22 +45,30 @@ git checkout ipad
 # 2. Install toolchain + dependencies, sanity-check the environment
 ./scripts/bootstrap.sh
 
-# 3. Put YOUR RollerCoaster Tycoon 2 data where the build can find it (git-ignored)
-#    (must contain Data/g1.dat)
-#    -> ./ref/rct2/
-
-# 4. Build & smoke-test on macOS first (the fast inner loop)
+# 3. Build & smoke-test on macOS first (the fast inner loop)
 ./scripts/build-macos.sh
 ./scripts/run-macos-headless.sh
 
-# 5. iOS: build dependencies, build the app, verify it in an iPad Simulator
+# 4. iOS: build dependencies, build the app, verify it in an iPad Simulator
 ./scripts/build-ios-deps.sh
 ./scripts/build-ios.sh sim
 ./scripts/run-ios-sim.sh verify
 
-# 6. Physical-device install/signing is added at the device milestone
-# ./scripts/install-run-ios.sh
+# 5. Build, sign, install, and launch on an attached iPad.
+#    Use the Apple team and device identifiers shown by Xcode/devicectl;
+#    neither value is inferred or saved in the repository.
+OPENRCT2_DEVELOPMENT_TEAM=<team> \
+OPENRCT2_DEVICE_UDID=<device> \
+    ./scripts/build-ios-device.sh signed
+OPENRCT2_DEVICE_UDID=<device> ./scripts/install-run-ios.sh
 ```
+
+The device build is audited before installation: it must contain only the
+redistributable engine assets, have an iOS binary, and carry a valid development
+signature. On first launch, select the folder from your own RCT2 installation in
+the iPadOS Files picker. It must contain `Data/g1.dat`, `ObjData`, `Scenarios`,
+and `Tracks`; these proprietary files are imported into the app's Documents
+container and are never built into or committed with the app.
 
 ## Licensing
 
