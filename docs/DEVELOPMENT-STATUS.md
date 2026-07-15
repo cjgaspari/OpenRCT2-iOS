@@ -1,9 +1,9 @@
 # OpenRCT2 Touch development status
 
-- **Last updated:** July 14, 2026
+- **Last updated:** July 16, 2026
 - **Working branch:** `ipad`
 - **Current goal:** [Goal 5 — Sandbox paths and user-owned data import](../GOAL-LOOP.md#goal-5--sandbox-paths-and-user-owned-data-import)
-- **Code checkpoint:** `ccb8c51b7e` (`[touch] Add production iPad app icon`)
+- **Accepted checkpoint:** native text input and the July 16 touch-control pass
 
 The implementation has completed Goals 0–4. A signed build now runs on a
 physical M2 iPad Pro, persists developer-seeded user-owned RCT2 data across
@@ -28,7 +28,7 @@ progress, but their complete end-to-end exit scripts are also still pending.
 | [4 — Framebuffer presentation](../GOAL-LOOP.md#goal-4--correct-software-framebuffer-presentation) | Complete | The software framebuffer presents through SDL's iOS Metal renderer in landscape at Retina scale. |
 | [5 — Sandbox and import](../GOAL-LOOP.md#goal-5--sandbox-paths-and-user-owned-data-import) | **Device gate** | Sandbox paths persist and a scenario loads on a physical iPad using developer-seeded user-owned data. Standard RCT2 and RCT Classic folders import from Files in Simulator and malformed folders fail safely. The remaining proof is selecting and importing the folder through Files on the physical iPad. |
 | [6 — Pointer, keyboard, mouse](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play) | In progress | Pointer movement, clicking, scrolling, trackpad zoom, attached-keyboard text entry, and existing controls work on device. The recorded coaster-and-scenery end-to-end proof remains. |
-| [7 — Finger-first controls](../GOAL-LOOP.md#goal-7--finger-first-controls) | In progress | The device build has touch-sized UI defaults, tap/placement, UI dragging, long-press secondary action, inverted half-speed two-finger pan, deliberate pinch classification, and a touch text-entry fallback. The tester accepts the current stability and control feel; the full finger-only coaster-and-scenery proof remains. |
+| [7 — Finger-first controls](../GOAL-LOOP.md#goal-7--finger-first-controls) | In progress | The current touch mapping is accepted on device: tap/placement, UI dragging, long-press secondary action, inverted half-speed pan, pinch, native text entry, paint/remove dragging, and construction rotation. The full finger-only coaster-and-scenery proof remains. |
 | [8 — Apple Pencil](../GOAL-LOOP.md#goal-8--apple-pencil-differentiation) | Not started | Requires Pencil hardware and human feel acceptance. |
 | [9 — Performance and stability](../GOAL-LOOP.md#goal-9--device-performance-and-stability) | Not started | Requires repeatable physical-device profiling and stress testing. |
 | [10 — Content and installable MVP](../GOAL-LOOP.md#goal-10--plugincustom-content-and-installable-mvp) | Not started | Requires on-device plugin/custom-content proof, packaging audit, and the full MVP demo. |
@@ -54,18 +54,40 @@ progress, but their complete end-to-end exit scripts are also still pending.
   tracked or copied into the application bundle.
 - The attached Magic Keyboard and trackpad retain their existing behavior.
   Finger controls support placement, long press, responsive inverted
-  two-finger panning, and a more deliberate pinch threshold. A finger-opened
-  text field uses the iPadOS keyboard when available and otherwise exposes an
-  app-owned touch keyboard fallback.
+  two-finger panning, and a more deliberate pinch threshold. The app-owned
+  keyboard fallback was removed after device testing found that it obscured
+  in-game text fields.
 - The physical-device tester reports that the build appears stable and works
   with good controls. This is interaction acceptance for the current slice,
   not the Goal 9 performance or 30-minute stress proof.
+- The July 16 device pass accepted native conditional text entry, one-finger
+  placement and paint dragging, two-finger pan and pinch, 15-degree
+  construction rotation, and two-finger tap or hold-drag footpath removal.
 - The production `AppIcon` asset catalog compiles an opaque 1024px source into
   the required iPad icon renditions. The signed build advanced to bundle build
   2, installed without deleting the app sandbox, preserved imported data, and
   visually replaced the placeholder icon on the physical iPad Home Screen.
 - The macOS headless loop completed 1,000 ticks with checksum
   `25232284e49cf2cb000000000000000000000000`.
+
+## Current interaction checkpoint
+
+- Native text entry is device-confirmed: iPadOS shows its software keyboard when
+  the hardware keyboard is detached and correctly leaves it hidden while the
+  attached keyboard is available.
+- Active placement follows one-finger movement correctly. The confirmation
+  double-tap window at 390 ms is accepted at the current checkpoint.
+- Hold-then-drag now maps to the engine's existing mouse tool-drag behavior for
+  footpath, land, water, and clear-scenery tools. Footpath painting is
+  device-confirmed. Two-finger secondary tap removes one path segment and a
+  two-finger hold-drag removes continuously; both are device-confirmed without
+  changing mouse or trackpad right-click removal.
+- A bounded two-finger rotation prototype is enabled only for active scenery,
+  ride-construction, and track-design placement tools. Its 15-degree start
+  threshold and delayed pan arbitration are accepted at this checkpoint.
+
+The full mapping and decision history are maintained in
+[`TOUCH-CONTROLS.md`](TOUCH-CONTROLS.md).
 
 ## Physical-device checkpoint
 

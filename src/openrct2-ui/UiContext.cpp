@@ -15,14 +15,17 @@
 #include "UiStringIds.h"
 #include "WindowManager.h"
 #include "drawing/engines/DrawingEngineFactory.hpp"
+#include "input/ShortcutIds.h"
 #include "input/ShortcutManager.h"
 #include "interface/InGameConsole.h"
 #include "interface/Theme.h"
 #include "interface/Viewport.h"
+#include "interface/ViewportInteraction.h"
 #include "scripting/UiExtensions.h"
 #include "title/TitleSequencePlayer.h"
 
 #include <SDL.h>
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -72,17 +75,26 @@ using namespace OpenRCT2::Ui;
 class UiContext final : public IUiContext
 {
 private:
-    constexpr static uint32_t kTouchDoubleTimeout = 300;
+    constexpr static uint32_t kTouchDoubleTimeout = 390;
 
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
     constexpr static int32_t kTouchDragThreshold = 8;
     constexpr static int32_t kTouchPanStartThreshold = 3;
+    constexpr static int32_t kTouchConstructionPanStartThreshold = 12;
+    constexpr static int32_t kTouchRemovalPanStartThreshold = 10;
+    constexpr static int32_t kTouchRemovalDragThreshold = 6;
     constexpr static float kTouchPinchThreshold = 24.0f;
     constexpr static float kTouchPinchSpanRatio = 0.12f;
     constexpr static float kTouchPinchDominance = 1.5f;
     constexpr static float kTouchPanSensitivity = 0.5f;
     constexpr static float kTouchZoomStep = 20.0f;
     constexpr static uint32_t kTouchLongPressTimeout = 500;
+    constexpr static int32_t kTouchToolTapDistance = 32;
+    constexpr static int32_t kTrackpadViewportWheelStep = 4;
+    constexpr static uint32_t kTouchPaintHoldTimeout = 350;
+    constexpr static float kTouchRotationThreshold = 0.26179939f;
+    constexpr static float kTouchRotationStep = 0.52359878f;
+    constexpr static float kTouchRotationDominance = 1.5f;
 
     enum class TouchGestureMode
     {
@@ -93,6 +105,8 @@ private:
         multiPending,
         multiPan,
         multiPinch,
+        multiRotate,
+        multiRemove,
         suppressed,
     };
 
@@ -141,6 +155,13 @@ private:
     float _touchLastSpan = 0;
     float _touchPinchAccumulator = 0;
     uint32_t _touchGestureStartTimestamp = 0;
+    ScreenCoordsXY _lastTouchToolTap{};
+    uint32_t _lastTouchToolTapTimestamp = 0;
+    int32_t _trackpadViewportWheelAccumulator = 0;
+    float _touchGestureStartAngle = 0;
+    float _touchLastAngle = 0;
+    float _touchRotationAccumulator = 0;
+    ScreenCoordsXY _touchLastRemovePosition{};
 #endif
 
     InGameConsole _inGameConsole;
@@ -172,11 +193,139 @@ private:
         return std::hypot(deltaX, deltaY);
     }
 
+    float GetTouchAngle() const
+    {
+        const auto deltaX = static_cast<float>(_secondaryTouch.position.x - _primaryTouch.position.x);
+        const auto deltaY = static_cast<float>(_secondaryTouch.position.y - _primaryTouch.position.y);
+        return std::atan2(deltaY, deltaX);
+    }
+
+    static float NormaliseTouchAngle(float angle)
+    {
+        constexpr float pi = 3.14159265f;
+        constexpr float twoPi = 2.0f * pi;
+        while (angle > pi)
+        {
+            angle -= twoPi;
+        }
+        while (angle < -pi)
+        {
+            angle += twoPi;
+        }
+        return angle;
+    }
+
     bool IsDeliberatePinch(float span, float centroidDistance) const
     {
         const auto spanDistance = std::abs(span - _touchGestureStartSpan);
         const auto pinchThreshold = std::max(kTouchPinchThreshold, _touchGestureStartSpan * kTouchPinchSpanRatio);
         return spanDistance >= pinchThreshold && spanDistance >= centroidDistance * kTouchPinchDominance;
+    }
+
+    bool CanRotateTouchConstruction() const
+    {
+        if (!gInputFlags.has(InputFlag::toolActive))
+        {
+            return false;
+        }
+
+        switch (gCurrentToolWidget.windowClassification)
+        {
+            case WindowClass::scenery:
+            case WindowClass::rideConstruction:
+            case WindowClass::trackDesignPlace:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool IsDeliberateRotation(float angle, float span, float centroidDistance) const
+    {
+        if (!CanRotateTouchConstruction())
+        {
+            return false;
+        }
+
+        const auto angleDistance = std::abs(NormaliseTouchAngle(angle - _touchGestureStartAngle));
+        const auto rotationDistance = angleDistance * std::max(1.0f, _touchGestureStartSpan * 0.5f);
+        const auto spanDistance = std::abs(span - _touchGestureStartSpan);
+        const auto pinchThreshold = std::max(kTouchPinchThreshold, _touchGestureStartSpan * kTouchPinchSpanRatio);
+        return angleDistance >= kTouchRotationThreshold && rotationDistance >= centroidDistance * kTouchRotationDominance
+            && spanDistance < pinchThreshold;
+    }
+
+    void RotateTouchConstruction(bool clockwise)
+    {
+        auto* shortcut = _shortcutManager.getShortcut(ShortcutId::kInterfaceRotateConstruction);
+        if (shortcut == nullptr)
+        {
+            return;
+        }
+
+        const int32_t rotations = clockwise ? 1 : 3;
+        for (int32_t i = 0; i < rotations; i++)
+        {
+            shortcut->action();
+        }
+    }
+
+    void BeginTouchRotation(float angle)
+    {
+        const auto direction = NormaliseTouchAngle(angle - _touchGestureStartAngle);
+        _touchGestureMode = TouchGestureMode::multiRotate;
+        _touchLastAngle = angle;
+        _touchRotationAccumulator = 0;
+        RotateTouchConstruction(direction > 0);
+    }
+
+    void ContinueTouchRotation(float angle)
+    {
+        _touchRotationAccumulator += NormaliseTouchAngle(angle - _touchLastAngle);
+        _touchLastAngle = angle;
+        while (std::abs(_touchRotationAccumulator) >= kTouchRotationStep)
+        {
+            const bool clockwise = _touchRotationAccumulator > 0;
+            RotateTouchConstruction(clockwise);
+            _touchRotationAccumulator += clockwise ? -kTouchRotationStep : kTouchRotationStep;
+        }
+    }
+
+    bool CanPaintWithTouch(const ScreenCoordsXY& position) const
+    {
+        if (!gInputFlags.has(InputFlag::toolActive) || ViewportFindFromPoint(position) == nullptr)
+        {
+            return false;
+        }
+
+        switch (gCurrentToolWidget.windowClassification)
+        {
+            case WindowClass::footpath:
+            case WindowClass::land:
+            case WindowClass::water:
+            case WindowClass::clearScenery:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool CanUseTouchSecondaryAction(const ScreenCoordsXY& position) const
+    {
+        return gInputFlags.has(InputFlag::toolActive) && gInputFlags.has(InputFlag::allowRightMouseRemoval)
+            && ViewportInteractionRightOver(position);
+    }
+
+    bool CanEraseFootpathWithTouch(const ScreenCoordsXY& position) const
+    {
+        return gCurrentToolWidget.windowClassification == WindowClass::footpath && CanUseTouchSecondaryAction(position);
+    }
+
+    void FireTouchSecondaryAction(const ScreenCoordsXY& position)
+    {
+        _cursorState.position = position;
+        _cursorState.touch = true;
+        ViewportInteractionRightClick(position);
     }
 
     void StoreTouchPress(MouseState state, const ScreenCoordsXY& position)
@@ -223,9 +372,55 @@ private:
 
     void FireTouchLongPress(const ScreenCoordsXY& position)
     {
+        _lastTouchToolTapTimestamp = 0;
         StoreTouchPress(MouseState::rightPress, position);
         StoreTouchRelease(MouseState::rightRelease, position);
         _touchGestureMode = TouchGestureMode::longPressFired;
+    }
+
+    void HandleTouchTap(const SDL_TouchFingerEvent& event, const ScreenCoordsXY& position)
+    {
+        const bool isActiveToolViewport
+            = gInputFlags.has(InputFlag::toolActive) && ViewportFindFromPoint(position) != nullptr;
+        if (!isActiveToolViewport)
+        {
+            _lastTouchToolTapTimestamp = 0;
+            FireTouchTap(position);
+            return;
+        }
+
+        const int64_t tapDistanceSquared = kTouchToolTapDistance * kTouchToolTapDistance;
+        const bool isDoubleTap = _lastTouchToolTapTimestamp != 0
+            && event.timestamp - _lastTouchToolTapTimestamp < kTouchDoubleTimeout
+            && GetTouchDistanceSquared(position, _lastTouchToolTap) <= tapDistanceSquared;
+        if (isDoubleTap)
+        {
+            _lastTouchToolTapTimestamp = 0;
+            FireTouchTap(position);
+        }
+        else
+        {
+            _lastTouchToolTap = position;
+            _lastTouchToolTapTimestamp = event.timestamp;
+            _cursorState.position = position;
+        }
+    }
+
+    void AddTrackpadViewportWheel(int32_t delta)
+    {
+        if ((_trackpadViewportWheelAccumulator < 0 && delta > 0)
+            || (_trackpadViewportWheelAccumulator > 0 && delta < 0))
+        {
+            _trackpadViewportWheelAccumulator = 0;
+        }
+
+        _trackpadViewportWheelAccumulator = std::clamp(
+            _trackpadViewportWheelAccumulator + delta, -kTrackpadViewportWheelStep, kTrackpadViewportWheelStep);
+        if (std::abs(_trackpadViewportWheelAccumulator) == kTrackpadViewportWheelStep)
+        {
+            _cursorState.wheel += _trackpadViewportWheelAccumulator > 0 ? 1 : -1;
+            _trackpadViewportWheelAccumulator = 0;
+        }
     }
 
     void ResetTouchGesture()
@@ -241,6 +436,10 @@ private:
         _touchLastSpan = 0;
         _touchPinchAccumulator = 0;
         _touchGestureStartTimestamp = 0;
+        _touchGestureStartAngle = 0;
+        _touchLastAngle = 0;
+        _touchRotationAccumulator = 0;
+        _touchLastRemovePosition = {};
     }
 
     void HandleTouchDown(const SDL_TouchFingerEvent& event)
@@ -268,6 +467,8 @@ private:
             StoreTouchRelease(MouseState::leftRelease, _primaryTouch.position);
         }
 
+        _lastTouchToolTapTimestamp = 0;
+
         _secondaryTouch = { event.fingerId, position, true };
         _touchGestureMode = TouchGestureMode::multiPending;
         _touchGestureStart = GetTouchCentroid();
@@ -276,7 +477,11 @@ private:
         _touchPanCursorY = static_cast<float>(_touchGestureStart.y);
         _touchGestureStartSpan = GetTouchSpan();
         _touchLastSpan = _touchGestureStartSpan;
+        _touchGestureStartAngle = GetTouchAngle();
+        _touchLastAngle = _touchGestureStartAngle;
         _touchPinchAccumulator = 0;
+        _touchRotationAccumulator = 0;
+        _touchLastRemovePosition = _touchGestureStart;
         _touchGestureStartTimestamp = event.timestamp;
         _cursorState.position = _touchGestureStart;
     }
@@ -302,8 +507,24 @@ private:
         {
             const auto centroid = GetTouchCentroid();
             const auto span = GetTouchSpan();
+            const auto angle = GetTouchAngle();
             const auto centroidDistance = std::sqrt(
                 static_cast<float>(GetTouchDistanceSquared(centroid, _touchGestureStart)));
+
+            if (_touchGestureMode == TouchGestureMode::multiRemove)
+            {
+                const int64_t removalThresholdSquared = kTouchRemovalDragThreshold * kTouchRemovalDragThreshold;
+                if (GetTouchDistanceSquared(centroid, _touchLastRemovePosition) >= removalThresholdSquared)
+                {
+                    if (CanEraseFootpathWithTouch(centroid))
+                    {
+                        FireTouchSecondaryAction(centroid);
+                    }
+                    _touchLastRemovePosition = centroid;
+                }
+                _cursorState.position = centroid;
+                return;
+            }
 
             if (_touchGestureMode == TouchGestureMode::multiPending)
             {
@@ -313,10 +534,27 @@ private:
                     _touchPinchAccumulator = span - _touchGestureStartSpan;
                     _touchLastSpan = span;
                 }
-                else if (centroidDistance >= kTouchPanStartThreshold)
+                else if (IsDeliberateRotation(angle, span, centroidDistance))
                 {
-                    StoreTouchPress(MouseState::rightPress, _touchGestureStart);
-                    _touchGestureMode = TouchGestureMode::multiPan;
+                    BeginTouchRotation(angle);
+                }
+                else
+                {
+                    int32_t panThreshold = kTouchPanStartThreshold;
+                    if (CanRotateTouchConstruction())
+                    {
+                        panThreshold = kTouchConstructionPanStartThreshold;
+                    }
+                    else if (CanEraseFootpathWithTouch(_touchGestureStart))
+                    {
+                        panThreshold = kTouchRemovalPanStartThreshold;
+                    }
+
+                    if (centroidDistance >= panThreshold)
+                    {
+                        StoreTouchPress(MouseState::rightPress, _touchGestureStart);
+                        _touchGestureMode = TouchGestureMode::multiPan;
+                    }
                 }
             }
 
@@ -328,6 +566,12 @@ private:
                     _touchGestureMode = TouchGestureMode::multiPinch;
                     _touchPinchAccumulator = span - _touchGestureStartSpan;
                     _touchLastSpan = span;
+                    _cursorState.position = centroid;
+                }
+                else if (IsDeliberateRotation(angle, span, centroidDistance))
+                {
+                    StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
+                    BeginTouchRotation(angle);
                     _cursorState.position = centroid;
                 }
                 else
@@ -354,6 +598,11 @@ private:
                     _touchPinchAccumulator += zoomIn ? -kTouchZoomStep : kTouchZoomStep;
                 }
             }
+            else if (_touchGestureMode == TouchGestureMode::multiRotate)
+            {
+                ContinueTouchRotation(angle);
+                _cursorState.position = centroid;
+            }
             else if (_touchGestureMode == TouchGestureMode::multiPending)
             {
                 _cursorState.position = centroid;
@@ -363,6 +612,7 @@ private:
 
         if (_touchGestureMode == TouchGestureMode::suppressed)
         {
+            _cursorState.position = position;
             return;
         }
 
@@ -371,6 +621,7 @@ private:
         {
             if (ViewportFindFromPoint(_touchGestureStart) != nullptr)
             {
+                _lastTouchToolTapTimestamp = 0;
                 _touchGestureMode = TouchGestureMode::suppressed;
             }
             else
@@ -424,6 +675,14 @@ private:
             {
                 StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
             }
+            else if (_touchGestureMode == TouchGestureMode::multiPending)
+            {
+                const auto centroid = GetTouchCentroid();
+                if (CanUseTouchSecondaryAction(centroid))
+                {
+                    FireTouchSecondaryAction(centroid);
+                }
+            }
             SuppressRemainingTouch(event.fingerId);
             return;
         }
@@ -437,7 +696,7 @@ private:
                 }
                 else
                 {
-                    FireTouchTap(position);
+                    HandleTouchTap(event, position);
                 }
                 break;
             case TouchGestureMode::singleDrag:
@@ -449,6 +708,8 @@ private:
             case TouchGestureMode::multiPending:
             case TouchGestureMode::multiPan:
             case TouchGestureMode::multiPinch:
+            case TouchGestureMode::multiRotate:
+            case TouchGestureMode::multiRemove:
                 break;
         }
         ResetTouchGesture();
@@ -456,12 +717,32 @@ private:
 
     void HandleTouchHold()
     {
+        if (_touchGestureMode == TouchGestureMode::multiPending && _primaryTouch.active && _secondaryTouch.active)
+        {
+            const auto holdDuration = SDL_GetTicks() - _touchGestureStartTimestamp;
+            const auto centroid = GetTouchCentroid();
+            if (holdDuration >= kTouchPaintHoldTimeout && CanEraseFootpathWithTouch(centroid))
+            {
+                _touchGestureMode = TouchGestureMode::multiRemove;
+                _touchLastRemovePosition = centroid;
+                FireTouchSecondaryAction(centroid);
+            }
+            return;
+        }
+
         if (_touchGestureMode != TouchGestureMode::singlePending || !_primaryTouch.active)
         {
             return;
         }
 
-        if (SDL_GetTicks() - _touchGestureStartTimestamp >= kTouchLongPressTimeout)
+        const auto holdDuration = SDL_GetTicks() - _touchGestureStartTimestamp;
+        if (holdDuration >= kTouchPaintHoldTimeout && CanPaintWithTouch(_primaryTouch.position))
+        {
+            _lastTouchToolTapTimestamp = 0;
+            StoreTouchPress(MouseState::leftPress, _primaryTouch.position);
+            _touchGestureMode = TouchGestureMode::singleDrag;
+        }
+        else if (holdDuration >= kTouchLongPressTimeout)
         {
             FireTouchLongPress(_primaryTouch.position);
         }
@@ -717,7 +998,7 @@ public:
     {
         auto* session = _textComposition.Start(buffer, maxLength);
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        _platformUiContext->BeginTextInput(_cursorState.touch);
+        _platformUiContext->BeginTextInput();
         LOG_INFO(
             "[OpenRCT2Touch] text-input: active=%d screen_supported=%d screen_requested=%d",
             SDL_IsTextInputActive(), SDL_HasScreenKeyboardSupport(), SDL_IsScreenKeyboardShown(_window));
@@ -797,6 +1078,9 @@ public:
 #endif
                     _cursorState.position = { static_cast<int32_t>(e.motion.x / Config::Get().general.windowScale),
                                               static_cast<int32_t>(e.motion.y / Config::Get().general.windowScale) };
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                    _cursorState.touch = false;
+#endif
                     break;
                 case SDL_MOUSEWHEEL:
                     if (_inGameConsole.IsOpen())
@@ -804,7 +1088,19 @@ public:
                         _inGameConsole.Scroll(e.wheel.y * 3); // Scroll 3 lines at a time
                         break;
                     }
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                    if (ViewportFindFromPoint(_cursorState.position) != nullptr)
+                    {
+                        AddTrackpadViewportWheel(-e.wheel.y);
+                    }
+                    else
+                    {
+                        _trackpadViewportWheelAccumulator = 0;
+                        _cursorState.wheel -= e.wheel.y;
+                    }
+#else
                     _cursorState.wheel -= e.wheel.y;
+#endif
                     break;
                 case SDL_MOUSEBUTTONDOWN:
                 {

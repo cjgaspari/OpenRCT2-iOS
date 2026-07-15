@@ -4,7 +4,7 @@
 
 > ⚠️ **Unofficial community project.** OpenRCT2 Touch is **not affiliated with, endorsed by, or supported by the OpenRCT2 team.** It is an independent fork that adapts their work to run natively on iPad. For the real, cross-platform OpenRCT2, go to **[openrct2.io](https://openrct2.io)** and **[OpenRCT2/OpenRCT2](https://github.com/OpenRCT2/OpenRCT2)**. Please do not send bug reports about this port to the upstream project.
 
-> 🚧 **Status: pre-alpha / work in progress.** The app builds and runs in an iPad Simulator; the current gate is a signed physical-iPad import test. See the [development status](DEVELOPMENT-STATUS.md) and [goal loop](../GOAL-LOOP.md) for verified progress and remaining work. Nothing here is a finished product.
+> 🚧 **Status: developer preview / work in progress.** A signed build runs on a physical M2 iPad Pro, loads scenarios from user-owned data in its sandbox, and has accepted pointer and finger controls. The current Goal 5 gate is completing the same import manually through the physical iPad's Files picker. See the [development status](DEVELOPMENT-STATUS.md), [touch-control log](TOUCH-CONTROLS.md), and [goal loop](../GOAL-LOOP.md) for verified progress and remaining work. Nothing here is a finished product.
 
 ---
 

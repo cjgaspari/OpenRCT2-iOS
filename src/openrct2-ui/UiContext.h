@@ -49,7 +49,7 @@ namespace OpenRCT2::Ui
 
         virtual bool HasFilePicker() const = 0;
 
-        virtual void BeginTextInput([[maybe_unused]] bool preferTouchKeyboard)
+        virtual void BeginTextInput()
         {
         }
 

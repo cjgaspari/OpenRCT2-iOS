@@ -1,4 +1,153 @@
+<p align="center">
+  <img src="ios/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png" alt="OpenRCT2 Touch app icon" width="180">
+</p>
 
+<h1 align="center">OpenRCT2 Touch</h1>
+
+<p align="center">
+  <strong>OpenRCT2, running natively on iPad with touch-first controls.</strong><br>
+  A community iPadOS port built for user-owned RCT2 data, hardware pointers,
+  fingers, and eventually Apple Pencil.
+</p>
+
+<p align="center">
+  <a href="licence.txt"><img alt="GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-4b7b4b?style=flat-square"></a>
+  <img alt="iPadOS 15 or newer" src="https://img.shields.io/badge/iPadOS-15%2B-1f6f78?style=flat-square">
+  <img alt="Native arm64" src="https://img.shields.io/badge/runtime-native%20arm64-d0953d?style=flat-square">
+  <img alt="Physical device tested" src="https://img.shields.io/badge/device-M2%20iPad%20tested-4b7b4b?style=flat-square">
+</p>
+
+<p align="center">
+  <a href="#what-works-today">Status</a> ·
+  <a href="#touch-controls">Controls</a> ·
+  <a href="#build-and-run">Build</a> ·
+  <a href="#bring-your-own-game-data">Game data</a> ·
+  <a href="docs/DEVELOPMENT-STATUS.md">Engineering log</a>
+</p>
+
+> [!IMPORTANT]
+> **OpenRCT2 Touch does not include RollerCoaster Tycoon or RollerCoaster
+> Tycoon 2.** You provide data from your own legally owned copy. Proprietary
+> game content is never tracked in this repository or placed in a distributable
+> application bundle.
+
+## What is OpenRCT2 Touch?
+
+OpenRCT2 Touch is an unofficial iPadOS fork of the open-source
+[OpenRCT2](https://github.com/OpenRCT2/OpenRCT2) engine. It runs as a real
+ARM64 application on iPad—there is no Windows executable, x86 emulation,
+virtual machine, or game streaming involved. The engine's software framebuffer
+is presented through SDL's Metal renderer, while iPad-specific input translates
+finger gestures into OpenRCT2's established construction and pointer actions.
+
+The goal is a playable iPad experience that preserves the things that make
+OpenRCT2 special: scenarios and parks, modern quality-of-life improvements,
+custom content, and plugins. This repository is currently a **developer
+preview**. Signed builds run on a physical M2 iPad Pro, but there is no public
+IPA or App Store release.
+
+## What works today
+
+| Area | State | Current evidence |
+| --- | :---: | --- |
+| Native iPad runtime | ✅ | Signed ARM64 iPadOS app, SDL Metal presentation, landscape Retina output |
+| User data and persistence | ✅ | User-owned RCT2 data in the app sandbox survives build replacement and relaunch; scenarios load on device |
+| Files folder import | 🧪 | RCT2 and RCT Classic folders import in Simulator; the equivalent physical-iPad Files proof remains |
+| Keyboard and trackpad | ✅ | Pointer controls, shortcuts, text entry, scrolling, and tuned viewport zoom work on device |
+| Finger controls | ✅ | Placement, path painting/removal, pan, pinch zoom, construction rotation, and native text entry accepted on device |
+| Apple Pencil | 🧭 | Precise placement, terrain pressure/tilt, drawing, and hover are planned next |
+| Performance and stability | 🧪 | Current play is stable; formal 30 fps and 30-minute stress proofs remain |
+| Plugins/custom scenarios | 🧭 | On-device content proof and final packaging audit remain |
+
+The verified checkpoint and remaining acceptance gates are kept in
+[`docs/DEVELOPMENT-STATUS.md`](docs/DEVELOPMENT-STATUS.md) and
+[`GOAL-LOOP.md`](GOAL-LOOP.md).
+
+## Touch controls
+
+OpenRCT2 Touch keeps attached mouse, trackpad, and keyboard behavior intact.
+Finger controls add the smallest gesture set needed to make construction
+practical on glass.
+
+| Gesture | Action |
+| --- | --- |
+| One-finger tap | Primary click and ordinary UI interaction |
+| One-finger move during placement | Position the construction preview |
+| Double tap during placement | Confirm placement |
+| One-finger hold, then drag | Paint paths, terrain, water, or clear scenery |
+| Two-finger drag | Pan the park at a controlled speed |
+| Two-finger pinch | Zoom the park |
+| Two-finger twist during placement | Rotate supported rides, scenery, and track designs |
+| Two-finger tap on a path | Remove one path segment |
+| Two-finger hold on a path, then drag | Remove path segments continuously |
+| Long press outside paint tools | Secondary-click action |
+
+The thresholds, gesture arbitration, rationale, and dated decision log live in
+[`docs/TOUCH-CONTROLS.md`](docs/TOUCH-CONTROLS.md).
+
+## Bring your own game data
+
+Like upstream OpenRCT2, this project is an engine and requires original data
+from **RollerCoaster Tycoon 2** or **RollerCoaster Tycoon Classic** that you own.
+The standard RCT2 `Data/g1.dat` layout and RCT Classic `Assets/g1.dat` layout
+are supported by the import flow.
+
+```text
+Your legally owned RCT2 or RCT Classic folder
+                       │
+                       ▼  choose through iPadOS Files
+          private application Documents storage
+                       │
+                       ▼
+          native OpenRCT2 engine on your iPad
+```
+
+Repository safety checks reject game data in tracked files and audit every iOS
+bundle before packaging or installation. Only the explanatory
+[`ref/README.md`](ref/README.md) may be tracked beneath `ref/`.
+
+## Build and run
+
+Development uses three loops: deterministic macOS testing first, then iPad
+Simulator, then a signed physical-device build.
+
+```sh
+git clone https://github.com/chrissotraidis/OpenRCT2Touch.git
+cd OpenRCT2Touch
+git switch ipad
+
+./scripts/bootstrap.sh
+./scripts/build-macos.sh
+./scripts/run-macos-headless.sh
+./scripts/build-ios.sh sim
+```
+
+Building for an attached iPad requires full Xcode, an Apple development team,
+an unlocked device with Developer Mode enabled, and locally supplied game data.
+The complete reproducible workflow is documented in
+[`docs/README-touch.md`](docs/README-touch.md) and the
+[`iPadOS build plan`](docs/openrct2-ipados-BUILD-PLAN.md).
+
+## Project boundary and credits
+
+OpenRCT2 Touch is an independent, human-directed community port. It is not
+affiliated with or endorsed by the OpenRCT2 team, Chris Sawyer, Atari, or the
+owners of the RollerCoaster Tycoon trademarks. Please report iPad-port issues
+here rather than to upstream OpenRCT2.
+
+The port exists because of the years of work by the
+[OpenRCT2 developers and contributors](contributors.md). Their copyright
+notices, project history, contribution material, and GPLv3-or-later licence are
+preserved. New port code is distributed under the same licence; see
+[`licence.txt`](licence.txt).
+
+---
+
+## Upstream OpenRCT2 project information
+
+The original OpenRCT2 README is preserved below. Its downloads, community
+links, supported desktop platforms, and contribution instructions describe the
+upstream project, not a downloadable OpenRCT2 Touch iPad release.
 
 <p align="center">
   <a href="https://openrct2.io">
