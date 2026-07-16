@@ -4,6 +4,22 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/env.sh"
 
+search_regex() {
+    if command -v rg >/dev/null 2>&1; then
+        rg -n -- "$@"
+    else
+        grep -R -n -E -- "$@"
+    fi
+}
+
+search_fixed() {
+    if command -v rg >/dev/null 2>&1; then
+        rg -n -F -- "$@"
+    else
+        grep -R -n -F -- "$@"
+    fi
+}
+
 "$ROOT/scripts/check-repo-safety.sh"
 
 for script in \
@@ -25,7 +41,7 @@ if [[ "$(plutil -extract CFBundleIdentifier raw "$ROOT/ios/App/Info.plist")" != 
     exit 1
 fi
 
-if rg -n 'org\.openrct2\.touch' "$ROOT/ios" "$ROOT/scripts" >/dev/null; then
+if search_regex 'org\.openrct2\.touch' "$ROOT/ios" "$ROOT/scripts" >/dev/null; then
     echo "The deprecated OpenRCT2-owned bundle namespace remains in build code." >&2
     exit 1
 fi
@@ -47,7 +63,7 @@ for forbidden_claim in \
     'eventually Apple Pencil' \
     'Phase 8 — Apple Pencil' \
     'Goal 8 — Apple Pencil'; do
-    if rg -n -F "$forbidden_claim" \
+    if search_fixed "$forbidden_claim" \
         "$ROOT/AGENTS.md" \
         "$ROOT/GOAL-LOOP.md" \
         "$ROOT/readme.md" \
@@ -57,11 +73,11 @@ for forbidden_claim in \
     fi
 done
 
-if ! rg -F 'Apple Pencil is not currently supported' "$ROOT/readme.md" >/dev/null; then
+if ! search_fixed 'Apple Pencil is not currently supported' "$ROOT/readme.md" >/dev/null; then
     echo "The canonical README must state the Apple Pencil limitation." >&2
     exit 1
 fi
-if ! rg -F 'Networking is disabled in the current iPadOS build' "$ROOT/readme.md" >/dev/null; then
+if ! search_fixed 'Networking is disabled in the current iPadOS build' "$ROOT/readme.md" >/dev/null; then
     echo "The canonical README must state the multiplayer limitation." >&2
     exit 1
 fi

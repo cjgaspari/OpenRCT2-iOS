@@ -39,6 +39,10 @@ progress, but their complete end-to-end exit scripts are also still pending.
   application bundles.
 - `OPENRCT2_SKIP_MACOS_BUILD=1 ./scripts/build-ios-device.sh unsigned` produces
   an Xcode device build without requiring repository-held signing identity data.
+- Build 3 signs, audits, installs, and launches on the physical M2 iPad Pro
+  under `com.chrissotraidis.openrct2touch`. Live logs confirm the expected
+  first-run Files prompt, a read-only bundle, and writable Documents/Library
+  paths in its fresh sandbox.
 - The Simulator Files picker successfully imports both the standard
   `Data/g1.dat` layout and RCT Classic's `Assets/g1.dat` layout. It preserves
   the source, persists the destination, repairs the stored path after app
@@ -64,10 +68,9 @@ progress, but their complete end-to-end exit scripts are also still pending.
   placement and paint dragging, two-finger pan and pinch, 15-degree
   construction rotation, and two-finger tap or hold-drag footpath removal.
 - The production `AppIcon` asset catalog compiles an opaque 1024px source into
-  the required iPad icon renditions. The last device-tested build was bundle
-  build 2 under the former identifier. The current release-hygiene patch moves
-  to build 3 and `com.chrissotraidis.openrct2touch`; it intentionally creates a
-  fresh sandbox and therefore requires one new import during device acceptance.
+  the required iPad icon renditions. Build 3 is installed under
+  `com.chrissotraidis.openrct2touch`; its fresh sandbox is now waiting for the
+  one manual Files import required to complete device acceptance.
 - The macOS headless loop completed 1,000 ticks with checksum
   `25232284e49cf2cb000000000000000000000000`.
 - Goal 8 release hygiene passes: `./scripts/check-touch-release-safety.sh`,
@@ -95,7 +98,7 @@ The full mapping and decision history are maintained in
 
 ## Physical-device checkpoint
 
-The July 14 signed-device loop used the existing local development signing
+The July 16 signed-device loop used the existing local development signing
 configuration without recording team or device identifiers in the repository:
 
 ```bash
@@ -106,9 +109,10 @@ OPENRCT2_DEVICE_UDID=<device> \
 OPENRCT2_DEVICE_UDID=<device> ./scripts/install-run-ios.sh
 ```
 
-The signed build, bundle audit, macOS build, repository safety check, and
-1,000-tick headless smoke all passed. The iPadOS version still needs to be
-recorded with the next formal device proof.
+The signed build, install, launch, bundle audit, macOS build, repository safety
+check, and 1,000-tick headless smoke all passed. The fresh app reached its Files
+import prompt. The iPadOS version still needs to be recorded with the completed
+manual import proof.
 
 ## Remaining human gates
 

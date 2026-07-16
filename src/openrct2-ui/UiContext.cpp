@@ -380,8 +380,7 @@ private:
 
     void HandleTouchTap(const SDL_TouchFingerEvent& event, const ScreenCoordsXY& position)
     {
-        const bool isActiveToolViewport
-            = gInputFlags.has(InputFlag::toolActive) && ViewportFindFromPoint(position) != nullptr;
+        const bool isActiveToolViewport = gInputFlags.has(InputFlag::toolActive) && ViewportFindFromPoint(position) != nullptr;
         if (!isActiveToolViewport)
         {
             _lastTouchToolTapTimestamp = 0;
@@ -408,8 +407,7 @@ private:
 
     void AddTrackpadViewportWheel(int32_t delta)
     {
-        if ((_trackpadViewportWheelAccumulator < 0 && delta > 0)
-            || (_trackpadViewportWheelAccumulator > 0 && delta < 0))
+        if ((_trackpadViewportWheelAccumulator < 0 && delta > 0) || (_trackpadViewportWheelAccumulator > 0 && delta < 0))
         {
             _trackpadViewportWheelAccumulator = 0;
         }
@@ -508,8 +506,7 @@ private:
             const auto centroid = GetTouchCentroid();
             const auto span = GetTouchSpan();
             const auto angle = GetTouchAngle();
-            const auto centroidDistance = std::sqrt(
-                static_cast<float>(GetTouchDistanceSquared(centroid, _touchGestureStart)));
+            const auto centroidDistance = std::sqrt(static_cast<float>(GetTouchDistanceSquared(centroid, _touchGestureStart)));
 
             if (_touchGestureMode == TouchGestureMode::multiRemove)
             {
@@ -837,7 +834,7 @@ public:
         // produces a logical canvas whose aspect ratio differs from the Metal drawable.
         static_cast<void>(mode);
 #else
-#ifndef __EMSCRIPTEN__
+    #ifndef __EMSCRIPTEN__
         static constexpr int32_t kSDLFullscreenFlags[] = {
             0,
             SDL_WINDOW_FULLSCREEN,
@@ -868,7 +865,7 @@ public:
 
             // TODO try another display mode rather than just exiting the game
         }
-#else
+    #else
         if (mode == FullscreenMode::fullscreen)
         {
             emscripten_request_fullscreen("!canvas", false);
@@ -877,7 +874,7 @@ public:
         {
             emscripten_exit_fullscreen();
         }
-#endif // __EMSCRIPTEN__
+    #endif // __EMSCRIPTEN__
 #endif
     }
 
@@ -1000,8 +997,8 @@ public:
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
         _platformUiContext->BeginTextInput();
         LOG_INFO(
-            "[OpenRCT2Touch] text-input: active=%d screen_supported=%d screen_requested=%d",
-            SDL_IsTextInputActive(), SDL_HasScreenKeyboardSupport(), SDL_IsScreenKeyboardShown(_window));
+            "[OpenRCT2Touch] text-input: active=%d screen_supported=%d screen_requested=%d", SDL_IsTextInputActive(),
+            SDL_HasScreenKeyboardSupport(), SDL_IsScreenKeyboardShown(_window));
 #endif
         return session;
     }
@@ -1177,18 +1174,18 @@ public:
                 // Apple sends touchscreen events for trackpads, so ignore these events on macOS
 #ifndef __MACOSX__
                 case SDL_FINGERMOTION:
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+    #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
                     HandleTouchMotion(e.tfinger);
-#else
+    #else
                     _cursorState.position = { static_cast<int32_t>(e.tfinger.x * _width),
                                               static_cast<int32_t>(e.tfinger.y * _height) };
-#endif
+    #endif
                     break;
                 case SDL_FINGERDOWN:
                 {
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+    #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
                     HandleTouchDown(e.tfinger);
-#else
+    #else
                     ScreenCoordsXY fingerPos = { static_cast<int32_t>(e.tfinger.x * _width),
                                                  static_cast<int32_t>(e.tfinger.y * _height) };
 
@@ -1210,14 +1207,14 @@ public:
                     }
                     _cursorState.touch = true;
                     _cursorState.touchDownTimestamp = e.tfinger.timestamp;
-#endif
+    #endif
                     break;
                 }
                 case SDL_FINGERUP:
                 {
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+    #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
                     HandleTouchUp(e.tfinger);
-#else
+    #else
                     ScreenCoordsXY fingerPos = { static_cast<int32_t>(e.tfinger.x * _width),
                                                  static_cast<int32_t>(e.tfinger.y * _height) };
 
@@ -1234,7 +1231,7 @@ public:
                         _cursorState.old = 3;
                     }
                     _cursorState.touch = true;
-#endif
+    #endif
                     break;
                 }
 #endif

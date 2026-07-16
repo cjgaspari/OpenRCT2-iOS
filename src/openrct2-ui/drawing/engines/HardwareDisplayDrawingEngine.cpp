@@ -84,8 +84,7 @@ public:
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
         SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
 #endif
-        _sdlRenderer = SDL_CreateRenderer(
-            _window, -1, SDL_RENDERER_ACCELERATED | (_useVsync ? SDL_RENDERER_PRESENTVSYNC : 0));
+        _sdlRenderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | (_useVsync ? SDL_RENDERER_PRESENTVSYNC : 0));
         Guard::Assert(_sdlRenderer != nullptr, "Failed to create accelerated SDL renderer: %s", SDL_GetError());
 
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
@@ -94,11 +93,11 @@ public:
             SDL_GetRendererInfo(_sdlRenderer, &rendererInfo) == 0, "Failed to inspect SDL renderer: %s", SDL_GetError());
         Guard::Assert(
             rendererInfo.name != nullptr && std::strcmp(rendererInfo.name, "metal") == 0,
-            "OpenRCT2 Touch requires SDL's Metal renderer, got: %s", rendererInfo.name == nullptr ? "unknown" : rendererInfo.name);
+            "OpenRCT2 Touch requires SDL's Metal renderer, got: %s",
+            rendererInfo.name == nullptr ? "unknown" : rendererInfo.name);
         LOG_INFO("[OpenRCT2Touch] renderer: driver=%s flags=0x%x", rendererInfo.name, rendererInfo.flags);
         os_log_info(
-            OS_LOG_DEFAULT, "[OpenRCT2Touch] renderer: driver=%{public}s flags=0x%x", rendererInfo.name,
-            rendererInfo.flags);
+            OS_LOG_DEFAULT, "[OpenRCT2Touch] renderer: driver=%{public}s flags=0x%x", rendererInfo.name, rendererInfo.flags);
 #endif
     }
 
@@ -216,7 +215,8 @@ public:
             SDL_GetPixelFormatName(format));
         os_log_info(
             OS_LOG_DEFAULT,
-            "[OpenRCT2Touch] presentation: window_points=%dx%d drawable_pixels=%dx%d canvas=%ux%u ui_scale=%.2f texture=%{public}s",
+            "[OpenRCT2Touch] presentation: window_points=%dx%d drawable_pixels=%dx%d canvas=%ux%u ui_scale=%.2f "
+            "texture=%{public}s",
             windowWidth, windowHeight, drawableWidth, drawableHeight, width, height, Config::Get().general.windowScale,
             SDL_GetPixelFormatName(format));
 #endif

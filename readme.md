@@ -68,10 +68,10 @@ The verified checkpoint and remaining acceptance gates are kept in
 [`docs/DEVELOPMENT-STATUS.md`](docs/DEVELOPMENT-STATUS.md) and
 [`GOAL-LOOP.md`](GOAL-LOOP.md).
 
-The last signed physical-device acceptance used the former bundle identifier.
-The current build 3 passes clean device and Simulator bundle audits under
-`com.chrissotraidis.openrct2touch`; its next signed install will create a fresh
-sandbox and therefore requires a new import.
+Build 3 is signed and installed on a physical M2 iPad Pro under
+`com.chrissotraidis.openrct2touch`. It launches into the expected Files import
+prompt with a fresh writable sandbox. Selecting the user-owned folder,
+relaunching, and loading a scenario remain the final physical import proof.
 
 ## Touch controls
 
