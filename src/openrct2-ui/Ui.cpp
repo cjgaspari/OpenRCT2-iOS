@@ -101,7 +101,7 @@ int NormalisedMain(int argc, const char** argv)
     return RunOpenRCT2(argc, argv);
 }
 
-#elif defined(__ANDROID__) || (defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS)
+#elif defined(__ANDROID__) || defined(__MINGW32__) || (defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS)
 
 extern "C" {
 int SDL_main(int argc, char* argv[]);
