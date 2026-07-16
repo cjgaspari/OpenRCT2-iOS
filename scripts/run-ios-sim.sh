@@ -13,7 +13,7 @@ case "$MODE" in
         ;;
 esac
 
-BUNDLE_ID="org.openrct2.touch"
+BUNDLE_ID="$OPENRCT2_TOUCH_BUNDLE_ID"
 APP="$ROOT/build/ios-libs-ios-sim-arm64/OpenRCT2Touch.app"
 ARTIFACT_DIR="$ROOT/build/ios-sim"
 LOG_PATH="$ARTIFACT_DIR/OpenRCT2Touch-lifecycle.log"

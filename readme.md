@@ -7,7 +7,7 @@
 <p align="center">
   <strong>OpenRCT2, running natively on iPad with touch-first controls.</strong><br>
   A community iPadOS port built for user-owned RCT2 data, hardware pointers,
-  fingers, and eventually Apple Pencil.
+  fingers, keyboards, mice, and trackpads.
 </p>
 
 <p align="center">
@@ -19,8 +19,8 @@
 
 <p align="center">
   <a href="#what-works-today">Status</a> ·
+  <a href="#install-on-an-ipad">Install</a> ·
   <a href="#touch-controls">Controls</a> ·
-  <a href="#build-and-run">Build</a> ·
   <a href="#bring-your-own-game-data">Game data</a> ·
   <a href="docs/DEVELOPMENT-STATUS.md">Engineering log</a>
 </p>
@@ -40,11 +40,15 @@ virtual machine, or game streaming involved. The engine's software framebuffer
 is presented through SDL's Metal renderer, while iPad-specific input translates
 finger gestures into OpenRCT2's established construction and pointer actions.
 
-The goal is a playable iPad experience that preserves the things that make
-OpenRCT2 special: scenarios and parks, modern quality-of-life improvements,
-custom content, and plugins. This repository is currently a **developer
-preview**. Signed builds run on a physical M2 iPad Pro, but there is no public
-IPA or App Store release.
+The goal is a playable iPad experience that preserves OpenRCT2's scenarios,
+parks, construction tools, and modern quality-of-life improvements. This
+repository is currently a **source-only developer preview**. Signed development
+builds run on a physical M2 iPad Pro, but there is no public IPA, TestFlight, or
+App Store release.
+
+The maintained and GitHub default branch for this fork is **`ipad`**. The
+`develop` branch is retained only as an upstream mirror, and this project does
+not use a `main` branch for Touch releases.
 
 ## What works today
 
@@ -55,13 +59,19 @@ IPA or App Store release.
 | Files folder import | 🧪 | RCT2 and RCT Classic folders import in Simulator; the equivalent physical-iPad Files proof remains |
 | Keyboard and trackpad | ✅ | Pointer controls, shortcuts, text entry, scrolling, and tuned viewport zoom work on device |
 | Finger controls | ✅ | Placement, path painting/removal, pan, pinch zoom, construction rotation, and native text entry accepted on device |
-| Apple Pencil | 🧭 | Precise placement, terrain pressure/tilt, drawing, and hover are planned next |
+| Apple Pencil | — | Not supported; the current gesture model requires fingers or a hardware pointer |
+| Multiplayer | — | Networking is disabled in the current iPadOS build |
 | Performance and stability | 🧪 | Current play is stable; formal 30 fps and 30-minute stress proofs remain |
 | Plugins/custom scenarios | 🧭 | On-device content proof and final packaging audit remain |
 
 The verified checkpoint and remaining acceptance gates are kept in
 [`docs/DEVELOPMENT-STATUS.md`](docs/DEVELOPMENT-STATUS.md) and
 [`GOAL-LOOP.md`](GOAL-LOOP.md).
+
+The last signed physical-device acceptance used the former bundle identifier.
+The current build 3 passes clean device and Simulator bundle audits under
+`com.chrissotraidis.openrct2touch`; its next signed install will create a fresh
+sandbox and therefore requires a new import.
 
 ## Touch controls
 
@@ -85,12 +95,37 @@ practical on glass.
 The thresholds, gesture arbitration, rationale, and dated decision log live in
 [`docs/TOUCH-CONTROLS.md`](docs/TOUCH-CONTROLS.md).
 
+Apple Pencil is not currently supported. It cannot reproduce the multi-finger
+pan, pinch, twist, or secondary-action gestures used by this build. Use fingers
+or an attached mouse/trackpad instead.
+
 ## Bring your own game data
 
 Like upstream OpenRCT2, this project is an engine and requires original data
 from **RollerCoaster Tycoon 2** or **RollerCoaster Tycoon Classic** that you own.
 The standard RCT2 `Data/g1.dat` layout and RCT Classic `Assets/g1.dat` layout
-are supported by the import flow.
+are supported by the import flow. Copy the complete, unmodified installation
+folder to iCloud Drive, **On My iPad**, or an attached drive before first
+launch. Select the folder containing `Data`, not `Data` itself.
+
+Standard RCT2:
+
+```text
+RollerCoaster Tycoon 2/
+├── Data/
+│   └── g1.dat
+├── ObjData/
+├── Scenarios/
+└── Tracks/
+```
+
+RCT Classic:
+
+```text
+RollerCoaster Tycoon Classic/
+└── Assets/
+    └── g1.dat
+```
 
 ```text
 Your legally owned RCT2 or RCT Classic folder
@@ -106,40 +141,157 @@ Repository safety checks reject game data in tracked files and audit every iOS
 bundle before packaging or installation. Only the explanatory
 [`ref/README.md`](ref/README.md) may be tracked beneath `ref/`.
 
-## Build and run
+## Install on an iPad
 
-Development uses three loops: deterministic macOS testing first, then iPad
-Simulator, then a signed physical-device build.
+There is no downloadable public build yet. The supported installation method
+for this developer preview is to build from source on a Mac and sign the app
+for an iPad registered to your Apple development team.
+
+### Requirements
+
+- An Apple Silicon Mac.
+- Full Xcode with an iOS SDK and command-line tools installed.
+- CMake 3.24 or newer, Ninja, pkg-config, and Git.
+- An iPad running iPadOS 15 or newer, connected by USB, unlocked, trusted, and
+  with Developer Mode enabled.
+- An Apple ID selected as a development team in Xcode. Free Personal Team
+  builds expire after seven days and must be rebuilt and reinstalled.
+- User-owned RCT2 or RCT Classic data placed somewhere accessible in Files.
+
+### 1. Clone and check the toolchain
 
 ```sh
 git clone https://github.com/chrissotraidis/OpenRCT2Touch.git
 cd OpenRCT2Touch
 git switch ipad
 
-./scripts/bootstrap.sh
-./scripts/build-macos.sh
-./scripts/run-macos-headless.sh
-./scripts/build-ios.sh sim
+./scripts/bootstrap.sh --install
 ```
 
-Building for an attached iPad requires full Xcode, an Apple development team,
-an unlocked device with Developer Mode enabled, and locally supplied game data.
-The complete reproducible workflow is documented in
-[`docs/README-touch.md`](docs/README-touch.md) and the
-[`iPadOS build plan`](docs/openrct2-ipados-BUILD-PLAN.md).
+`bootstrap.sh` does not require game data for an iOS-only build. If you also
+want to run the macOS/headless test loop, point `RCT2_DATA` at the folder that
+contains `Data/g1.dat` and require it explicitly:
+
+```sh
+RCT2_DATA="/absolute/path/to/RollerCoaster Tycoon 2" \
+    ./scripts/bootstrap.sh --require-data
+./scripts/build-macos.sh
+RCT2_DATA="/absolute/path/to/RollerCoaster Tycoon 2" \
+    ./scripts/run-macos-headless.sh
+```
+
+### 2. Build the pinned iOS dependencies
+
+The first dependency build downloads and compiles the pinned open-source
+dependency set and can take a while. Generated files remain ignored under
+`vendor/` and `build/`.
+
+```sh
+./scripts/build-ios-deps.sh device
+```
+
+For an optional Simulator build, use:
+
+```sh
+./scripts/build-ios-deps.sh sim
+./scripts/build-ios.sh sim
+./scripts/run-ios-sim.sh verify
+```
+
+### 3. Find the connected device and select a team
+
+List the iPad identifier:
+
+```sh
+xcrun devicectl list devices
+```
+
+List local code-signing identities with:
+
+```sh
+security find-identity -v -p codesigning
+```
+
+For an Apple Development identity, the value in parentheses at the end of the
+identity name is the team identifier. You can also confirm the account and team
+under **Xcode → Settings → Accounts**. Team and device identifiers are passed
+only as environment variables; the scripts never save them in the repository.
+
+### 4. Sign, install, and launch
+
+```sh
+OPENRCT2_SKIP_MACOS_BUILD=1 \
+OPENRCT2_DEVELOPMENT_TEAM=<team-identifier> \
+OPENRCT2_DEVICE_UDID=<device-identifier> \
+    ./scripts/build-ios-device.sh signed
+
+OPENRCT2_DEVICE_UDID=<device-identifier> \
+    ./scripts/install-run-ios.sh
+```
+
+The install script reruns the repository and bundle audits before installing.
+The bundle contains the OpenRCT2 engine, required open-source notices, and no
+proprietary RCT2 data.
+
+### 5. Import your game data
+
+1. Launch OpenRCT2 Touch and tap **OK** on the missing-data explanation.
+2. When the Files picker appears, select the installation folder described in
+   [Bring your own game data](#bring-your-own-game-data).
+3. Leave the app open while it validates and copies the folder into its private
+   Documents container.
+4. Load a scenario, quit the app, reopen it, and confirm the scenario remains
+   available.
+
+If validation fails, check that you selected the installation root and that
+`Data/g1.dat` or `Assets/g1.dat` exists. Rebuilding with the same bundle
+identifier preserves the sandbox. The July 2026 change from the old
+`org.openrct2.touch` identifier to `com.chrissotraidis.openrct2touch` creates a
+new sandbox, so existing development testers must import once after updating.
+
+### Troubleshooting
+
+- **No device appears:** unlock the iPad, accept the trust prompt, reconnect
+  USB, and rerun `xcrun devicectl list devices`.
+- **Developer Mode is required:** enable it under **Settings → Privacy &
+  Security → Developer Mode**, restart the iPad, and confirm the prompt.
+- **Signing fails:** open Xcode, sign into the intended Apple ID, and verify the
+  team can register the connected device.
+- **The app stopped launching after several days:** rebuild and reinstall; free
+  Personal Team provisioning is temporary.
+- **The software keyboard stays hidden:** disconnect or disable the attached
+  hardware keyboard. iPadOS intentionally suppresses the software keyboard
+  while a hardware keyboard is active.
+- **The import picker does not appear:** this remains the final physical-device
+  Goal 5 acceptance gate; capture the device log and file an iPad-port issue.
+
+## Known limitations
+
+- The physical-iPad Files import still needs its formal fresh-install,
+  persistence, and scenario-load acceptance record.
+- Apple Pencil and multiplayer are unsupported.
+- Plugin and custom-scenario loading have not yet been proven on device.
+- The formal 30 fps benchmark and 30-minute stress test remain outstanding.
+- This project currently provides source and development signing workflows,
+  not a generally installable IPA or TestFlight build.
+
+See [`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md) for the exact source
+preview and binary-release gates.
 
 ## Project boundary and credits
 
 OpenRCT2 Touch is an independent, human-directed community port. It is not
 affiliated with or endorsed by the OpenRCT2 team, Chris Sawyer, Atari, or the
-owners of the RollerCoaster Tycoon trademarks. Please report iPad-port issues
-here rather than to upstream OpenRCT2.
+owners of the RollerCoaster Tycoon trademarks. Report iPad-port issues in this
+fork's [issue tracker](https://github.com/chrissotraidis/OpenRCT2Touch/issues),
+not to upstream OpenRCT2.
 
 The port exists because of the years of work by the
 [OpenRCT2 developers and contributors](contributors.md). Their copyright
 notices, project history, contribution material, and GPLv3-or-later licence are
 preserved. New port code is distributed under the same licence; see
-[`licence.txt`](licence.txt).
+[`licence.txt`](licence.txt), [`NOTICE.md`](NOTICE.md), and
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
 

@@ -16,7 +16,7 @@ fi
 
 BINARY="$APP/OpenRCT2Touch"
 plutil -lint "$APP/Info.plist"
-if [[ "$(plutil -extract CFBundleIdentifier raw "$APP/Info.plist")" != "org.openrct2.touch" ]]; then
+if [[ "$(plutil -extract CFBundleIdentifier raw "$APP/Info.plist")" != "$OPENRCT2_TOUCH_BUNDLE_ID" ]]; then
     echo "Unexpected iOS bundle identifier." >&2
     exit 1
 fi
@@ -24,6 +24,24 @@ fi
 for required_asset in g2.dat fonts.dat palettes.dat tracks.dat language/en-GB.txt; do
     if [[ ! -f "$APP/$required_asset" ]]; then
         echo "App bundle is missing engine asset: $required_asset" >&2
+        exit 1
+    fi
+done
+
+for required_notice in \
+    Licences/GPL-3.0-or-later.txt \
+    Licences/OpenRCT2-contributors.md \
+    Licences/OpenRCT2-Touch-NOTICE.md \
+    Licences/iOS-dependency-manifest.md; do
+    if [[ ! -f "$APP/$required_notice" ]]; then
+        echo "App bundle is missing distribution notice: $required_notice" >&2
+        exit 1
+    fi
+done
+
+for dependency in sdl2 icu freetype libpng zlib zstd libzip nlohmann-json; do
+    if [[ ! -f "$APP/Licences/third-party/$dependency.txt" ]]; then
+        echo "App bundle is missing third-party licence text: $dependency" >&2
         exit 1
     fi
 done
@@ -40,10 +58,11 @@ for icon_spec in "AppIcon60x60@2x.png:120" "AppIcon76x76@2x~ipad.png:152"; do
         echo "App bundle is missing compiled icon: $icon_name" >&2
         exit 1
     fi
+    icon_alpha="$(sips -g hasAlpha "$icon_path" | awk '/hasAlpha:/ { print $2 }')"
     if [[ "$(sips -g pixelWidth "$icon_path" | awk '/pixelWidth:/ { print $2 }')" != "$expected_size"
         || "$(sips -g pixelHeight "$icon_path" | awk '/pixelHeight:/ { print $2 }')" != "$expected_size"
-        || "$(sips -g hasAlpha "$icon_path" | awk '/hasAlpha:/ { print $2 }')" != "no" ]]; then
-        echo "Compiled icon has unexpected dimensions or transparency: $icon_name" >&2
+        || ( "$PLATFORM" == "IOS" && "$icon_alpha" != "no" ) ]]; then
+        echo "Compiled icon has unexpected dimensions or device transparency: $icon_name" >&2
         exit 1
     fi
 done
@@ -84,6 +103,36 @@ while IFS= read -r -d '' bundled_file; do
     relative_path="${bundled_file#"$APP"/}"
     case "$relative_path" in
         Info.plist|OpenRCT2Touch|embedded.mobileprovision|_CodeSignature/CodeResources|Assets.car|AppIcon60x60@2x.png|AppIcon76x76@2x~ipad.png)
+            continue
+            ;;
+        Licences/GPL-3.0-or-later.txt)
+            cmp -s "$ROOT/licence.txt" "$bundled_file" || { echo "Bundled GPL text differs from licence.txt." >&2; exit 1; }
+            continue
+            ;;
+        Licences/OpenRCT2-contributors.md)
+            cmp -s "$ROOT/contributors.md" "$bundled_file" || { echo "Bundled contributors file differs from contributors.md." >&2; exit 1; }
+            continue
+            ;;
+        Licences/OpenRCT2-Touch-NOTICE.md)
+            cmp -s "$ROOT/NOTICE.md" "$bundled_file" || { echo "Bundled notice differs from NOTICE.md." >&2; exit 1; }
+            continue
+            ;;
+        Licences/iOS-dependency-manifest.md)
+            cmp -s "$ROOT/vendor/MANIFEST.md" "$bundled_file" || { echo "Bundled dependency manifest differs from vendor/MANIFEST.md." >&2; exit 1; }
+            continue
+            ;;
+        Licences/third-party/*.txt)
+            dependency="${relative_path##*/}"
+            dependency="${dependency%.txt}"
+            if [[ "$PLATFORM" == "IOS" ]]; then
+                licence_source="$ROOT/vendor/ios-arm64/openrct2-arm64-ios/share/$dependency/copyright"
+            else
+                licence_source="$ROOT/vendor/ios-sim-arm64/openrct2-arm64-ios-simulator/share/$dependency/copyright"
+            fi
+            if [[ ! -f "$licence_source" ]] || ! cmp -s "$licence_source" "$bundled_file"; then
+                echo "Bundled third-party licence is missing or altered: $dependency" >&2
+                exit 1
+            fi
             continue
             ;;
         PkgInfo)

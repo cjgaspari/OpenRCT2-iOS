@@ -29,7 +29,7 @@ progress, but their complete end-to-end exit scripts are also still pending.
 | [5 — Sandbox and import](../GOAL-LOOP.md#goal-5--sandbox-paths-and-user-owned-data-import) | **Device gate** | Sandbox paths persist and a scenario loads on a physical iPad using developer-seeded user-owned data. Standard RCT2 and RCT Classic folders import from Files in Simulator and malformed folders fail safely. The remaining proof is selecting and importing the folder through Files on the physical iPad. |
 | [6 — Pointer, keyboard, mouse](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play) | In progress | Pointer movement, clicking, scrolling, trackpad zoom, attached-keyboard text entry, and existing controls work on device. The recorded coaster-and-scenery end-to-end proof remains. |
 | [7 — Finger-first controls](../GOAL-LOOP.md#goal-7--finger-first-controls) | In progress | The current touch mapping is accepted on device: tap/placement, UI dragging, long-press secondary action, inverted half-speed pan, pinch, native text entry, paint/remove dragging, and construction rotation. The full finger-only coaster-and-scenery proof remains. |
-| [8 — Apple Pencil](../GOAL-LOOP.md#goal-8--apple-pencil-differentiation) | Not started | Requires Pencil hardware and human feel acceptance. |
+| [8 — Release hygiene](../GOAL-LOOP.md#goal-8--release-documentation-and-package-hygiene) | Complete | Canonical install docs, honest feature boundaries, fork support paths, maintainer-owned bundle identity, CI safety checks, and embedded licence notices pass clean device and Simulator bundle audits. |
 | [9 — Performance and stability](../GOAL-LOOP.md#goal-9--device-performance-and-stability) | Not started | Requires repeatable physical-device profiling and stress testing. |
 | [10 — Content and installable MVP](../GOAL-LOOP.md#goal-10--plugincustom-content-and-installable-mvp) | Not started | Requires on-device plugin/custom-content proof, packaging audit, and the full MVP demo. |
 
@@ -64,11 +64,15 @@ progress, but their complete end-to-end exit scripts are also still pending.
   placement and paint dragging, two-finger pan and pinch, 15-degree
   construction rotation, and two-finger tap or hold-drag footpath removal.
 - The production `AppIcon` asset catalog compiles an opaque 1024px source into
-  the required iPad icon renditions. The signed build advanced to bundle build
-  2, installed without deleting the app sandbox, preserved imported data, and
-  visually replaced the placeholder icon on the physical iPad Home Screen.
+  the required iPad icon renditions. The last device-tested build was bundle
+  build 2 under the former identifier. The current release-hygiene patch moves
+  to build 3 and `com.chrissotraidis.openrct2touch`; it intentionally creates a
+  fresh sandbox and therefore requires one new import during device acceptance.
 - The macOS headless loop completed 1,000 ticks with checksum
   `25232284e49cf2cb000000000000000000000000`.
+- Goal 8 release hygiene passes: `./scripts/check-touch-release-safety.sh`,
+  `./scripts/build-ios.sh all`, both strengthened bundle audits, and the macOS
+  headless loop are green. GitHub Issues is enabled with an iPad-specific form.
 
 ## Current interaction checkpoint
 
@@ -130,15 +134,13 @@ master plan's [phase ladder](openrct2-ipados-BUILD-PLAN.md#8-the-phase-by-phase-
 3. **Finish Goal 7:** record the same MVP flow with the current finger controls,
    including pan, zoom, long press, placement, window interaction, and touch
    text entry.
-4. **Goal 8:** distinguish Pencil from finger input and prove precise placement,
-   terrain pressure/tilt, a bounded drawing prototype, and supported hover.
-5. **Goal 9:** sustain at least 30 fps on the agreed mid-size park and complete a
+4. **Goal 9:** sustain at least 30 fps on the agreed mid-size park and complete a
    30-minute stress run without an out-of-memory failure; fix the top three
    reproducible device crashes.
-6. **Goal 10:** load one plugin or custom scenario, audit the distributable for
+5. **Goal 10:** load one plugin or custom scenario, audit the distributable for
    proprietary assets, install through the chosen private channel, and pass the
    complete physical-iPad MVP demo.
 
 Every goal closes only when its exit proof in [`GOAL-LOOP.md`](../GOAL-LOOP.md#goal-ladder-and-exit-proofs)
-is green. Physical signing, touch/Pencil feel, and any asset-packaging risk stay
+is green. Physical signing, touch feel, and any asset-packaging risk stay
 explicit human gates.

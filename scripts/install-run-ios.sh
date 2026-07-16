@@ -6,7 +6,7 @@ source "$SCRIPT_DIR/env.sh"
 
 DEVICE="${1:-${OPENRCT2_DEVICE_UDID:-}}"
 APP="${OPENRCT2_DEVICE_APP:-$ROOT/build/ios-xcode-device/Release-iphoneos/OpenRCT2Touch.app}"
-BUNDLE_ID="org.openrct2.touch"
+BUNDLE_ID="$OPENRCT2_TOUCH_BUNDLE_ID"
 
 if [[ -z "$DEVICE" ]]; then
     echo "Usage: OPENRCT2_DEVICE_UDID=<device-identifier> $0" >&2

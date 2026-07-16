@@ -7,9 +7,9 @@
 
 ## Mission
 
-Port **OpenRCT2** to run **natively on iPadOS** with touch + Apple Pencil controls. This repo is the fork **`chrissotraidis/OpenRCT2Touch`** (forked from `OpenRCT2/OpenRCT2`, GPLv3).
+Port **OpenRCT2** to run **natively on iPadOS** with finger and hardware-pointer controls. This repo is the fork **`chrissotraidis/OpenRCT2Touch`** (forked from `OpenRCT2/OpenRCT2`, GPLv3). Apple Pencil and multiplayer are outside the current release scope.
 
-**Success = the MVP demo:** on a physical iPad, the app launches natively, loads user-imported RCT2 data, and lets you build a coaster + place scenery with touch and Apple Pencil at a playable frame rate — plus one community plugin or custom scenario loading on-device.
+**Success = the MVP demo:** on a physical iPad, the app launches natively, loads user-imported RCT2 data, and lets you build a coaster + place scenery with fingers or an attached pointer at a playable frame rate — plus one community plugin or custom scenario loading on-device.
 
 ---
 
@@ -27,7 +27,7 @@ Port **OpenRCT2** to run **natively on iPadOS** with touch + Apple Pencil contro
 ## Human gates — STOP and ask the human
 
 - First device provisioning / code-signing trust.
-- Any "does this *feel* right?" judgment (touch/Pencil UX — Phases 7–8).
+- Any "does this *feel* right?" judgment for touch UX (Phase 7).
 - Dependency-build dead ends (Phase 2) after a few failed attempts — don't thrash.
 - Anything that would move `ref/`/game assets into a commit or a distributable artifact (should never happen).
 
@@ -68,7 +68,7 @@ Paths are relative to the repo root. Full detail is in the [master plan §6](ope
 
 - **Filesystem resolver:** `src/openrct2/PlatformEnvironment.cpp` / `.h` — seven roots (`DirBase`); everything the engine reads/writes goes through here.
 - **Per-OS platform layer:** `src/openrct2/platform/` — add **`Platform.iOS.mm`** beside `Platform.macOS.mm` (sandbox/bundle path resolution).
-- **UI / SDL context:** `src/openrct2-ui/` — add **`UiContext.iOS.mm`** beside `UiContext.macOS.mm`; touch/Pencil/GameController input goes in `src/openrct2-ui/input/`; the OpenGL renderer to disable is in `drawing/`.
+- **UI / SDL context:** `src/openrct2-ui/` — add **`UiContext.iOS.mm`** beside `UiContext.macOS.mm`; touch and GameController input goes in `src/openrct2-ui/input/`; the OpenGL renderer to disable is in `drawing/`.
 - **CLI / run modes:** `src/openrct2/command_line/RootCommands.cpp` — flags `--rct2-data-path`, `--openrct2-data-path`, `--user-data-path`, `--headless`, and subcommands `simulate`, `screenshot`, `set-rct2`.
 - **Scripting (plugins):** `src/openrct2/scripting/` + `src/thirdparty/quickjs-ng/` — a no-JIT interpreter; runs fine on iOS, no special entitlement.
 - **Mobile blueprint:** `src/openrct2-android/` — the SDL-owns-the-window pattern to imitate (reference only; don't modify for iOS).
@@ -99,7 +99,7 @@ The verified checkpoint and exact remaining device gate are recorded in
 
 ## Phase ladder (from the master plan §8)
 
-0. Repo & tooling bootstrap → 1. macOS-from-source baseline (keystone) → 2. iOS dependency toolchain (the pit) → 3. iOS app shell + SDL boots to title (Simulator) → 4. Software renderer → Metal surface → 5. Filesystem/sandbox + asset import → 6. Pointer/keyboard/mouse (playable fast) → 7. Touch controls → 8. Apple Pencil → 9. Performance/memory/stability → 10. Plugins, custom content, packaging.
+0. Repo & tooling bootstrap → 1. macOS-from-source baseline (keystone) → 2. iOS dependency toolchain (the pit) → 3. iOS app shell + SDL boots to title (Simulator) → 4. Software renderer → Metal surface → 5. Filesystem/sandbox + asset import → 6. Pointer/keyboard/mouse (playable fast) → 7. Touch controls → 8. Release documentation/package hygiene → 9. Performance/memory/stability → 10. Plugins, custom content, packaging.
 
 Do not advance a phase until its Exit criteria are green.
 

@@ -9,9 +9,17 @@
     <key>CFBundleExecutable</key>
     <string>OpenRCT2Touch</string>
     <key>CFBundleIdentifier</key>
-    <string>org.openrct2.touch</string>
+    <string>com.chrissotraidis.openrct2touch</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
+    <key>CFBundleIcons~ipad</key>
+    <dict>
+        <key>CFBundlePrimaryIcon</key>
+        <dict>
+            <key>CFBundleIconName</key>
+            <string>AppIcon</string>
+        </dict>
+    </dict>
     <key>CFBundleName</key>
     <string>OpenRCT2 Touch</string>
     <key>CFBundlePackageType</key>
@@ -19,7 +27,7 @@
     <key>CFBundleShortVersionString</key>
     <string>0.1.0</string>
     <key>CFBundleVersion</key>
-    <string>2</string>
+    <string>3</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>LSSupportsOpeningDocumentsInPlace</key>

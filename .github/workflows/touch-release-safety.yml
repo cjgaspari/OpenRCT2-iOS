@@ -1,0 +1,31 @@
+name: OpenRCT2 Touch release safety
+
+on:
+  push:
+    branches:
+      - ipad
+      - 'touch/**'
+  pull_request:
+    branches:
+      - ipad
+
+permissions:
+  contents: read
+
+jobs:
+  release-safety:
+    runs-on: macos-15
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Disable upstream push if the remote exists
+        run: |
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url --push upstream DISABLED
+          fi
+
+      - name: Audit release-facing source
+        run: ./scripts/check-touch-release-safety.sh

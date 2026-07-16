@@ -4,7 +4,7 @@
 
 Build the OpenRCT2 Touch MVP described in `docs/openrct2-ipados-BUILD-PLAN.md` on the `ipad` branch. Continue autonomously through the smallest verifiable engineering slice until the current goal's exit criteria are green. Preserve user-owned game data, upstream provenance, and a green macOS-first build. Stop only at an explicit human gate or when three materially different attempts have demonstrated the same external blocker.
 
-The terminal outcome is a signed native iPadOS build that imports the user's own RCT2 data, loads a scenario, can build a coaster and place scenery with pointer, touch, and Apple Pencil controls at at least 30 fps on a mid-size park, and loads one plugin or custom scenario.
+The terminal outcome is a signed native iPadOS build that imports the user's own RCT2 data, loads a scenario, can build a coaster and place scenery with pointer and finger controls at at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are explicitly outside this release scope.
 
 ## The loop
 
@@ -78,12 +78,15 @@ Each iteration reports: current goal, slice, changed files, proof commands and o
 - Pinch zoom, two-finger pan, long-press secondary action, tap/confirm placement, window manipulation, and usable hit targets pass focused tests.
 - The human confirms the MVP can be completed with fingers and the interaction feels acceptable.
 
-### Goal 8 — Apple Pencil differentiation
+### Goal 8 — Release documentation and package hygiene
 
-- Pencil is distinct from finger input and supports precise placement.
-- Terrain pressure/tilt and a bounded track/path drawing prototype work.
-- Hover previews work on supported hardware.
-- The human accepts the feel of the hero interaction.
+- The root README is the canonical install guide and matches the implemented
+  build, signing, Files import, controls, and limitations.
+- Apple Pencil and multiplayer are explicitly unsupported rather than promoted.
+- The app bundle contains the GPL, attribution, dependency manifest, and
+  third-party licence texts while rejecting proprietary game data.
+- Fork-specific issue and contribution paths do not redirect iPad users to
+  upstream support.
 
 ### Goal 9 — Device performance and stability
 
@@ -102,7 +105,7 @@ Each iteration reports: current goal, slice, changed files, proof commands and o
 Stop and ask for the human only for:
 
 - first device provisioning, signing, trust, or account selection;
-- touch or Pencil feel decisions;
+- touch-control feel decisions;
 - a dependency/toolchain blocker repeated across three materially different attempts;
 - any operation that could place proprietary data in source control or a distributable artifact;
 - a choice that materially changes scope, licensing, or distribution.

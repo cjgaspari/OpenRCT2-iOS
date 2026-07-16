@@ -1,5 +1,5 @@
 # OpenRCT2 Touch — Master Build Plan
-### A native iPadOS port of OpenRCT2 (Apple Pencil + touch-first)
+### A native iPadOS port of OpenRCT2 (touch-first + hardware pointers)
 
 **Project name:** OpenRCT2Touch (display: "OpenRCT2 Touch") — an unofficial, community iPad port of OpenRCT2. Repo/codename: `openrct2-touch`.
 **Author:** Chris (with Claude)
@@ -28,20 +28,21 @@ Structure:
 
 ## 1. What we're building
 
-A **native iPadOS port of OpenRCT2** — the open-source RollerCoaster Tycoon 2 engine — with touch-first and Apple Pencil controls. Not RCT Classic. Not streaming. Not a VM. A real ARM64 app that runs on the iPad's own silicon.
+A **native iPadOS port of OpenRCT2** — the open-source RollerCoaster Tycoon 2 engine — with touch-first and hardware-pointer controls. Not RCT Classic. Not streaming. Not a VM. A real ARM64 app that runs on the iPad's own silicon. Apple Pencil and multiplayer are outside the current release scope.
 
 ### 1.1 Definition of done (the MVP demo)
 The project is "done enough to show" when, on a physical iPad:
 1. The app launches natively (no VM/stream), shows the OpenRCT2 title screen.
 2. The user has imported their **own** RCT2 data via the Files app, and a scenario loads.
-3. You can **build a working coaster and place scenery** using touch + Apple Pencil, at a playable frame rate (≥ 30 fps on a mid-park).
+3. You can **build a working coaster and place scenery** using fingers or an attached mouse/trackpad, at a playable frame rate (≥ 30 fps on a mid-park).
 4. Pinch-zoom and two-finger pan work; windows are usable.
 5. **Bonus / the "why not just buy Classic" shot:** one community **plugin** or **custom scenario** loads on-device.
 
-Everything else (polish, multiplayer UX, App Store) is out of scope for v1.
+Everything else, including broad polish and public-store distribution, is out of scope for v1.
 
 ### 1.2 Explicit non-goals for v1
-- Public App Store release (blocked by GPLv3 — see §12).
+- Public App Store release. Distribution is currently source build or a selected private beta channel; see §12.
+- Apple Pencil and multiplayer support.
 - Bundling any game assets.
 - The OpenGL hardware renderer on iOS (we use the software renderer — §8 Phase 4).
 - SDL3 migration (upstream is mid-migration; we stay on SDL2).
@@ -59,7 +60,7 @@ These decisions shape every phase. Read them once; they explain the "why" behind
 |---|---|---|---|---|
 | Inner | macOS from source, `--headless` | seconds | agent, unattended | compiles, boots, loads park, simulates, no crash |
 | Middle | iOS Simulator | ~10–30s | agent, mostly unattended | boots, renders UI, asset import, input plumbing |
-| Outer | Physical iPad | ~1–2 min + hands | you + agent | perf, memory, Pencil, touch *feel* |
+| Outer | Physical iPad | ~1–2 min + hands | you + agent | perf, memory, touch *feel* |
 
 **2.2 macOS-from-source is the keystone.** Before any iOS work, get OpenRCT2 building from source on your Mac and running with all data paths pointed into the repo (§8 Phase 1). This gives the agent a self-contained, reproducible target it can hammer. Most logic bugs surface here, cheaply.
 
@@ -87,8 +88,7 @@ These decisions shape every phase. Read them once; they explain the "why" behind
 
 ### 3.1 Hardware
 - A **Mac with Apple Silicon** (M-series). Builds the engine, runs the Simulator, drives the device loop.
-- A **physical iPad** — ideally an **M-series iPad Pro** (for Apple Pencil hover + headroom). A USB-C cable for tethered install/log.
-- An **Apple Pencil** (2nd gen / Pro) for the Pencil features.
+- A **physical iPad** — an M-series model is recommended for performance headroom. A USB-C cable for tethered install/log.
 - Optional but recommended: a **Magic Keyboard/trackpad** for the iPad (unlocks the fastest "it just plays like the PC" milestone).
 
 ### 3.2 Accounts
@@ -254,12 +254,12 @@ UiContext.cpp          # the big cross-platform SDL window/context (36 KB)
 UiContext.macOS.mm     # macOS-specific glue  ← template for iOS
 UiContext.Android.cpp  # mobile glue (tap=click hacks live in this world)
 UiContext.Win32.cpp / .Linux.cpp
-input/                 # mouse/keyboard/shortcut handling  ← touch/Pencil/GCMouse hook in here
+input/                 # mouse/keyboard/shortcut handling  ← touch/GCMouse hook in here
 drawing/               # drawing engines incl. opengl/ (the GL 3.3 renderer to bypass)
 CursorRepository.*     # hardware cursors (mostly moot on touch)
 TextComposition.*      # IME/text input  ← wire to iOS on-screen keyboard
 ```
-→ **You add `UiContext.iOS.mm`** and extend `input/` for touch/Pencil/GameController.
+→ **You add `UiContext.iOS.mm`** and extend `input/` for touch/GameController.
 
 ### 6.5 Command line / run modes (the harness's best friend)
 - **`src/openrct2/command_line/RootCommands.cpp`** — defines the flags and subcommands. Confirmed useful ones:
@@ -295,7 +295,7 @@ Output lands in `vendor/ios-arm64/` and `vendor/ios-sim-arm64/`, which the CMake
 ### 7.3 Feature flags to set for iOS
 - `DISABLE_OPENGL=ON` (use software renderer; skip GL 3.3 core path).
 - `DISABLE_NETWORK` / `DISABLE_HTTP` — start **ON** (disabled) to shrink the dependency set for first boot; re-enable later for multiplayer/plugins-from-URL.
-- `ENABLE_SCRIPTING=ON` (quickjs-ng; keep plugins — they work).
+- `ENABLE_SCRIPTING=ON` (quickjs-ng; keep the plugin engine available for the later on-device proof).
 - `DISABLE_TTF` — decide based on whether you ship freetype early; keep font rendering if feasible.
 - Breakpad/crash handler — off initially; iOS has its own crash reports.
 
@@ -415,17 +415,17 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 
 ---
 
-### Phase 8 — Apple Pencil (the differentiator)
-**Goal:** the screenshot-worthy interactions that RCT Classic can't do.
-**Driver:** agent builds; **you judge feel** (needs Pencil hardware).
-**Files:** `openrct2-ui/input/*` (Pencil layer), `UiContext.iOS.mm`.
+### Phase 8 — Release documentation and package hygiene
+**Goal:** make every public claim, install step, support route, and distributable notice match the implementation.
+**Driver:** agent, with a human review of release language.
+**Files:** root README, `CONTRIBUTING.md`, issue templates, `NOTICE.md`, release checklist, bundle staging and audit scripts.
 **Tasks:**
-1. Treat Pencil as the **fine cursor** (precise placement) vs. finger = camera/gesture. Read `UITouch.type == .pencil`, `force`, `altitudeAngle`, `azimuthAngle`.
-2. **Terrain painting:** pressure → brush strength, tilt → brush size, on the land tools.
-3. **Draw coaster track:** freehand a Pencil stroke that snaps to legal track pieces. (Highest-effort, highest-payoff. Prototype crudely first.)
-4. **Path building:** drag to lay a path run snapped to grid.
-5. **Hover preview (M2+ iPad):** `UIHoverGestureRecognizer` / adopt `UIPointerInteraction` to reproduce mouse-hover tooltips + ghost placement.
-**Exit criteria:** Pencil terrain-paint + at least a rough "draw track" demo work on device; hover tooltips appear on an M-series iPad. This is the demo's hero moment.
+1. Keep one canonical physical-iPad installation guide with signing, data import, persistence, and troubleshooting steps.
+2. Mark Apple Pencil and multiplayer unsupported; keep unproven plugins, performance, and physical import as explicit gates.
+3. Use a bundle identifier controlled by the fork maintainer and document the one-time sandbox migration.
+4. Embed GPL, attribution, dependency manifest, and third-party licence texts in every iOS bundle.
+5. Keep iPad support in this fork and preserve upstream contribution guidance for general OpenRCT2 work.
+**Exit criteria:** the documentation audit is clean, every iOS bundle passes the strengthened package audit, and no proprietary data or signing identity enters the repository or bundle.
 
 ---
 
@@ -448,8 +448,8 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 **Tasks:**
 1. Load a sample **JS plugin** on-device (proves quickjs-ng runs interpreted on iOS — the debunked-JIT victory lap).
 2. Load a **custom scenario / community park** on-device.
-3. (Optional) re-enable networking for a multiplayer smoke test.
-4. Package: signed build; TestFlight (if paid account) or sideload via free provisioning; document the exact `xcodebuild archive` + export steps.
+3. Keep networking disabled for this release and record that limitation.
+4. Package only after selecting a registered-device or TestFlight channel; document and verify the exact archive/export steps for that channel.
 **Exit criteria:** the full MVP demo (§1.1) runs on a physical iPad, including a plugin/custom-scenario. A build is installable on a second device via your chosen channel.
 
 ---
@@ -525,7 +525,7 @@ Keep it short, imperative, and pointing here for depth. Contents:
 
 - **Inner-loop regression:** headless `simulate` + `screenshot`-diff on a fixed park set, every change. Cheap, deterministic, catches logic breaks.
 - **Simulator:** UI rendering, asset-import flow, input event plumbing.
-- **Device-only (must):** frame rate, memory, Pencil (pressure/tilt/hover), trackpad/mouse, thermals, orientation/safe-area, real Files import.
+- **Device-only (must):** frame rate, memory, trackpad/mouse, touch feel, thermals, orientation/safe-area, and real Files import.
 - **Crash triage:** `idevicecrashreport` on every device session; keep a running top-crashes list in `AGENTS.md`.
 - **Visual diffs need a human.** Automate the *detection*, not the *judgment*.
 - **Verification agent (optional):** periodically spawn a second agent to audit the diff for regressions, re-run the full smoke suite, and sanity-check that no `ref/` content leaked into tracked files or the app bundle's distributable path.
@@ -535,7 +535,7 @@ Keep it short, imperative, and pointing here for depth. Contents:
 ## 12. Distribution & legal checklist
 
 - **License:** OpenRCT2 is **GPLv3-or-later**. Your fork inherits it. Publish your iOS additions under GPLv3 too.
-- **Public App Store: NO.** GPLv3's anti-Tivoization + "no additional restrictions" conflict with App Store terms (the VLC precedent). Don't attempt it.
+- **Public App Store:** not a current distribution target. GPLv3 compliance and Apple's current distribution terms require project-specific legal and maintainer review before that could change; do not present this engineering plan as legal advice.
 - **Sideload (free provisioning):** fine for you; 7-day cert churn; 3 apps at once.
 - **TestFlight:** needs the $99 program; internal testers = no review; external = Beta App Review + 90-day build expiry. Legit as a beta channel; don't use it to dodge review permanently.
 - **EU alternative marketplaces:** possible post-DMA, but still require Apple Notarization.
@@ -549,7 +549,7 @@ Keep it short, imperative, and pointing here for depth. Contents:
 
 1. **iOS dependency cross-compile stalls (Phase 2).** *Mitigation:* isolate it before touching the engine; prefer vcpkg iOS triplets + SDL's official xcframework; record a MANIFEST; drive with the human, not autonomously.
 2. **Software-renderer performance on large parks (Phase 9).** *Mitigation:* profile early on device; cap park size/view distance on iOS if needed; revisit ANGLE/Metal GL only if necessary.
-3. **Touch/Pencil *feel* (Phases 7–8).** *Mitigation:* human-in-loop; copy proven patterns (Civ VI, RCT Classic, OpenTTD Android); ship keyboard/trackpad play (Phase 6) as a fallback demo.
+3. **Touch *feel* (Phase 7).** *Mitigation:* human-in-loop; copy proven patterns (Civ VI, RCT Classic, OpenTTD Android); retain keyboard/trackpad play (Phase 6) as an alternative.
 4. **Memory ceiling / OOM on device (Phase 9).** *Mitigation:* budget memory; test long sessions; fix peaks; consider smaller default parks.
 5. **Asset-import UX friction (Phase 5).** *Mitigation:* `ref/` dev stand-in for testing; polish the Files import; clear first-run guidance.
 6. **Upstream drift (SDL3, engine changes).** *Mitigation:* pin the `ipad` branch's base commit; sync/rebase deliberately; stay on SDL2 for v1.
@@ -567,7 +567,7 @@ Keep it short, imperative, and pointing here for depth. Contents:
 **The 30–60s demo (film this):**
 1. Cold-launch on iPad — OpenRCT2 title, natively. (Establish: not a stream, not a VM.)
 2. Open a park.
-3. **Pick up the Apple Pencil and draw a coaster track** — it snaps to real pieces; a train runs it. (Hero shot.)
+3. Build and run a coaster using the accepted finger placement and construction gestures.
 4. Pinch-zoom the park; two-finger pan; tap-place scenery.
 5. Load a **community plugin or custom scenario** — the instant answer to "why not just buy RCT Classic?"
 6. Close line, honest: *"Directed by a human, ported by an AI agent from the open-source engine — the RollerCoaster Tycoon you grew up with, finally native on iPad, with everything OpenRCT2 adds that Classic never will."*
@@ -580,7 +580,7 @@ Keep it short, imperative, and pointing here for depth. Contents:
 **Create (new files on the `ipad` branch):**
 - `src/openrct2/platform/Platform.iOS.mm` — path resolution for the sandbox/bundle (sits beside `Platform.macOS.mm`).
 - `src/openrct2-ui/UiContext.iOS.mm` — SDL/UIKit window + input glue (sits beside `UiContext.macOS.mm`).
-- Touch/Pencil/GameController input source files under `src/openrct2-ui/input/`.
+- Touch/GameController input source files under `src/openrct2-ui/input/`.
 - `ios/App/*` — UIKit app shell, `Info.plist`, `OpenRCT2Touch.entitlements`, launch screen, icons.
 - `ios/toolchain/ios.toolchain.cmake`, `ios/cmake/*` — iOS build config.
 - All of `scripts/*`, `AGENTS.md`, `README-touch.md`, appended `.gitignore`, `ref/README.md`, `vendor/MANIFEST.md`.
@@ -588,7 +588,7 @@ Keep it short, imperative, and pointing here for depth. Contents:
 **Modify (upstream files, patched in place on the `ipad` branch):**
 - `src/openrct2/platform/*` + `Platform.h` — register the iOS platform (or `TARGET_OS_IOS` guards in `Platform.macOS.mm`/`Platform.Posix.cpp`).
 - `src/openrct2/PlatformEnvironment.cpp` — iOS branch if `GetOpenRCT2DirectoryName()`/defaults need it.
-- `src/openrct2-ui/UiContext.cpp` + `input/` + `drawing/` — iOS context, disable GL, touch/Pencil/GC input.
+- `src/openrct2-ui/UiContext.cpp` + `input/` + `drawing/` — iOS context, disable GL, touch/GC input.
 - CMake files — add iOS target/flags (`DISABLE_OPENGL=ON`, etc.).
 
 **Never touch for distribution:** `ref/` contents (data), any RCT2 asset.
@@ -617,4 +617,4 @@ iOS build/install: `xcodebuild`, `xcrun devicectl device install/process launch 
 ---
 
 ### Closing note
-The engine is portable, the plugins work (no JIT), SDL supports iOS, and the data model is already override-driven. The project's difficulty is concentrated in exactly three places — the **iOS dependency build (Phase 2)**, **on-device performance (Phase 9)**, and **touch/Pencil feel (Phases 7–8)** — and each has a clear owner and mitigation. Build the macOS keystone first, keep `ref/` sacred, and let the agent run the inner loop while you own the gates.
+The engine is portable, quickjs-ng needs no JIT, SDL supports iOS, and the data model is already override-driven. The project's remaining difficulty is concentrated in the **physical Files import (Phase 5)**, **complete on-device input proofs (Phases 6–7)**, and **performance/stability work (Phase 9)**. Keep `ref/` sacred, prove public claims, and let the agent run the inner loop while the human owns the physical-device gates.

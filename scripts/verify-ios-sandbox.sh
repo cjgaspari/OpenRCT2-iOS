@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/env.sh"
 
-BUNDLE_ID="org.openrct2.touch"
+BUNDLE_ID="$OPENRCT2_TOUCH_BUNDLE_ID"
 UDID="${1:-${OPENRCT2_SIMULATOR_UDID:-}}"
 APP="$ROOT/build/ios-libs-ios-sim-arm64/OpenRCT2Touch.app"
 

@@ -34,8 +34,22 @@ target_link_libraries(openrct2-touch PRIVATE
     OpenRCT2::openrct2-ui)
 target_link_options(openrct2-touch PRIVATE
     "LINKER:-ObjC"
-    "LINKER:-force_load,$<TARGET_FILE:openrct2-ui>"
     "LINKER:-no_warn_duplicate_libraries")
+
+# Xcode's app link needs every Objective-C entry point from the static UI
+# archive. Ninja already pulls the referenced objects through normal linking;
+# force-loading there links the archive twice and duplicates Objective-C class
+# symbols.
+if (CMAKE_GENERATOR STREQUAL "Xcode")
+    target_link_options(openrct2-touch PRIVATE
+        "LINKER:-force_load,$<TARGET_FILE:openrct2-ui>")
+else ()
+    add_custom_command(TARGET openrct2-touch POST_BUILD
+        COMMAND "${ROOT_DIR}/scripts/compile-ios-assets.sh"
+            "$<TARGET_BUNDLE_DIR:openrct2-touch>"
+            "${OPENRCT2_IOS_PLATFORM}"
+        COMMENT "Compiling the iPad app icon catalog")
+endif ()
 
 set_target_properties(openrct2-touch PROPERTIES
     OUTPUT_NAME "OpenRCT2Touch"
@@ -43,7 +57,7 @@ set_target_properties(openrct2-touch PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "${OPENRCT2_IOS_CODE_SIGNING_ALLOWED}"
     XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic
     XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${OPENRCT2_IOS_DEVELOPMENT_TEAM}"
-    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.openrct2.touch"
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.chrissotraidis.openrct2touch"
     XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "2")
 
@@ -54,6 +68,10 @@ if (CMAKE_GENERATOR STREQUAL "Xcode")
         COMMAND "${CMAKE_COMMAND}" -E copy_directory
         "${ROOT_DIR}/assets/engine"
         "$<TARGET_BUNDLE_DIR:openrct2-touch>"
+        COMMAND "${ROOT_DIR}/scripts/stage-ios-licenses.sh"
+        "$<TARGET_BUNDLE_DIR:openrct2-touch>"
+        "${VCPKG_INSTALLED_DIR}"
+        "${VCPKG_TARGET_TRIPLET}"
         COMMENT "Staging redistributable OpenRCT2 engine assets before signing")
     add_custom_target(openrct2-touch-stage DEPENDS openrct2-touch)
 else ()
@@ -61,6 +79,10 @@ else ()
         COMMAND "${CMAKE_COMMAND}" -E copy_directory
             "${ROOT_DIR}/assets/engine"
             "$<TARGET_BUNDLE_DIR:openrct2-touch>"
+        COMMAND "${ROOT_DIR}/scripts/stage-ios-licenses.sh"
+            "$<TARGET_BUNDLE_DIR:openrct2-touch>"
+            "${VCPKG_INSTALLED_DIR}"
+            "${VCPKG_TARGET_TRIPLET}"
         COMMENT "Staging redistributable OpenRCT2 engine assets"
         DEPENDS openrct2-touch)
 endif ()

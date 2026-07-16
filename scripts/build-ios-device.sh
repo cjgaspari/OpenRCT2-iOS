@@ -76,6 +76,11 @@ if [[ -n "$DEVICE" ]]; then
     DESTINATION="id=$DEVICE"
 fi
 
+# Xcode can leave a signed bundle from a previous device run in the shared
+# output directory. An unsigned rebuild must never inherit stale signatures or
+# package contents, so recreate only the generated app bundle before building.
+cmake -E remove_directory "$APP"
+
 XCODE_ARGS=(
     -project "$PROJECT"
     -scheme openrct2-touch

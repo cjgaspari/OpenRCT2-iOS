@@ -13,7 +13,7 @@ If the documents disagree with the repository, preserve the non-negotiable safet
 
 ## Mission
 
-Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a scenario, supports playable pointer/touch/Pencil controls, sustains at least 30 fps on a mid-size park, and loads one plugin or custom scenario.
+Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a scenario, supports playable pointer and finger controls, sustains at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are outside the current release scope.
 
 ## Non-negotiable rules
 
@@ -23,7 +23,7 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 - Make small `[touch] ...` commits only after the applicable verification loop is green.
 - Run `./scripts/check-repo-safety.sh` before every commit and packaging action.
 - Prefer the macOS headless loop, then Simulator, then physical device. Never promote a known-red change.
-- Stop for provisioning/signing, proprietary-data packaging risk, repeated dependency dead ends, and touch/Pencil feel judgments.
+- Stop for provisioning/signing, proprietary-data packaging risk, repeated dependency dead ends, and touch-control feel judgments.
 
 ## Current goal
 
