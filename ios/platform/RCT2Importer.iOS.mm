@@ -77,6 +77,17 @@ namespace OpenRCT2::Ui
         }
     }
 
+    static bool IsUsablePresentationWindow(UIWindow* window)
+    {
+        if (window == nil || window.hidden || window.rootViewController == nil || window.windowLevel != UIWindowLevelNormal)
+        {
+            return false;
+        }
+
+        UISceneActivationState state = window.windowScene.activationState;
+        return state == UISceneActivationStateForegroundActive || state == UISceneActivationStateForegroundInactive;
+    }
+
     static UIWindow* GetActiveWindow(SDL_Window* window)
     {
         if (window != nullptr)
@@ -84,7 +95,7 @@ namespace OpenRCT2::Ui
             SDL_SysWMinfo windowInfo = {};
             SDL_VERSION(&windowInfo.version);
             if (SDL_GetWindowWMInfo(window, &windowInfo) == SDL_TRUE && windowInfo.subsystem == SDL_SYSWM_UIKIT
-                && windowInfo.info.uikit.window != nil)
+                && IsUsablePresentationWindow(windowInfo.info.uikit.window))
             {
                 return windowInfo.info.uikit.window;
             }
@@ -99,14 +110,15 @@ namespace OpenRCT2::Ui
             }
             for (UIWindow* candidate in static_cast<UIWindowScene*>(scene).windows)
             {
+                if (!IsUsablePresentationWindow(candidate))
+                {
+                    continue;
+                }
                 if (candidate.isKeyWindow)
                 {
                     return candidate;
                 }
-                if (!candidate.hidden && candidate.rootViewController != nil)
-                {
-                    fallbackWindow = candidate;
-                }
+                fallbackWindow = candidate;
             }
         }
         return fallbackWindow;
@@ -140,7 +152,10 @@ namespace OpenRCT2::Ui
         UIWindow* activeWindow = GetActiveWindow(window);
         if (activeWindow.rootViewController != nil)
         {
-            NSLog(@"[OpenRCT2Touch] import: using existing presenter window");
+            NSLog(
+                @"[OpenRCT2Touch] import: using existing presenter window class=%@ root=%@ level=%.0f",
+                NSStringFromClass(activeWindow.class), NSStringFromClass(activeWindow.rootViewController.class),
+                activeWindow.windowLevel);
             return { [activeWindow retain], NO };
         }
 

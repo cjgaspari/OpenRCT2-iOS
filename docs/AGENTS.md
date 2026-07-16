@@ -88,9 +88,9 @@ Paths are relative to the repo root. Full detail is in the [master plan §6](ope
 
 ## Current phase
 
-**Phase 5 — Filesystem, sandbox & asset import.**
-**Goal:** implement real iOS path resolution and a user-facing RCT2 import flow, using ignored `ref/` data only as the local developer stand-in.
-**Exit criteria:** bundle resources are read-only; Documents/Library state is writable and survives relaunch; the Files folder picker validates `Data/g1.dat`, imports safely with useful progress/errors, and persists the path; a real scenario loads through the developer flow and one manual Files import succeeds on a physical iPad without proprietary data entering a distributable artifact.
+**Phase 6 — Input I: pointer, keyboard, mouse.**
+**Goal:** fully playable with a Magic Keyboard/trackpad or mouse—the quickest "it plays like the PC" milestone.
+**Exit criteria:** on a real iPad with keyboard/trackpad or mouse, play a scenario end-to-end: build a coaster, place scenery, and use shortcuts.
 
 The verified checkpoint and exact remaining device gate are recorded in
 `docs/DEVELOPMENT-STATUS.md`.

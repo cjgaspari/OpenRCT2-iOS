@@ -5,7 +5,7 @@
 **Author:** Chris (with Claude)
 **Date:** July 13, 2026
 **Companion doc:** `openrct2-ipados-feasibility.md` (the research/verdict). This document is the *how*.
-**Status:** Active implementation. Goals 0–4 are complete; Goal 5 is implemented in the Simulator and awaits its physical-iPad Files-import proof. See [`DEVELOPMENT-STATUS.md`](DEVELOPMENT-STATUS.md) for the live checkpoint and remaining goals. This document remains the master engineering plan from empty folder to working demo.
+**Status:** Active implementation. Goals 0–5 and Goal 8 are complete; Goal 6 is the current formal proof. See [`DEVELOPMENT-STATUS.md`](DEVELOPMENT-STATUS.md) for the live checkpoint and remaining goals. This document remains the master engineering plan from empty folder to working demo.
 
 ---
 
@@ -421,7 +421,7 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 **Files:** root README, `CONTRIBUTING.md`, issue templates, `NOTICE.md`, release checklist, bundle staging and audit scripts.
 **Tasks:**
 1. Keep one canonical physical-iPad installation guide with signing, data import, persistence, and troubleshooting steps.
-2. Mark Apple Pencil and multiplayer unsupported; keep unproven plugins, performance, and physical import as explicit gates.
+2. Mark Apple Pencil and multiplayer unsupported; keep unproven plugins and performance as explicit gates.
 3. Use a bundle identifier controlled by the fork maintainer and document the one-time sandbox migration.
 4. Embed GPL, attribution, dependency manifest, and third-party licence texts in every iOS bundle.
 5. Keep iPad support in this fork and preserve upstream contribution guidance for general OpenRCT2 work.
@@ -617,4 +617,4 @@ iOS build/install: `xcodebuild`, `xcrun devicectl device install/process launch 
 ---
 
 ### Closing note
-The engine is portable, quickjs-ng needs no JIT, SDL supports iOS, and the data model is already override-driven. The project's remaining difficulty is concentrated in the **physical Files import (Phase 5)**, **complete on-device input proofs (Phases 6–7)**, and **performance/stability work (Phase 9)**. Keep `ref/` sacred, prove public claims, and let the agent run the inner loop while the human owns the physical-device gates.
+The engine is portable, quickjs-ng needs no JIT, SDL supports iOS, and the data model is already override-driven. The project's remaining difficulty is concentrated in the **complete on-device input proofs (Phases 6–7)**, **performance/stability work (Phase 9)**, and **custom-content/installable-MVP proof (Phase 10)**. Keep `ref/` sacred, prove public claims, and let the agent run the inner loop while the human owns the physical-device gates.

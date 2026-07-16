@@ -56,7 +56,7 @@ not use a `main` branch for Touch releases.
 | --- | :---: | --- |
 | Native iPad runtime | ✅ | Signed ARM64 iPadOS app, SDL Metal presentation, landscape Retina output |
 | User data and persistence | ✅ | User-owned RCT2 data in the app sandbox survives build replacement and relaunch; scenarios load on device |
-| Files folder import | 🧪 | RCT2 and RCT Classic folders import in Simulator; the equivalent physical-iPad Files proof remains |
+| Files folder import | ✅ | Standard RCT2 data imports through Files on a physical iPad, persists after relaunch, and loads scenarios; RCT Classic is also validated in Simulator |
 | Keyboard and trackpad | ✅ | Pointer controls, shortcuts, text entry, scrolling, and tuned viewport zoom work on device |
 | Finger controls | ✅ | Placement, path painting/removal, pan, pinch zoom, construction rotation, and native text entry accepted on device |
 | Apple Pencil | — | Not supported; the current gesture model requires fingers or a hardware pointer |
@@ -68,10 +68,10 @@ The verified checkpoint and remaining acceptance gates are kept in
 [`docs/DEVELOPMENT-STATUS.md`](docs/DEVELOPMENT-STATUS.md) and
 [`GOAL-LOOP.md`](GOAL-LOOP.md).
 
-Build 3 is signed and installed on a physical M2 iPad Pro under
-`com.chrissotraidis.openrct2touch`. It launches into the expected Files import
-prompt with a fresh writable sandbox. Selecting the user-owned folder,
-relaunching, and loading a scenario remain the final physical import proof.
+Build 3 is signed and installed on an iPad Pro (12.9-inch, 6th generation)
+running iPadOS 26.5.2 under `com.chrissotraidis.openrct2touch`. A clean install
+imports user-owned standard RCT2 data through Files, retains it after a forced
+relaunch, and loads a scenario successfully.
 
 ## Touch controls
 
@@ -126,6 +126,14 @@ RollerCoaster Tycoon Classic/
 └── Assets/
     └── g1.dat
 ```
+
+If the folder exists only on your Mac, install OpenRCT2 Touch first, connect the
+iPad by USB, select it in Finder, open the **Files** tab, and drag the complete
+installation folder into **OpenRCT2 Touch**. In the app's picker, choose
+**On My iPad → OpenRCT2 Touch → your installation folder**. The app copies the
+validated data into its private `Documents/rct2` directory; after a successful
+launch, the staging folder you dragged into Files can be removed to reclaim
+space.
 
 ```text
 Your legally owned RCT2 or RCT Classic folder
@@ -262,13 +270,16 @@ new sandbox, so existing development testers must import once after updating.
 - **The software keyboard stays hidden:** disconnect or disable the attached
   hardware keyboard. iPadOS intentionally suppresses the software keyboard
   while a hardware keyboard is active.
-- **The import picker does not appear:** this remains the final physical-device
-  Goal 5 acceptance gate; capture the device log and file an iPad-port issue.
+- **The import picker does not appear:** make sure OpenRCT2 Touch is active,
+  dismiss any software keyboard, and retry. If it still fails, capture the
+  device log and file an iPad-port issue.
+- **Two OpenRCT2 Touch icons appear after updating:** builds using the former
+  `org.openrct2.touch` identifier can coexist with the current
+  `com.chrissotraidis.openrct2touch` app. Do not delete the older app until you
+  have accounted for any saves in its separate sandbox.
 
 ## Known limitations
 
-- The physical-iPad Files import still needs its formal fresh-install,
-  persistence, and scenario-load acceptance record.
 - Apple Pencil and multiplayer are unsupported.
 - Plugin and custom-scenario loading have not yet been proven on device.
 - The formal 30 fps benchmark and 30-minute stress test remain outstanding.

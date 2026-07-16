@@ -27,6 +27,6 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 
 ## Current goal
 
-**Goal 5 — Sandbox paths and user-owned data import.** Make bundle resources read-only, map writable state into Documents/Library, and add a first-run Files folder picker that validates and safely imports the user's RCT2 installation without ever placing proprietary data in a distributable artifact.
+**Goal 6 — Pointer, keyboard, and mouse play.** Confirm left/right/middle click, scrolling, pointer movement, text entry, and shortcuts on device, then build a coaster and place scenery end-to-end with a trackpad or mouse.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.
