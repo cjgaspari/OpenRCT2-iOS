@@ -6,10 +6,15 @@ source "$SCRIPT_DIR/env.sh"
 
 APP="${1:-}"
 PLATFORM="${2:-}"
+GREP=/usr/bin/grep
 
 if [[ -z "$APP" || ! -d "$APP" || ( "$PLATFORM" != "IOS" && "$PLATFORM" != "IOSSIMULATOR" ) ]]; then
     echo "Usage: $0 <OpenRCT2Touch.app> <IOS|IOSSIMULATOR>" >&2
     exit 2
+fi
+if [[ ! -x "$GREP" ]]; then
+    echo "Required macOS system tool is unavailable: $GREP" >&2
+    exit 1
 fi
 
 "$ROOT/scripts/check-repo-safety.sh"
@@ -81,11 +86,19 @@ if [[ "$(printf '%s' "$ASSET_CATALOG_INFO" | plutil -extract 1.Name raw -)" != "
     exit 1
 fi
 
-PROPRIETARY_MATCHES="$(
+PROPRIETARY_MATCHES=""
+if PROPRIETARY_MATCHES="$(
     find "$APP" -type f -print \
-        | rg -i '(^|/)(g1\.dat|css1\.dat|css2\.dat|rct2\.exe)$|/(ObjData|Scenarios)/|\.(sv4|sv6|sc4|sc6|td4|td6)$' \
-        || true
-)"
+        | "$GREP" -Ei '(^|/)(g1\.dat|css1\.dat|css2\.dat|rct2\.exe)$|/(ObjData|Scenarios)/|\.(sv4|sv6|sc4|sc6|td4|td6)$'
+)"; then
+    :
+else
+    proprietary_scan_status=$?
+    if [[ "$proprietary_scan_status" -ne 1 ]]; then
+        echo "Unable to audit the app bundle for proprietary game data." >&2
+        exit 1
+    fi
+fi
 if [[ -n "$PROPRIETARY_MATCHES" ]]; then
     echo "Proprietary game-data signature found in app bundle:" >&2
     echo "$PROPRIETARY_MATCHES" >&2
@@ -156,8 +169,12 @@ while IFS= read -r -d '' bundled_file; do
 done < <(find "$APP" -type f -print0)
 
 file "$BINARY"
-xcrun vtool -show-build "$BINARY"
-if ! xcrun vtool -show-build "$BINARY" | rg "platform $PLATFORM" >/dev/null; then
+if ! BUILD_VERSION="$(xcrun vtool -show-build "$BINARY")"; then
+    echo "Unable to inspect the app binary's Apple platform identity." >&2
+    exit 1
+fi
+printf '%s\n' "$BUILD_VERSION"
+if ! printf '%s\n' "$BUILD_VERSION" | "$GREP" -F "platform $PLATFORM" >/dev/null; then
     echo "App binary has the wrong Apple platform identity; expected $PLATFORM." >&2
     exit 1
 fi
