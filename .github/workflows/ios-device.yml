@@ -1,0 +1,68 @@
+name: OpenRCT2 Touch iPadOS CI
+
+on:
+  push:
+    branches:
+      - ipad
+  pull_request:
+    branches:
+      - ipad
+  workflow_dispatch: {}
+
+concurrency:
+  group: ios-device-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios-device-unsigned:
+    name: iPadOS device build (unsigned)
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Disable upstream push if the remote exists
+        run: |
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url --push upstream DISABLED
+          fi
+
+      - name: Verify host prerequisites
+        run: ./scripts/bootstrap.sh
+
+      - name: Configure ccache
+        uses: hendrikmuhs/ccache-action@v1.2.21
+        with:
+          key: ios-device-unsigned
+
+      - name: Restore iOS device dependencies
+        id: ios-vcpkg-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            vendor/vcpkg
+            vendor/ios-arm64
+          key: ios-device-vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('vcpkg.json', 'ios/vcpkg-triplets/**', 'scripts/build-ios-deps.sh') }}
+          restore-keys: |
+            ios-device-vcpkg-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Build iOS device dependencies
+        run: ./scripts/build-ios-deps.sh device
+
+      - name: Save iOS device dependencies
+        if: steps.ios-vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            vendor/vcpkg
+            vendor/ios-arm64
+          key: ios-device-vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('vcpkg.json', 'ios/vcpkg-triplets/**', 'scripts/build-ios-deps.sh') }}
+
+      - name: Build and audit the unsigned iPadOS app
+        run: ./scripts/build-ios-device.sh unsigned

@@ -85,5 +85,9 @@ if search_fixed 'OPENRCT2_SKIP_MACOS_BUILD=1 \' "$ROOT/readme.md" >/dev/null; th
     echo "The canonical clean-install command must generate redistributable engine assets before the device build." >&2
     exit 1
 fi
+if search_fixed '.ipa' "$ROOT/.github/workflows" >/dev/null; then
+    echo "GitHub workflows must not package an IPA while OpenRCT2 Touch remains a source-only developer preview." >&2
+    exit 1
+fi
 
 echo "OpenRCT2 Touch release-safety checks passed."
