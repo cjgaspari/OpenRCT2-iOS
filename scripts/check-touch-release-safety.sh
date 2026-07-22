@@ -81,5 +81,9 @@ if ! search_fixed 'Networking is disabled in the current iPadOS build' "$ROOT/re
     echo "The canonical README must state the multiplayer limitation." >&2
     exit 1
 fi
+if search_fixed 'OPENRCT2_SKIP_MACOS_BUILD=1 \' "$ROOT/readme.md" >/dev/null; then
+    echo "The canonical clean-install command must generate redistributable engine assets before the device build." >&2
+    exit 1
+fi
 
 echo "OpenRCT2 Touch release-safety checks passed."
