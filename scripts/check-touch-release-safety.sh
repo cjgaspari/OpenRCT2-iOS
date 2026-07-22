@@ -26,6 +26,7 @@ for script in \
     scripts/bootstrap.sh \
     scripts/build-ios.sh \
     scripts/build-ios-device.sh \
+    scripts/collect-crash.sh \
     scripts/compile-ios-assets.sh \
     scripts/install-run-ios.sh \
     scripts/run-ios-sim.sh \

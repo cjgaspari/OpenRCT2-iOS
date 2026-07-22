@@ -1,6 +1,6 @@
 # OpenRCT2 Touch development status
 
-- **Last updated:** July 16, 2026
+- **Last updated:** July 22, 2026
 - **Working branch:** `ipad`
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
 - **Accepted checkpoint:** physical Files import, persistence, and scenario load on July 16
@@ -75,6 +75,12 @@ end-to-end exit scripts are still pending.
 - Goal 8 release hygiene passes: `./scripts/check-touch-release-safety.sh`,
   `./scripts/build-ios.sh all`, both strengthened bundle audits, and the macOS
   headless loop are green. GitHub Issues is enabled with an iPad-specific form.
+- A clean iPad Pro 13-inch (M4) Simulator sandbox on iPadOS 26.5 launches
+  without proprietary data and reaches the expected import prompt. An external
+  report of an immediate exit on iPadOS 27 developer beta 4 is not reproduced
+  by that check and remains pending the device `.ips` report. The install flow
+  now saves its launch console, and `scripts/collect-crash.sh` retrieves matching
+  CoreDevice crash reports without copying game data.
 
 ## Current interaction checkpoint
 

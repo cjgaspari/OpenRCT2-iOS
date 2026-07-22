@@ -7,6 +7,8 @@ source "$SCRIPT_DIR/env.sh"
 DEVICE="${1:-${OPENRCT2_DEVICE_UDID:-}}"
 APP="${OPENRCT2_DEVICE_APP:-$ROOT/build/ios-xcode-device/Release-iphoneos/OpenRCT2Touch.app}"
 BUNDLE_ID="$OPENRCT2_TOUCH_BUNDLE_ID"
+LOG_DIR="$ROOT/runtime/device-logs"
+LOG_FILE="${OPENRCT2_DEVICE_LOG:-$LOG_DIR/OpenRCT2Touch-launch.log}"
 
 if [[ -z "$DEVICE" ]]; then
     echo "Usage: OPENRCT2_DEVICE_UDID=<device-identifier> $0" >&2
@@ -28,8 +30,20 @@ fi
 "$ROOT/scripts/verify-ios-bundle.sh" "$APP" IOS
 
 xcrun devicectl device install app --device "$DEVICE" "$APP"
-exec xcrun devicectl device process launch \
+mkdir -p "$(dirname "$LOG_FILE")"
+echo "Streaming launch output to $LOG_FILE"
+set +e
+xcrun devicectl device process launch \
     --console \
     --terminate-existing \
     --device "$DEVICE" \
-    "$BUNDLE_ID"
+    "$BUNDLE_ID" 2>&1 | tee "$LOG_FILE"
+LAUNCH_STATUS="${PIPESTATUS[0]}"
+set -e
+
+if [[ "$LAUNCH_STATUS" -ne 0 ]]; then
+    echo "Device launch exited $LAUNCH_STATUS. Console log: $LOG_FILE" >&2
+    echo "After an app crash, collect the iPad report with:" >&2
+    echo "  OPENRCT2_DEVICE_UDID=$DEVICE ./scripts/collect-crash.sh" >&2
+fi
+exit "$LAUNCH_STATUS"
