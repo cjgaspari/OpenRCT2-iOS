@@ -26,6 +26,25 @@ if [[ "${OPENRCT2_SKIP_MACOS_BUILD:-0}" != "1" ]]; then
     "$ROOT/scripts/build-macos.sh"
 fi
 
+missing_engine_assets=()
+for required_asset in g2.dat fonts.dat palettes.dat tracks.dat language/en-GB.txt; do
+    if [[ ! -f "$ROOT/assets/engine/$required_asset" ]]; then
+        missing_engine_assets+=("$required_asset")
+    fi
+done
+if [[ "${#missing_engine_assets[@]}" -ne 0 ]]; then
+    printf 'Missing redistributable engine assets:' >&2
+    printf ' %s' "${missing_engine_assets[@]}" >&2
+    printf '\n' >&2
+    if [[ "${OPENRCT2_SKIP_MACOS_BUILD:-0}" == "1" ]]; then
+        echo "OPENRCT2_SKIP_MACOS_BUILD=1 is only valid after ./scripts/build-macos.sh has generated assets/engine." >&2
+        echo "Unset OPENRCT2_SKIP_MACOS_BUILD or run ./scripts/build-macos.sh once, then retry." >&2
+    else
+        echo "The macOS build did not generate the required iOS engine assets." >&2
+    fi
+    exit 1
+fi
+
 VCPKG_ROOT="$ROOT/vendor/vcpkg"
 INSTALL_ROOT="$ROOT/vendor/ios-arm64"
 TRIPLET="openrct2-arm64-ios"
