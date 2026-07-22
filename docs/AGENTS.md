@@ -55,7 +55,7 @@ UI rendering, asset-import plumbing, input wiring.
 ```bash
 ./scripts/build-ios.sh device
 ./scripts/install-run-ios.sh      # devicectl (iOS 17+) / ios-deploy (≤16), streams logs
-./scripts/collect-crash.sh        # pulls crash reports via idevicecrashreport
+./scripts/collect-crash.sh        # pulls matching crash reports via CoreDevice
 ```
 
 If a script doesn't exist yet, creating it is part of the current phase (see the [master plan §9](openrct2-ipados-BUILD-PLAN.md#9-the-automation-harness)).

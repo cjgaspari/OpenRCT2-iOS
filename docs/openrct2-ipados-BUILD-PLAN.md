@@ -480,7 +480,9 @@ Wrap in a script that: builds → runs headless simulate on several parks → ru
 - Install + launch (iOS 17+): `xcrun devicectl device install app --device <UDID> <app>` then `... process launch --console --terminate-existing --device <UDID> <bundle-id>`
 - iOS ≤16 fallback: `ios-deploy --debug --bundle <app>`
 - Logs: `--console` (stdout) + `idevicesyslog` (system)
-- Crashes: `scripts/collect-crash.sh` → `idevicecrashreport -e /tmp/crash` → parse newest `.ips`.
+- Crashes: `scripts/collect-crash.sh` uses CoreDevice's `systemCrashLogs`
+  domain to copy matching OpenRCT2Touch reports into `runtime/device-crashes/`;
+  inspect the newest `.ips` before changing runtime code.
 
 ### 9.4 What the agent watches for
 - Build failure (compiler/linker) → parse, fix, rebuild.

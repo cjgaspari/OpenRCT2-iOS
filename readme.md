@@ -176,9 +176,12 @@ git switch ipad
 ./scripts/bootstrap.sh --install
 ```
 
-`bootstrap.sh` does not require game data for an iOS-only build. If you also
-want to run the macOS/headless test loop, point `RCT2_DATA` at the folder that
-contains `Data/g1.dat` and require it explicitly:
+`bootstrap.sh` does not require game data for an iOS-only build. Continue
+directly to step 2 if you only want to install the iPad app.
+
+The following macOS/headless test is optional and is not part of the iPad
+build. Run it only if you have a local RCT2 installation, then point
+`RCT2_DATA` at the folder that contains `Data/g1.dat`:
 
 ```sh
 RCT2_DATA="/absolute/path/to/RollerCoaster Tycoon 2" \
@@ -244,7 +247,8 @@ that the complete asset set exists before starting Xcode.
 
 The install script reruns the repository and bundle audits before installing.
 The bundle contains the OpenRCT2 engine, required open-source notices, and no
-proprietary RCT2 data.
+proprietary RCT2 data. It also saves the device launch console to
+`runtime/device-logs/OpenRCT2Touch-launch.log`.
 
 ### 5. Import your game data
 
@@ -278,6 +282,17 @@ new sandbox, so existing development testers must import once after updating.
 - **The import picker does not appear:** make sure OpenRCT2 Touch is active,
   dismiss any software keyboard, and retry. If it still fails, capture the
   device log and file an iPad-port issue.
+- **The app closes immediately:** rerun `./scripts/install-run-ios.sh` to save
+  the launch console, reproduce the crash, wait a few seconds, and collect the
+  iPad crash report with:
+
+  ```sh
+  OPENRCT2_DEVICE_UDID=<device-identifier> ./scripts/collect-crash.sh
+  ```
+
+  Attach the console log and the newest file from `runtime/device-crashes/` to
+  an iPad-port issue. A crash on a beta iPadOS release cannot be diagnosed from
+  the icon disappearing alone.
 - **Two OpenRCT2 Touch icons appear after updating:** builds using the former
   `org.openrct2.touch` identifier can coexist with the current
   `com.chrissotraidis.openrct2touch` app. Do not delete the older app until you

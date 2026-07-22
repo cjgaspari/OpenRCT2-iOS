@@ -12,6 +12,13 @@ LOG_FILE="$LOG_DIR/macos-headless.log"
 
 "$ROOT/scripts/check-repo-safety.sh"
 
+if [[ ! -f "$RCT2_DATA/Data/g1.dat" ]]; then
+    printf 'ERROR: the optional macOS headless test requires user-owned RCT2 data at %s/Data/g1.dat\n' "$RCT2_DATA" >&2
+    printf 'Set RCT2_DATA to the RCT2 installation root, then retry.\n' >&2
+    printf 'This test is not required to build or install the iPad app.\n' >&2
+    exit 1
+fi
+
 if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
     "$ROOT/scripts/build-macos.sh"
 fi
