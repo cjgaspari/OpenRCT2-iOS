@@ -17,8 +17,10 @@ if [[ -z "$DEVICE" ]]; then
     exit 2
 fi
 if [[ ! -d "$APP" ]]; then
-    echo "Missing signed app: $APP" >&2
-    echo "Build it with OPENRCT2_DEVELOPMENT_TEAM=<team> ./scripts/build-ios-device.sh signed" >&2
+    echo "No signed iPad app is available at: $APP" >&2
+    echo "The signed build must complete successfully before installation." >&2
+    echo "Rerun the complete signed-build command from README step 4 and wait for" >&2
+    echo "'Xcode iPadOS signed build passed.' before retrying." >&2
     exit 1
 fi
 if [[ ! -f "$APP/embedded.mobileprovision" || ! -f "$APP/_CodeSignature/CodeResources" ]]; then

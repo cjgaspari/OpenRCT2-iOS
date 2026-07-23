@@ -239,11 +239,10 @@ OPENRCT2_DEVICE_UDID=<device-identifier> \
     ./scripts/install-run-ios.sh
 ```
 
-The device build first creates OpenRCT2's redistributable engine assets,
-including `g2.dat`; it does not need proprietary RCT2 data for that step. On
-later builds, after `assets/engine` has been generated once, you may set
-`OPENRCT2_SKIP_MACOS_BUILD=1` to reuse those assets. The build script checks
-that the complete asset set exists before starting Xcode.
+The device build automatically creates the required redistributable OpenRCT2
+engine assets, including `g2.dat`. These are mandatory app components, but they
+are separate from user-owned RCT2 game data. Proprietary RCT2 data is not
+needed until the first-launch Files import.
 
 The install script reruns the repository and bundle audits before installing.
 The bundle contains the OpenRCT2 engine, required open-source notices, and no
