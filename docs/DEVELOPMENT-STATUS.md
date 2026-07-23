@@ -33,8 +33,8 @@ end-to-end exit scripts are still pending.
 
 - `./scripts/build-ios.sh all` builds and audits both iOS device and Simulator
   application bundles.
-- `OPENRCT2_SKIP_MACOS_BUILD=1 ./scripts/build-ios-device.sh unsigned` produces
-  an Xcode device build without requiring repository-held signing identity data.
+- `./scripts/build-ios-device.sh unsigned` produces an Xcode device build
+  without requiring repository-held signing identity data.
 - Build 3 signs, audits, installs, and launches on the physical M2 iPad Pro
   under `com.chrissotraidis.openrct2touch`. Live logs confirm a read-only
   bundle, writable Documents/Library paths, and the first-run Files flow.
@@ -107,7 +107,6 @@ The July 16 signed-device loop used the existing local development signing
 configuration without recording team or device identifiers in the repository:
 
 ```bash
-OPENRCT2_SKIP_MACOS_BUILD=1 \
 OPENRCT2_DEVELOPMENT_TEAM=<team> \
 OPENRCT2_DEVICE_UDID=<device> \
     ./scripts/build-ios-device.sh signed

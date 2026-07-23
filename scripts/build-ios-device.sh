@@ -37,8 +37,11 @@ if [[ "${#missing_engine_assets[@]}" -ne 0 ]]; then
     printf ' %s' "${missing_engine_assets[@]}" >&2
     printf '\n' >&2
     if [[ "${OPENRCT2_SKIP_MACOS_BUILD:-0}" == "1" ]]; then
-        echo "OPENRCT2_SKIP_MACOS_BUILD=1 is only valid after ./scripts/build-macos.sh has generated assets/engine." >&2
-        echo "Unset OPENRCT2_SKIP_MACOS_BUILD or run ./scripts/build-macos.sh once, then retry." >&2
+        echo "OPENRCT2_SKIP_MACOS_BUILD=1 prevented generation of these required OpenRCT2 files." >&2
+        echo "They are redistributable app components, not user-owned RCT2 game data." >&2
+        echo "RCT2 game data is not required to build the iPad app." >&2
+        echo "Run 'unset OPENRCT2_SKIP_MACOS_BUILD', then rerun your complete build command without the skip flag." >&2
+        echo "Do not run the install command until a signed build reports that it passed." >&2
     else
         echo "The macOS build did not generate the required iOS engine assets." >&2
     fi
