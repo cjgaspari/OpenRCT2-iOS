@@ -40,6 +40,7 @@ build_slice() {
 
     VCPKG_DISABLE_METRICS=1 "$VCPKG_ROOT/vcpkg" install \
         --triplet "$triplet" \
+        --overlay-ports="$ROOT/ios/vcpkg-ports" \
         --overlay-triplets="$ROOT/ios/vcpkg-triplets" \
         --x-manifest-root="$ROOT" \
         --x-install-root="$install_root" \

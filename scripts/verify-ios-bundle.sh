@@ -25,6 +25,11 @@ if [[ "$(plutil -extract CFBundleIdentifier raw "$APP/Info.plist")" != "$OPENRCT
     echo "Unexpected iOS bundle identifier." >&2
     exit 1
 fi
+if [[ "$(plutil -extract 'UIApplicationSceneManifest.UIApplicationSupportsMultipleScenes' raw "$APP/Info.plist")" != "false"
+    || "$(plutil -extract 'UIApplicationSceneManifest.UISceneConfigurations.UIWindowSceneSessionRoleApplication.0.UISceneDelegateClassName' raw "$APP/Info.plist")" != "SDLUIKitSceneDelegate" ]]; then
+    echo "App bundle does not declare the required single-window UIScene lifecycle." >&2
+    exit 1
+fi
 
 for required_asset in g2.dat fonts.dat palettes.dat tracks.dat language/en-GB.txt; do
     if [[ ! -f "$APP/$required_asset" ]]; then
@@ -169,6 +174,10 @@ while IFS= read -r -d '' bundled_file; do
 done < <(find "$APP" -type f -print0)
 
 file "$BINARY"
+if ! nm "$BINARY" | "$GREP" -F '_OBJC_CLASS_$_SDLUIKitSceneDelegate' >/dev/null; then
+    echo "App binary is missing the SDL UIKit scene delegate required by iPadOS 27." >&2
+    exit 1
+fi
 if ! BUILD_VERSION="$(xcrun vtool -show-build "$BINARY")"; then
     echo "Unable to inspect the app binary's Apple platform identity." >&2
     exit 1

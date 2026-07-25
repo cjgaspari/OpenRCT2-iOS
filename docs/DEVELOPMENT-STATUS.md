@@ -76,11 +76,14 @@ end-to-end exit scripts are still pending.
   `./scripts/build-ios.sh all`, both strengthened bundle audits, and the macOS
   headless loop are green. GitHub Issues is enabled with an iPad-specific form.
 - A clean iPad Pro 13-inch (M4) Simulator sandbox on iPadOS 26.5 launches
-  without proprietary data and reaches the expected import prompt. An external
-  report of an immediate exit on iPadOS 27 developer beta 4 is not reproduced
-  by that check and remains pending the device `.ips` report. The install flow
-  now saves its launch console, and `scripts/collect-crash.sh` retrieves matching
-  CoreDevice crash reports without copying game data.
+  without proprietary data and reaches the expected import prompt. Three
+  external iPadOS 27 developer-beta crash reports identify the same UIKit
+  `UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption` trap before
+  engine initialization. The iOS dependency now carries a focused backport of
+  SDL's upstream UIScene lifecycle fix; physical iPadOS 27 confirmation remains
+  pending. The install flow saves its launch console, and
+  `scripts/collect-crash.sh` retrieves matching CoreDevice crash reports without
+  copying game data.
 
 ## Current interaction checkpoint
 
