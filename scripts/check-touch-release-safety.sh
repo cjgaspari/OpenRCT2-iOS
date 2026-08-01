@@ -29,6 +29,7 @@ for script in \
     scripts/collect-crash.sh \
     scripts/compile-ios-assets.sh \
     scripts/install-run-ios.sh \
+    scripts/package-ios-ipa.sh \
     scripts/run-ios-sim.sh \
     scripts/seed-ios-sim-data.sh \
     scripts/stage-ios-licenses.sh \

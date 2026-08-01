@@ -13,6 +13,7 @@
 
     #include "../../src/openrct2/OpenRCT2.h"
     #include "../../src/openrct2/core/Path.hpp"
+    #include "../../src/openrct2/drawing/Font.h"
     #include "../../src/openrct2/localisation/Language.h"
     #include "../../src/openrct2/platform/Platform.h"
 

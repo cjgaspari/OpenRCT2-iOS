@@ -42,6 +42,7 @@
 #include <openrct2/core/String.hpp>
 #include <openrct2/core/UnitConversion.h>
 #include <openrct2/drawing/ColourMap.h>
+#include <openrct2/drawing/Drawing.Sprite.h>
 #include <openrct2/drawing/Drawing.String.h>
 #include <openrct2/drawing/Drawing.h>
 #include <openrct2/drawing/Rectangle.h>
@@ -3399,7 +3400,7 @@ namespace OpenRCT2::Ui::Windows
         {
             switch (ride.mode)
             {
-                case RideMode::poweredLaunchPasstrough:
+                case RideMode::poweredLaunchPassthrough:
                 case RideMode::poweredLaunch:
                 case RideMode::upwardLaunch:
                 case RideMode::poweredLaunchBlockSectioned:
@@ -3545,7 +3546,8 @@ namespace OpenRCT2::Ui::Windows
             widgets[WIDX_MODE_DROPDOWN].moveTo({ 297, startY + 1 });
             startY += 17;
 
-            if (ride->isBlockSectioned())
+            const bool poweredLaunch = ride->mode == RideMode::poweredLaunchBlockSectioned;
+            if (ride->isBlockSectioned() && !poweredLaunch)
             {
                 startY += 17;
             }
@@ -3603,7 +3605,7 @@ namespace OpenRCT2::Ui::Windows
             StringId format, caption, tooltip;
             switch (ride->mode)
             {
-                case RideMode::poweredLaunchPasstrough:
+                case RideMode::poweredLaunchPassthrough:
                 case RideMode::poweredLaunch:
                 case RideMode::upwardLaunch:
                 case RideMode::poweredLaunchBlockSectioned:
@@ -3671,6 +3673,11 @@ namespace OpenRCT2::Ui::Windows
                 widgets[WIDX_MODE_TWEAK].type = WidgetType::empty;
                 widgets[WIDX_MODE_TWEAK_INCREASE].type = WidgetType::empty;
                 widgets[WIDX_MODE_TWEAK_DECREASE].type = WidgetType::empty;
+            }
+
+            if (ride->isBlockSectioned() && poweredLaunch)
+            {
+                startY += 17;
             }
 
             if (startY != initStartY + 15)

@@ -25,6 +25,7 @@
 #include <openrct2/SpriteIds.h>
 #include <openrct2/audio/Audio.h>
 #include <openrct2/config/Config.h>
+#include <openrct2/core/BackgroundWorker.hpp>
 #include <openrct2/core/File.h>
 #include <openrct2/core/FileScanner.h>
 #include <openrct2/core/FileStream.h>
@@ -35,6 +36,7 @@
 #include <openrct2/drawing/Drawing.String.h>
 #include <openrct2/drawing/Drawing.h>
 #include <openrct2/drawing/Rectangle.h>
+#include <openrct2/drawing/RenderTarget.h>
 #include <openrct2/drawing/Text.h>
 #include <openrct2/interface/ColourWithFlags.h>
 #include <openrct2/localisation/Formatter.h>

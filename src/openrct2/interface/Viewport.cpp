@@ -11,15 +11,16 @@
 
 #include "../Context.h"
 #include "../Diagnostic.h"
-#include "../Game.h"
 #include "../GameState.h"
 #include "../OpenRCT2.h"
 #include "../config/Config.h"
 #include "../core/Guard.hpp"
 #include "../core/JobPool.h"
 #include "../core/Numerics.hpp"
+#include "../drawing/Drawing.Sprite.h"
 #include "../drawing/Drawing.h"
 #include "../drawing/IDrawingEngine.h"
+#include "../drawing/NewDrawing.h"
 #include "../drawing/Rectangle.h"
 #include "../entity/Guest.h"
 #include "../entity/Staff.h"
@@ -45,7 +46,6 @@
 
 #include <cstring>
 #include <list>
-#include <unordered_map>
 
 namespace OpenRCT2
 {

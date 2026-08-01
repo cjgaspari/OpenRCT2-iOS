@@ -29,7 +29,7 @@ find_ipad() {
     fi
 
     xcrun simctl list devices available | awk '
-        /iPad/ && /\([0-9A-F-]+\)/ {
+        /^[[:space:]]+iPad([[:space:]]|$)/ && /\([0-9A-F-]+\)/ {
             match($0, /\([0-9A-F-]+\)/)
             print substr($0, RSTART + 1, RLENGTH - 2)
             exit

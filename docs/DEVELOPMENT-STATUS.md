@@ -1,6 +1,6 @@
 # OpenRCT2 Touch development status
 
-- **Last updated:** July 22, 2026
+- **Last updated:** August 1, 2026
 - **Working branch:** `ipad`
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
 - **Accepted checkpoint:** physical Files import, persistence, and scenario load on July 16
@@ -31,8 +31,15 @@ end-to-end exit scripts are still pending.
 
 ## Current proof
 
+- The Touch branch is synchronized through upstream OpenRCT2 `develop` commit
+  `69872010ae6b` from July 31, 2026. The merge passed repository safety, the
+  macOS build and 1,000-tick headless run, both iOS dependency slices, both iOS
+  app bundles, and the full iPad Simulator lifecycle verification.
 - `./scripts/build-ios.sh all` builds and audits both iOS device and Simulator
   application bundles.
+- `./scripts/package-ios-ipa.sh` creates an audited unsigned ROM-free IPA under
+  `build/packages/`. This is a local artifact and does not satisfy the signed
+  binary-beta gates in [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md).
 - `./scripts/build-ios-device.sh unsigned` produces an Xcode device build
   without requiring repository-held signing identity data.
 - Build 3 signs, audits, installs, and launches on the physical M2 iPad Pro
