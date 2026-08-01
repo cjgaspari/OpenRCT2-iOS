@@ -16,8 +16,10 @@ on:
   # Schedule a check for every 2 hours (23rd minute).
   schedule:
     - cron: '23 */2 * * *'
+
 jobs:
   check:
+    if: github.repository == 'OpenRCT2/OpenRCT2'
     runs-on: ubuntu-slim
     steps:
       - uses: z0al/dependent-issues@v1
