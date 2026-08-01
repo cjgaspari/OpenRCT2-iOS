@@ -8,18 +8,14 @@
  *****************************************************************************/
 
 #include "../Context.h"
-#include "../Game.h"
 #include "../GameState.h"
 #include "../OpenRCT2.h"
-#include "../config/ConfigTypes.h"
 #include "../core/Console.hpp"
 #include "../core/Path.hpp"
 #include "../entity/EntityRegistry.h"
-#include "../network/Network.h"
-#include "../platform/Platform.h"
+#include "../network/NetworkTypes.h"
 #include "CommandLine.hpp"
 
-#include <cstdlib>
 #include <memory>
 
 using namespace OpenRCT2::CommandLine;
