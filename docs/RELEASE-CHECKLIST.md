@@ -12,6 +12,14 @@ sign the app themselves with Xcode. It may be released when every source gate
 below passes, even if the remaining physical-device acceptance gates are
 clearly disclosed.
 
+### Local unsigned IPA
+
+`./scripts/package-ios-ipa.sh` may package the audited device app for local
+signing work. The script rejects embedded signatures, provisioning profiles,
+and proprietary RCT/RCT2 data. This ignored build artifact is not a public
+binary beta and cannot be installed on ordinary devices until it is signed for
+an appropriate Apple distribution channel.
+
 ### Binary beta
 
 This distributes an `.ipa` or TestFlight build. In addition to every source
@@ -34,6 +42,8 @@ record. A Personal Team development build is not a public binary beta.
   `./scripts/build-macos.sh`, and `./scripts/run-macos-headless.sh` pass.
 - [ ] `./scripts/build-ios-deps.sh all` and `./scripts/build-ios.sh all` pass.
 - [ ] Both app bundles pass `./scripts/verify-ios-bundle.sh`.
+- [ ] If a local unsigned IPA is needed, `./scripts/package-ios-ipa.sh` passes
+  and its SHA-256 digest is recorded with the test handoff.
 - [ ] No tracked file or commit contains a signing team, device identifier,
   provisioning profile, `.ipa`, `.xcarchive`, or proprietary game asset.
 - [ ] A release tag and release notes identify the upstream base and the exact

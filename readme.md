@@ -50,6 +50,11 @@ The maintained and GitHub default branch for this fork is **`ipad`**. The
 `develop` branch is retained only as an upstream mirror, and this project does
 not use a `main` branch for Touch releases.
 
+The August 1, 2026 checkpoint is synchronized through upstream OpenRCT2
+`develop` commit `69872010ae6b`. Future updates should merge a tested upstream
+commit into a short-lived `touch/*` branch, run the full macOS and iOS loops,
+and merge the result into `ipad`; do not develop Touch changes on the mirror.
+
 ## What works today
 
 | Area | State | Current evidence |
@@ -208,6 +213,21 @@ For an optional Simulator build, use:
 ./scripts/build-ios.sh sim
 ./scripts/run-ios-sim.sh verify
 ```
+
+### Optional: create a local unsigned IPA
+
+After building the device app, this command creates an audited, ROM-free IPA
+under `build/packages/`:
+
+```sh
+./scripts/build-ios.sh device
+./scripts/package-ios-ipa.sh
+```
+
+The resulting IPA contains no RCT/RCT2 game data, code signature, or
+provisioning profile. It is a local build artifact for advanced signing and
+packaging workflows, not a generally installable public release. Ordinary
+users should continue with the signed source-build instructions below.
 
 ### 3. Find the connected device and select a team
 
