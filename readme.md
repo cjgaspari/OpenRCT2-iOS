@@ -22,6 +22,7 @@
   <a href="#install-on-an-ipad">Install</a> ·
   <a href="#touch-controls">Controls</a> ·
   <a href="#bring-your-own-game-data">Game data</a> ·
+  <a href="#faq">FAQ</a> ·
   <a href="docs/DEVELOPMENT-STATUS.md">Engineering log</a>
 </p>
 
@@ -327,6 +328,39 @@ new sandbox, so existing development testers must import once after updating.
 
 See [`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md) for the exact source
 preview and binary-release gates.
+
+## FAQ
+
+### Why is there no public IPA?
+
+OpenRCT2 Touch can already produce an audited, unsigned `.ipa` locally. We have
+not published it as a general download because creating the file and releasing a
+legally compliant, installable binary are different things:
+
+- **The app must not contain RollerCoaster Tycoon data.** OpenRCT2 needs graphics,
+  sounds, models, and other files from RCT2 or RCT Classic. Those files are
+  proprietary, so every user must import data from a copy they legally own.
+- **The OpenRCT2 code is GPLv3-or-later.** Any binary release must preserve the
+  licence and attribution, keep the Touch modifications under the GPL, and give
+  recipients access to the exact corresponding source without adding
+  incompatible restrictions.
+- **iPad apps require an Apple signing and distribution arrangement.** An
+  unsigned IPA from GitHub is not directly installable on an ordinary iPad.
+  Registered-device distribution, TestFlight, the App Store, and eligible
+  alternative distribution each have different provisioning and contract terms.
+  The interaction between those terms and GPLv3 needs project-specific review
+  before we choose a public binary channel.
+- **The binary-release proof is not finished.** The complete pointer and
+  finger-only playthroughs, performance and stress tests, plugin or custom-content
+  proof, package audit, and second-device installation are still release gates.
+
+For now, publishing source and letting users build and sign their own copy is the
+clearest compliant path. This is not a claim that GPL software cannot run on
+iPadOS, or that OpenRCT2 Touch can never have a binary release. A binary beta can
+follow once the remaining checks pass and a suitable distribution channel has
+been selected and reviewed. See the
+[`release checklist`](docs/RELEASE-CHECKLIST.md) for the exact gates. This is a
+project policy summary, not legal advice.
 
 ## Project boundary and credits
 
