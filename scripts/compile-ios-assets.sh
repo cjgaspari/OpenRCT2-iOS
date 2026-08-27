@@ -31,8 +31,14 @@ xcrun actool "$ROOT/ios/App/Assets.xcassets" \
     --app-icon AppIcon \
     --compress-pngs \
     --development-region en \
+    --target-device iphone \
     --target-device ipad \
     --minimum-deployment-target 15.0 \
     --platform "$platform"
+
+# Ninja copies the source catalog into Resources; only the compiled Assets.car
+# and icon PNGs belong in the distributable bundle.
+rm -rf "$APP/Assets.xcassets"
+find "$APP" -name .DS_Store -delete
 
 echo "Compiled AppIcon assets for $TARGET in $APP"

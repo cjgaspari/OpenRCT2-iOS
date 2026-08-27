@@ -13,20 +13,20 @@ If the documents disagree with the repository, preserve the non-negotiable safet
 
 ## Mission
 
-Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a scenario, supports playable pointer and finger controls, sustains at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are outside the current release scope.
+Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a scenario, supports playable pointer and finger controls, sustains at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are outside the current release scope. The live device contract is a universal iPhone and iPad build locked to portrait.
 
 ## Non-negotiable rules
 
-- Never track, commit, push, copy into an app bundle, archive, or distribute proprietary RCT/RCT2 data. Only `ref/README.md` may be tracked under `ref/`.
+- Never track, commit, push, archive, or distribute proprietary RCT/RCT2 data. Only `ref/README.md` may be tracked under `ref/`. A local Simulator `.app` under `build/` may copy ignored `ref/rct2` for personal installs; never put that payload in git, an IPA, or an xcarchive.
 - Work only on `ipad` or a short-lived branch merged into `ipad`. Never add commits to `develop`, push to `upstream`, or open an upstream PR.
 - Preserve upstream licences, attribution, file headers, `contributors.md`, and history.
 - Make small `[touch] ...` commits only after the applicable verification loop is green.
 - Run `./scripts/check-repo-safety.sh` before every commit and packaging action.
 - Prefer the macOS headless loop, then Simulator, then physical device. Never promote a known-red change.
-- Stop for provisioning/signing, proprietary-data packaging risk, repeated dependency dead ends, and touch-control feel judgments.
+- Stop for provisioning/signing, any git/IPA/xcarchive packaging of proprietary data, repeated dependency dead ends, and touch-control feel judgments.
 
 ## Current goal
 
-**Goal 6 — Pointer, keyboard, and mouse play.** Confirm left/right/middle click, scrolling, pointer movement, text entry, and shortcuts on device, then build a coaster and place scenery end-to-end with a trackpad or mouse.
+**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is the **universal portrait viewport**, now Simulator screenshot-green: iPhone and iPad install, a tall full-screen park canvas, hidden in-engine toolbars, and clamped tool windows. Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.

@@ -8,7 +8,6 @@
  *****************************************************************************/
 
 #include "UiContext.h"
-
 #include "CursorRepository.h"
 #include "SDLException.h"
 #include "TextComposition.h"
@@ -168,6 +167,12 @@ private:
 
     InGameConsole _inGameConsole;
     std::unique_ptr<ITitleSequencePlayer> _titleSequencePlayer;
+
+    ScreenCoordsXY MapWindowPointToCanvas(float windowX, float windowY) const
+    {
+        const auto scale = Config::Get().general.windowScale;
+        return { static_cast<int32_t>(windowX / scale), static_cast<int32_t>(windowY / scale) };
+    }
 
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
     ScreenCoordsXY GetTouchPosition(const SDL_TouchFingerEvent& event) const
@@ -1075,8 +1080,7 @@ public:
                         break;
                     }
 #endif
-                    _cursorState.position = { static_cast<int32_t>(e.motion.x / Config::Get().general.windowScale),
-                                              static_cast<int32_t>(e.motion.y / Config::Get().general.windowScale) };
+                    _cursorState.position = MapWindowPointToCanvas(static_cast<float>(e.motion.x), static_cast<float>(e.motion.y));
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
                     _cursorState.touch = false;
 #endif
@@ -1107,8 +1111,7 @@ public:
                     {
                         break;
                     }
-                    ScreenCoordsXY mousePos = { static_cast<int32_t>(e.button.x / Config::Get().general.windowScale),
-                                                static_cast<int32_t>(e.button.y / Config::Get().general.windowScale) };
+                    ScreenCoordsXY mousePos = MapWindowPointToCanvas(static_cast<float>(e.button.x), static_cast<float>(e.button.y));
                     switch (e.button.button)
                     {
                         case SDL_BUTTON_LEFT:
@@ -1143,8 +1146,7 @@ public:
                     {
                         break;
                     }
-                    ScreenCoordsXY mousePos = { static_cast<int32_t>(e.button.x / Config::Get().general.windowScale),
-                                                static_cast<int32_t>(e.button.y / Config::Get().general.windowScale) };
+                    ScreenCoordsXY mousePos = MapWindowPointToCanvas(static_cast<float>(e.button.x), static_cast<float>(e.button.y));
                     switch (e.button.button)
                     {
                         case SDL_BUTTON_LEFT:
@@ -1547,7 +1549,11 @@ private:
 
         ApplyScreenSaverLockSetting();
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        // UIKit owns the fullscreen window; a desktop minimum size would reject iPhone widths.
+#else
         SDL_SetWindowMinimumSize(_window, 720, 480);
+#endif
         SetCursorTrap(Config::Get().general.trapCursor);
         _platformUiContext->SetWindowIcon(_window);
 

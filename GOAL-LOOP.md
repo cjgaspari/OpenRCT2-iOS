@@ -4,7 +4,7 @@
 
 Build the OpenRCT2 Touch MVP described in `docs/openrct2-ipados-BUILD-PLAN.md` on the `ipad` branch. Continue autonomously through the smallest verifiable engineering slice until the current goal's exit criteria are green. Preserve user-owned game data, upstream provenance, and a green macOS-first build. Stop only at an explicit human gate or when three materially different attempts have demonstrated the same external blocker.
 
-The terminal outcome is a signed native iPadOS build that imports the user's own RCT2 data, loads a scenario, can build a coaster and place scenery with pointer and finger controls at at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are explicitly outside this release scope.
+The terminal outcome is a signed native iPhone and iPadOS build that imports the user's own RCT2 data, loads a scenario, can build a coaster and place scenery with pointer and finger controls at at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are explicitly outside this release scope. The live presentation contract is portrait on both device families.
 
 ## The loop
 
@@ -57,14 +57,16 @@ Each iteration reports: current goal, slice, changed files, proof commands and o
 ### Goal 4 — Correct software-framebuffer presentation
 
 - The engine software framebuffer is presented through SDL's iOS Metal renderer.
-- Landscape, Retina scale, safe areas, palette, aspect ratio, and resize/lifecycle behavior are correct.
+- Portrait, Retina drawable, full-screen canvas (no safe-area letterbox), palette, aspect ratio, and resize/lifecycle behavior are correct.
 - A repeatable Simulator screenshot check is green.
+
+**Scope change (after the original landscape iPad checkpoint):** the live contract is a universal portrait canvas on iPhone and iPad. `window_scale` stays 1 (points). The park fills the window. Re-prove with taller-than-wide Simulator frames before resuming Goal 6/7 device scripts.
 
 ### Goal 5 — Sandbox paths and user-owned data import
 
 - Bundle resources are read-only; Documents/Library paths are writable and survive relaunch.
 - The Files picker validates `Data/g1.dat`, copies or coordinates access safely, reports progress/errors, and persists the selected path.
-- Proprietary data is never copied into `.app`, `.ipa`, `.xcarchive`, or another distributable artifact. Simulator seeding, if added, targets only an installed app container and refuses bundle/archive destinations.
+- Proprietary data is never git-tracked or copied into `.ipa`, `.xcarchive`, or another distributable artifact. A local Simulator `.app` under `build/` may include ignored `ref/rct2` for personal installs; Documents seeding remains valid.
 - A scenario loads through both a local developer flow and one manual Files import on a physical iPad.
 
 ### Goal 6 — Pointer, keyboard, and mouse play
@@ -117,4 +119,4 @@ Stop and ask for the human only for:
 - The root CMake build currently creates `libopenrct2` plus an `openrct2` UI executable. Goal 2 must establish an iOS-linkable UI target or an equivalent source target.
 - Existing Apple guards and framework links mean macOS (`Cocoa`, `CoreServices`) and iOS (`UIKit`, mobile-safe APIs) must be separated explicitly.
 - `Ui.cpp` exposes `SDL_main` only for Android today; the iOS entry-point contract must be proven rather than assumed.
-- Proprietary data may be placed only in an installed app sandbox for local testing, never staged into a bundle that could be archived or shared.
+- Proprietary data may be placed in an installed app sandbox or a local Simulator `.app` under `build/` for personal testing. Never stage it into git, an IPA, or an xcarchive.

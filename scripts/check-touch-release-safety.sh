@@ -31,6 +31,9 @@ for script in \
     scripts/install-run-ios.sh \
     scripts/package-ios-ipa.sh \
     scripts/run-ios-sim.sh \
+    scripts/play-ios-sim.sh \
+    scripts/play-ios-device.sh \
+    scripts/bundle-local-rct2.sh \
     scripts/seed-ios-sim-data.sh \
     scripts/stage-ios-licenses.sh \
     scripts/verify-ios-bundle.sh \

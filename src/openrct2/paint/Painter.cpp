@@ -19,6 +19,7 @@
 #include "../drawing/IDrawingEngine.h"
 #include "../drawing/Text.h"
 #include "../interface/Viewport.h"
+#include "../interface/Window.h"
 #include "../localisation/Formatting.h"
 #include "../paint/Paint.h"
 #include "../paint/VirtualFloor.h"
@@ -128,9 +129,9 @@ void Painter::PaintFPS(RenderTarget& rt)
 
     // Move counter below toolbar if buttons are centred
     const bool isTitle = gLegacyScene == LegacyScene::titleSequence;
-    if (!isTitle && Config::Get().interface.toolbarButtonsCentred)
+    if (!isTitle && Config::Get().interface.toolbarButtonsCentred && WindowGetTopToolbarOffset() > 0)
     {
-        screenCoords.y = kTopToolbarHeight + 3;
+        screenCoords.y = WindowGetTopToolbarOffset() + 2;
     }
 
     drawText(rt, screenCoords, buffer, { OpenRCT2::Drawing::Colour::white });

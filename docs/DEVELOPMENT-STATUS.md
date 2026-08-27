@@ -1,8 +1,9 @@
 # OpenRCT2 Touch development status
 
-- **Last updated:** August 1, 2026
+- **Last updated:** August 27, 2026
 - **Working branch:** `ipad`
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
+- **Live slice:** universal portrait viewport is Simulator screenshot-green; Goal 6/7 device proofs stay paused until portrait play is re-checked on hardware
 - **Accepted checkpoint:** physical Files import, persistence, and scenario load on July 16
 
 The implementation has completed Goals 0–5 and Goal 8. A signed build runs on
@@ -21,7 +22,7 @@ end-to-end exit scripts are still pending.
 | [1 — macOS keystone](../GOAL-LOOP.md#goal-1--macos-keystone) | Complete | Native arm64 build and deterministic headless simulation pass with repo-local paths. |
 | [2 — iOS build contract](../GOAL-LOOP.md#goal-2--ios-build-contract-and-dependency-closure) | Complete | Device and Simulator dependency slices link; versions, hashes, flags, and licences are recorded in [`vendor/MANIFEST.md`](../vendor/MANIFEST.md). |
 | [3 — Simulator app boot](../GOAL-LOOP.md#goal-3--simulator-app-boot) | Complete | The UIKit/SDL application launches, streams logs, and reaches the OpenRCT2 UI in an iPad Simulator. |
-| [4 — Framebuffer presentation](../GOAL-LOOP.md#goal-4--correct-software-framebuffer-presentation) | Complete | The software framebuffer presents through SDL's iOS Metal renderer in landscape at Retina scale. |
+| [4 — Framebuffer presentation](../GOAL-LOOP.md#goal-4--correct-software-framebuffer-presentation) | Complete, contract updating | Original proof: software framebuffer through SDL Metal in landscape at Retina scale. Live contract: universal portrait full-screen canvas; iPhone and iPad Simulator screenshot proofs are green. |
 | [5 — Sandbox and import](../GOAL-LOOP.md#goal-5--sandbox-paths-and-user-owned-data-import) | Complete | A clean physical-iPad install selected standard RCT2 data through Files, validated and copied it safely, retained it after forced relaunch, and loaded a scenario. RCT Classic and malformed-folder paths are also covered in Simulator. |
 | [6 — Pointer, keyboard, mouse](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play) | In progress | Pointer movement, clicking, scrolling, trackpad zoom, attached-keyboard text entry, and existing controls work on device. The recorded coaster-and-scenery end-to-end proof remains. |
 | [7 — Finger-first controls](../GOAL-LOOP.md#goal-7--finger-first-controls) | In progress | The current touch mapping is accepted on device: tap/placement, UI dragging, long-press secondary action, inverted half-speed pan, pinch, native text entry, paint/remove dragging, and construction rotation. The full finger-only coaster-and-scenery proof remains. |
@@ -62,7 +63,12 @@ end-to-end exit scripts are still pending.
   updates, and leaves no temporary or backup debris.
 - A malformed folder is rejected with a useful error and no partial import.
 - The local developer flow loads a real scenario. Proprietary game data remains
-  outside tracked files and distributable bundles.
+  outside tracked files, IPAs, and xcarchives. Personal Simulator installs may
+  copy ignored `ref/rct2` into the local `.app`.
+- August 27 Simulator proofs: iPhone 17 Pro frame 1206×2622 and iPad Pro
+  13-inch frame 2064×2752 are portrait, `active=1.000`, and the engine canvas
+  matches window points (402×874 / 1032×1376). `game_path` is the bundled
+  `OpenRCT2Touch.app/rct2` payload.
 - The attached Magic Keyboard and trackpad retain their existing behavior.
   Finger controls support placement, long press, responsive inverted
   two-finger panning, and a more deliberate pinch threshold. The app-owned
@@ -111,6 +117,19 @@ end-to-end exit scripts are still pending.
 The full mapping and decision history are maintained in
 [`TOUCH-CONTROLS.md`](TOUCH-CONTROLS.md).
 
+## Scope change — universal portrait viewport
+
+Goal 6/7 landscape device proofs pause while the presentation contract moves
+to a universal iPhone and iPad build locked to portrait. The software canvas
+is the tall screen in points (`window_scale` 1), presented full-screen through
+SDL Metal (notch and home-indicator overlap is accepted). In-engine top and
+bottom toolbars are skipped on iOS so a native overlay can replace them later.
+Oversized in-engine windows (scenario select, scenery, load/save) are clamped
+to the canvas rather than rewritten.
+
+The July/August landscape iPad checkpoint remains historically true. Do not
+treat a landscape 4:3 Simulator frame as the current screenshot contract.
+
 ## Physical-device checkpoint
 
 The July 16 signed-device loop used the existing local development signing
@@ -130,9 +149,11 @@ Files import, forced relaunch persistence check, and scenario load also passed.
 ## Remaining human gates
 
 - Record the full Goal 6 coaster build and scenery placement using only the
-  attached pointer/keyboard controls.
+  attached pointer/keyboard controls, after portrait presentation is green.
 - Record the full Goal 7 coaster build and scenery placement using only fingers,
   including text entry. Revisit feel only if that longer flow exposes a gap.
+- First physical iPhone signing/trust, using the existing development team and
+  device UDID flow.
 
 ## Remaining goal loop
 

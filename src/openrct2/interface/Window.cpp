@@ -27,9 +27,14 @@
 #include "Widget.h"
 #include "WindowBase.h"
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <iterator>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
 
 namespace OpenRCT2
 {
@@ -718,6 +723,36 @@ static constexpr float kWindowScrollLocations[][2] = {
                     w->onToolAbort(gCurrentToolWidget.widgetIndex);
             }
         }
+    }
+
+    int32_t WindowGetTopToolbarOffset()
+    {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        return 0;
+#else
+        if (gLegacyScene == LegacyScene::titleSequence)
+        {
+            return 0;
+        }
+        return kTopToolbarHeight + 1;
+#endif
+    }
+
+    ScreenSize WindowFitToScreen(ScreenSize size)
+    {
+        const int32_t screenWidth = ContextGetWidth();
+        const int32_t screenHeight = ContextGetHeight();
+        if (screenWidth > 0)
+        {
+            size.width = std::min<int32_t>(size.width, screenWidth);
+        }
+        if (screenHeight > 0)
+        {
+            size.height = std::min<int32_t>(size.height, screenHeight);
+        }
+        size.width = std::max<int32_t>(size.width, 64);
+        size.height = std::max<int32_t>(size.height, 64);
+        return size;
     }
 
     /**

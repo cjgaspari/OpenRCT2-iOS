@@ -37,4 +37,6 @@ for dependency in sdl2 icu freetype libpng zlib zstd libzip nlohmann-json; do
     cp "$source_path" "$THIRD_PARTY/$dependency.txt"
 done
 
+find "$APP" -name .DS_Store -delete
+
 echo "Staged GPL, attribution, and third-party notices in $LICENCES"

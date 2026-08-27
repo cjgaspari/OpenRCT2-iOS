@@ -7,7 +7,7 @@
 
 ## Mission
 
-Port **OpenRCT2** to run **natively on iPadOS** with finger and hardware-pointer controls. This repo is the fork **`chrissotraidis/OpenRCT2Touch`** (forked from `OpenRCT2/OpenRCT2`, GPLv3). Apple Pencil and multiplayer are outside the current release scope.
+Port **OpenRCT2** to run **natively on iPhone and iPad** with finger and hardware-pointer controls. This repo is the fork **`chrissotraidis/OpenRCT2Touch`** (forked from `OpenRCT2/OpenRCT2`, GPLv3). Apple Pencil and multiplayer are outside the current release scope. The live presentation contract is portrait on both device families.
 
 **Success = the MVP demo:** on a physical iPad, the app launches natively, loads user-imported RCT2 data, and lets you build a coaster + place scenery with fingers or an attached pointer at a playable frame rate — plus one community plugin or custom scenario loading on-device.
 
@@ -15,7 +15,7 @@ Port **OpenRCT2** to run **natively on iPadOS** with finger and hardware-pointer
 
 ## Golden rules (NON-NEGOTIABLE)
 
-1. **Assets are sacred.** Never commit, push, or package the `ref/` folder or any RollerCoaster Tycoon game data. `ref/` is git-ignored; it is the user's own copy, for local testing only. If a change would put game assets into a tracked file, a commit, or a distributable build → **STOP, that is a hard error.**
+1. **Assets are sacred.** Never commit, push, or put the `ref/` folder or any RollerCoaster Tycoon game data into git, an IPA, or an xcarchive. `ref/` is git-ignored; it is the user's own copy. A local Simulator `.app` under `build/` may include that ignored payload for personal installs. If a change would put game assets into a tracked file, a commit, or a distributable archive → **STOP, that is a hard error.**
 2. **Branch discipline.** Do all work on the **`ipad`** branch (or short-lived phase branches merged into it). **Never commit to `develop`** — it is the read-only mirror of upstream. **Never push to `upstream` / `OpenRCT2/OpenRCT2`. Never open a pull request against upstream.** This is a standalone fork.
 3. **Preserve provenance.** Keep every upstream `licence.txt`, per-file copyright header, and `contributors.md` intact. Never strip or rewrite them. Never rewrite `develop` history; no force-pushes to shared branches. Keep the "forked from" link.
 4. **Commit hygiene.** Small, reversible commits, each with a green build. Prefix port commits `[touch] …` (e.g. `[touch] Phase 3: add UiContext.iOS.mm`). State what changed. **Never leave `ipad` red.**
@@ -29,7 +29,7 @@ Port **OpenRCT2** to run **natively on iPadOS** with finger and hardware-pointer
 - First device provisioning / code-signing trust.
 - Any "does this *feel* right?" judgment for touch UX (Phase 7).
 - Dependency-build dead ends (Phase 2) after a few failed attempts — don't thrash.
-- Anything that would move `ref/`/game assets into a commit or a distributable artifact (should never happen).
+- Anything that would move `ref/`/game assets into a commit, IPA, or xcarchive (should never happen).
 
 ---
 
@@ -47,9 +47,9 @@ Use this for anything that isn't iOS-specific. If it's red, fix before moving on
 **Middle loop — iOS Simulator (mostly unattended):**
 ```bash
 ./scripts/build-ios.sh sim
-# boots the Simulator, installs, launches with --console
+./scripts/run-ios-sim.sh verify all   # iPhone and iPad portrait lifecycle + screenshot
 ```
-UI rendering, asset-import plumbing, input wiring.
+UI rendering, asset-import plumbing, input wiring. Use `iphone` or `ipad` instead of `all` for a single family.
 
 **Outer loop — physical iPad (needs the human for setup + feel):**
 ```bash

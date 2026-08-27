@@ -38,6 +38,10 @@
 #include <openrct2/ui/WindowManager.h>
 #include <openrct2/world/Park.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 using namespace OpenRCT2::Drawing;
 
 namespace OpenRCT2::Ui::Windows
@@ -697,6 +701,9 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* GameBottomToolbarOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        return nullptr;
+#else
         int32_t screenWidth = ContextGetWidth();
         int32_t screenHeight = ContextGetHeight();
 
@@ -710,6 +717,7 @@ namespace OpenRCT2::Ui::Windows
             { WindowFlag::stickToFront, WindowFlag::transparent, WindowFlag::noBackground, WindowFlag::noTitleBar });
 
         return window;
+#endif
     }
 
     void WindowGameBottomToolbarInvalidateNewsItem()

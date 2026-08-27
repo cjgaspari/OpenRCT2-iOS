@@ -28,6 +28,7 @@
 #if defined(__APPLE__) && defined(__MACH__)
     #include <TargetConditionals.h>
     #if TARGET_OS_IOS
+        #include "../../IosSafeArea.h"
         #include <os/log.h>
     #endif
 #endif
@@ -210,14 +211,16 @@ public:
         SDL_GetRendererOutputSize(_sdlRenderer, &drawableWidth, &drawableHeight);
         LOG_INFO(
             "[OpenRCT2Touch] presentation: window_points=%dx%d drawable_pixels=%dx%d canvas=%ux%u ui_scale=%.2f "
-            "texture=%s",
+            "safe_area_points=top:%.0f,left:%.0f,bottom:%.0f,right:%.0f texture=%s",
             windowWidth, windowHeight, drawableWidth, drawableHeight, width, height, Config::Get().general.windowScale,
+            GetIosSafeArea().top, GetIosSafeArea().left, GetIosSafeArea().bottom, GetIosSafeArea().right,
             SDL_GetPixelFormatName(format));
         os_log_info(
             OS_LOG_DEFAULT,
             "[OpenRCT2Touch] presentation: window_points=%dx%d drawable_pixels=%dx%d canvas=%ux%u ui_scale=%.2f "
-            "texture=%{public}s",
+            "safe_area_points=top:%.0f,left:%.0f,bottom:%.0f,right:%.0f texture=%{public}s",
             windowWidth, windowHeight, drawableWidth, drawableHeight, width, height, Config::Get().general.windowScale,
+            GetIosSafeArea().top, GetIosSafeArea().left, GetIosSafeArea().bottom, GetIosSafeArea().right,
             SDL_GetPixelFormatName(format));
 #endif
     }
@@ -279,11 +282,7 @@ private:
     void Display()
     {
         auto* viewport = WindowGetViewport(WindowGetMain());
-
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        SDL_SetRenderDrawColor(_sdlRenderer, 0, 0, 0, 255);
-        SDL_RenderClear(_sdlRenderer);
-#endif
+        const SDL_Rect* presentDestPtr = nullptr;
 
         if (Config::Get().general.enableLightFx && viewport != nullptr)
         {
@@ -307,11 +306,11 @@ private:
             SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, nullptr);
 
             SDL_SetRenderTarget(_sdlRenderer, nullptr);
-            SDL_RenderCopy(_sdlRenderer, _scaledScreenTexture, nullptr, nullptr);
+            SDL_RenderCopy(_sdlRenderer, _scaledScreenTexture, nullptr, presentDestPtr);
         }
         else
         {
-            SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, nullptr);
+            SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, presentDestPtr);
         }
 
         if (gShowDirtyVisuals)

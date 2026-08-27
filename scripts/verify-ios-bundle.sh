@@ -56,8 +56,26 @@ for dependency in sdl2 icu freetype libpng zlib zstd libzip nlohmann-json; do
     fi
 done
 
-if [[ "$(plutil -extract 'CFBundleIcons~ipad.CFBundlePrimaryIcon.CFBundleIconName' raw "$APP/Info.plist")" != "AppIcon" ]]; then
-    echo "App bundle does not declare the compiled AppIcon catalog." >&2
+if [[ "$(plutil -extract 'CFBundleIcons.CFBundlePrimaryIcon.CFBundleIconName' raw "$APP/Info.plist")" != "AppIcon"
+    || "$(plutil -extract 'CFBundleIcons~ipad.CFBundlePrimaryIcon.CFBundleIconName' raw "$APP/Info.plist")" != "AppIcon" ]]; then
+    echo "App bundle does not declare the compiled AppIcon catalog for iPhone and iPad." >&2
+    exit 1
+fi
+if [[ "$(plutil -extract UIDeviceFamily.0 raw "$APP/Info.plist")" != "1"
+    || "$(plutil -extract UIDeviceFamily.1 raw "$APP/Info.plist")" != "2" ]]; then
+    echo "App bundle is not a universal iPhone and iPad binary." >&2
+    exit 1
+fi
+if [[ "$(plutil -extract UISupportedInterfaceOrientations.0 raw "$APP/Info.plist")" != "UIInterfaceOrientationPortrait" ]]; then
+    echo "App bundle does not lock iPhone to portrait." >&2
+    exit 1
+fi
+if [[ "$(plutil -extract 'UISupportedInterfaceOrientations~ipad.0' raw "$APP/Info.plist")" != "UIInterfaceOrientationPortrait" ]]; then
+    echo "App bundle does not lock iPad to portrait." >&2
+    exit 1
+fi
+if plutil -p "$APP/Info.plist" | grep -Fq 'UIInterfaceOrientationLandscape'; then
+    echo "App bundle still declares a landscape orientation." >&2
     exit 1
 fi
 
@@ -91,9 +109,13 @@ if [[ "$(printf '%s' "$ASSET_CATALOG_INFO" | plutil -extract 1.Name raw -)" != "
     exit 1
 fi
 
+if [[ -d "$APP/rct2" ]]; then
+    echo "Local personal RCT2 payload present at $APP/rct2; excluded from the ROM-free audit."
+fi
+
 PROPRIETARY_MATCHES=""
 if PROPRIETARY_MATCHES="$(
-    find "$APP" -type f -print \
+    find "$APP" -path "$APP/rct2" -prune -o -type f -print \
         | "$GREP" -Ei '(^|/)(g1\.dat|css1\.dat|css2\.dat|rct2\.exe)$|/(ObjData|Scenarios)/|\.(sv4|sv6|sc4|sc6|td4|td6)$'
 )"; then
     :
@@ -120,7 +142,10 @@ fi
 while IFS= read -r -d '' bundled_file; do
     relative_path="${bundled_file#"$APP"/}"
     case "$relative_path" in
-        Info.plist|OpenRCT2Touch|embedded.mobileprovision|_CodeSignature/CodeResources|Assets.car|AppIcon60x60@2x.png|AppIcon76x76@2x~ipad.png)
+        Info.plist|OpenRCT2Touch|embedded.mobileprovision|_CodeSignature/CodeResources|Assets.car|AppIcon*.png)
+            continue
+            ;;
+        rct2/*)
             continue
             ;;
         Licences/GPL-3.0-or-later.txt)

@@ -11,6 +11,7 @@
 #include <openrct2-ui/ride/Construction.h>
 #include <openrct2-ui/windows/Windows.h>
 #include <openrct2/Context.h>
+#include <openrct2/interface/Window.h>
 #include <openrct2/GameState.h>
 #include <openrct2/OpenRCT2.h>
 #include <openrct2/SpriteIds.h>
@@ -769,7 +770,7 @@ namespace OpenRCT2::Ui::Windows
         }
         else
         {
-            screenPos = { 0, kTopToolbarHeight + 2 };
+            screenPos = { 0, OpenRCT2::WindowGetTopToolbarOffset() + 2 };
         }
 
         return windowMgr->Create<TrackListWindow>(WindowClass::trackDesignList, screenPos, kWindowSize, flags, item);

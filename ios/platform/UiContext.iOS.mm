@@ -13,6 +13,7 @@
 
     #include "RCT2Importer.iOS.h"
 
+    #include <openrct2-ui/IosSafeArea.h>
     #include <openrct2-ui/UiContext.h>
 
     #include <SDL.h>
@@ -51,6 +52,58 @@ namespace OpenRCT2::Ui
         event.type = SDL_KEYUP;
         event.key.state = SDL_RELEASED;
         SDL_PushEvent(&event);
+    }
+
+    IosSafeArea GetIosSafeArea()
+    {
+        IosSafeArea result{};
+        @autoreleasepool
+        {
+            UIWindow* activeWindow = nil;
+            UIWindow* fallbackWindow = nil;
+            for (UIScene* scene in UIApplication.sharedApplication.connectedScenes)
+            {
+                if (![scene isKindOfClass:UIWindowScene.class])
+                {
+                    continue;
+                }
+
+                for (UIWindow* window in static_cast<UIWindowScene*>(scene).windows)
+                {
+                    if (window.hidden || window.rootViewController == nil)
+                    {
+                        continue;
+                    }
+
+                    fallbackWindow = window;
+                    if (window.isKeyWindow)
+                    {
+                        activeWindow = window;
+                        break;
+                    }
+                }
+                if (activeWindow != nil)
+                {
+                    break;
+                }
+            }
+
+            UIWindow* window = activeWindow != nil ? activeWindow : fallbackWindow;
+            if (window == nil)
+            {
+                return result;
+            }
+
+            const CGRect bounds = window.bounds;
+            const UIEdgeInsets insets = window.safeAreaInsets;
+            result.top = static_cast<float>(insets.top);
+            result.left = static_cast<float>(insets.left);
+            result.bottom = static_cast<float>(insets.bottom);
+            result.right = static_cast<float>(insets.right);
+            result.windowWidth = static_cast<int32_t>(CGRectGetWidth(bounds));
+            result.windowHeight = static_cast<int32_t>(CGRectGetHeight(bounds));
+        }
+        return result;
     }
 
     static UIViewController* GetHostViewController()
@@ -158,7 +211,7 @@ namespace OpenRCT2::Ui
     public:
         iOSContext()
         {
-            SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+            SDL_SetHint(SDL_HINT_ORIENTATIONS, "Portrait PortraitUpsideDown");
             SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "2");
             SDL_SetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD, "1");
         }

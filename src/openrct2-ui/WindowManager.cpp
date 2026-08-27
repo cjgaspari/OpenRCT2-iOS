@@ -692,7 +692,7 @@ public:
     {
         if (loc.x < 0)
             return false;
-        if (loc.y <= kTopToolbarHeight && gLegacyScene != LegacyScene::titleSequence)
+        if (loc.y < WindowGetTopToolbarOffset())
             return false;
         if (loc.x + windowSize.width > ContextGetWidth())
             return false;
@@ -713,7 +713,7 @@ public:
         unk = screenWidth + (unk * 2);
         if (loc.x > unk)
             return false;
-        if (loc.y <= kTopToolbarHeight && gLegacyScene != LegacyScene::titleSequence)
+        if (loc.y < WindowGetTopToolbarOffset())
             return false;
         unk = screenHeight - (windowSize.height / 4);
         if (loc.y > unk)
@@ -730,7 +730,7 @@ public:
         else if (screenPos.x + windowSize.width > screenSize.width)
             screenPos.x = screenSize.width - windowSize.width;
 
-        auto toolbarAllowance = gLegacyScene == LegacyScene::titleSequence ? 0 : (kTopToolbarHeight + 1);
+        auto toolbarAllowance = WindowGetTopToolbarOffset();
         if (windowSize.height - toolbarAllowance > screenSize.height || screenPos.y < toolbarAllowance)
             screenPos.y = toolbarAllowance;
         else if (screenPos.y + windowSize.height - toolbarAllowance > screenSize.height)
@@ -834,7 +834,7 @@ public:
         auto screenWidth = uiContext.GetWidth();
         auto screenHeight = uiContext.GetHeight();
         return ScreenCoordsXY{ (screenWidth - size.width) / 2,
-                               std::max(kTopToolbarHeight + 1, (screenHeight - size.height) / 2) };
+                               std::max(WindowGetTopToolbarOffset(), (screenHeight - size.height) / 2) };
     }
 
     WindowBase* Create(
@@ -842,6 +842,7 @@ public:
         WindowFlags flags) override
     {
         windowSize.height += wp->getTitleBarDiffTarget();
+        windowSize = WindowFitToScreen(windowSize);
 
         if (flags.has(WindowFlag::autoPosition))
         {

@@ -60,7 +60,7 @@ and merge the result into `ipad`; do not develop Touch changes on the mirror.
 
 | Area | State | Current evidence |
 | --- | :---: | --- |
-| Native iPad runtime | ✅ | Signed ARM64 iPadOS app, SDL Metal presentation, landscape Retina output |
+| Native iOS runtime | ✅ | Signed ARM64 iPadOS app with SDL Metal presentation; universal portrait canvas is the live contract |
 | User data and persistence | ✅ | User-owned RCT2 data in the app sandbox survives build replacement and relaunch; scenarios load on device |
 | Files folder import | ✅ | Standard RCT2 data imports through Files on a physical iPad, persists after relaunch, and loads scenarios; RCT Classic is also validated in Simulator |
 | Keyboard and trackpad | ✅ | Pointer controls, shortcuts, text entry, scrolling, and tuned viewport zoom work on device |
@@ -215,6 +215,17 @@ For an optional Simulator build, use:
 ./scripts/run-ios-sim.sh verify
 ```
 
+For a one-click play session (opens Simulator, installs, launches):
+
+```sh
+./scripts/play-ios-sim.sh          # iPhone, reuse the last build
+./scripts/play-ios-sim.sh ipad --rebuild
+```
+
+`run-ios-sim.sh` copies ignored `ref/rct2` into the local Simulator `.app` when
+that folder exists, so the title screen can load without the Files picker. That
+payload stays out of git, IPAs, and xcarchives.
+
 ### Optional: create a local unsigned IPA
 
 After building the device app, this command creates an audited, ROM-free IPA
@@ -250,6 +261,15 @@ under **Xcode → Settings → Accounts**. Team and device identifiers are passe
 only as environment variables; the scripts never save them in the repository.
 
 ### 4. Sign, install, and launch
+
+```sh
+OPENRCT2_DEVELOPMENT_TEAM=<team-identifier> \
+    ./scripts/play-ios-device.sh
+```
+
+That signs a device build, copies ignored `ref/rct2` into the `.app` before
+codesign, installs it on the connected iPhone or iPad, and launches. Or run the
+two-step form:
 
 ```sh
 OPENRCT2_DEVELOPMENT_TEAM=<team-identifier> \

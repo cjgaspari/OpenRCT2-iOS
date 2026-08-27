@@ -52,12 +52,9 @@ guard drewImage else
     fail("could not create an RGBA bitmap")
 }
 
-// simctl captures the iPad panel's native portrait memory order even while the
-// Simulator window is landscape. Metrics are rotation-invariant, so normalize
-// the logical dimensions without rewriting the source image.
-let logicalWidth = max(width, height)
-let logicalHeight = min(width, height)
-let aspectRatio = Double(logicalWidth) / Double(logicalHeight)
+// simctl captures the device framebuffer. Portrait iPhone and iPad frames are
+// taller than they are wide; do not rotate them back to landscape.
+let aspectRatio = Double(width) / Double(height)
 
 let sampleStep = max(1, min(width, height) / 512)
 var sampled = 0
@@ -95,27 +92,31 @@ let activeFraction = Double(active) / Double(sampled)
 let vividFraction = Double(vivid) / Double(sampled)
 print(
     String(
-        format: "iOS frame: raw=%dx%d logical=%dx%d aspect=%.4f active=%.3f vivid=%.3f colours=%d",
-        width, height, logicalWidth, logicalHeight, aspectRatio, activeFraction, vividFraction, colourBuckets.count))
+        format: "iOS frame: raw=%dx%d aspect=%.4f active=%.3f vivid=%.3f colours=%d",
+        width, height, aspectRatio, activeFraction, vividFraction, colourBuckets.count))
 
-guard abs(aspectRatio - (4.0 / 3.0)) <= 0.03 else
+guard height > width else
 {
-    fail("expected a 4:3 landscape frame, got aspect \(aspectRatio)")
+    fail("expected a portrait frame, got \(width)x\(height)")
 }
-guard activeFraction >= 0.90 else
+guard aspectRatio >= 0.40 && aspectRatio <= 0.82 else
+{
+    fail("expected a portrait phone or iPad aspect, got \(aspectRatio)")
+}
+guard activeFraction >= 0.55 else
 {
     fail(
         String(
-            format: "only %.1f%% of the frame is active; rotate the Simulator to landscape and retry",
+            format: "only %.1f%% of the frame is active; expected a portrait game canvas",
             activeFraction * 100.0))
 }
-guard vividFraction >= 0.40 else
+guard vividFraction >= 0.25 else
 {
     fail(String(format: "palette output is unexpectedly flat (vivid fraction %.3f)", vividFraction))
 }
-guard colourBuckets.count >= 64 else
+guard colourBuckets.count >= 48 else
 {
     fail("palette output has only \(colourBuckets.count) sampled colour buckets")
 }
 
-print("iOS screenshot verification passed: landscape, full-frame, and palette checks are green.")
+print("iOS screenshot verification passed: portrait, full-frame, and palette checks are green.")

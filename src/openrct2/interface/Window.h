@@ -322,6 +322,8 @@ namespace OpenRCT2
     // Open window functions
     void WindowResizeGui(int32_t width, int32_t height);
     void WindowResizeGuiScenarioEditor(int32_t width, int32_t height);
+    int32_t WindowGetTopToolbarOffset();
+    ScreenSize WindowFitToScreen(ScreenSize size);
 
     void TextinputCancel();
 

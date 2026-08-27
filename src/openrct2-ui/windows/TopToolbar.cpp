@@ -51,6 +51,10 @@
 #include <openrct2/world/Scenery.h>
 #include <string>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
 extern "C" {
@@ -245,7 +249,7 @@ namespace OpenRCT2::Ui::Windows
 
 #pragma endregion
 
-    static constexpr auto _topToolbarWidgets = makeWidgets(
+    [[maybe_unused]] static constexpr auto _topToolbarWidgets = makeWidgets(
         makeRemapWidget({  0, 0}, {30, kTopToolbarHeight + 1}, WidgetType::trnBtn, WindowColour::primary   , SPR_TOOLBAR_PAUSE,          STR_PAUSE_GAME_TIP                ), // Pause
         makeRemapWidget({ 60, 0}, {30, kTopToolbarHeight + 1}, WidgetType::trnBtn, WindowColour::primary   , SPR_TOOLBAR_FILE,           STR_DISC_AND_GAME_OPTIONS_TIP     ), // File menu
         makeRemapWidget({250, 0}, {30, kTopToolbarHeight + 1}, WidgetType::trnBtn, WindowColour::primary   , SPR_G2_TOOLBAR_MUTE,        STR_TOOLBAR_MUTE_TIP              ), // Mute
@@ -1492,6 +1496,9 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* TopToolbarOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        return nullptr;
+#else
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->Create<TopToolbar>(
             WindowClass::topToolbar, ScreenCoordsXY(0, 0), { ContextGetWidth(), kTopToolbarHeight + 1 },
@@ -1502,5 +1509,6 @@ namespace OpenRCT2::Ui::Windows
         WindowInitScrollWidgets(*window);
 
         return window;
+#endif
     }
 } // namespace OpenRCT2::Ui::Windows

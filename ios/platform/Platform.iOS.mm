@@ -20,6 +20,7 @@
     #include <CoreText/CoreText.h>
     #include <Foundation/Foundation.h>
     #include <mach-o/dyld.h>
+    #include <vector>
 
 namespace OpenRCT2::Platform
 {
@@ -199,12 +200,21 @@ namespace OpenRCT2::Platform
 
     std::vector<std::string> GetSearchablePathsRCT2()
     {
-        auto documentsPath = GetSearchPath(NSDocumentDirectory);
-        if (documentsPath.empty())
+        std::vector<std::string> paths;
+        @autoreleasepool
         {
-            return {};
+            NSString* resourcePath = NSBundle.mainBundle.resourcePath;
+            if (resourcePath != nil)
+            {
+                paths.emplace_back(Path::Combine(resourcePath.fileSystemRepresentation, u8"rct2"));
+            }
         }
-        return { Path::Combine(documentsPath, u8"rct2") };
+        auto documentsPath = GetSearchPath(NSDocumentDirectory);
+        if (!documentsPath.empty())
+        {
+            paths.emplace_back(Path::Combine(documentsPath, u8"rct2"));
+        }
+        return paths;
     }
 } // namespace OpenRCT2::Platform
 

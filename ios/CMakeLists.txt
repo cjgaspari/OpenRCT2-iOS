@@ -1,4 +1,4 @@
-# OpenRCT2 Touch iPad application shell.
+# OpenRCT2 Touch iPhone and iPad application shell.
 
 if (NOT TARGET SDL2::SDL2main)
     message(FATAL_ERROR "SDL2 did not provide the UIKit SDL2main target")
@@ -6,16 +6,23 @@ endif ()
 
 set(OPENRCT2_TOUCH_ASSET_CATALOG "${CMAKE_CURRENT_LIST_DIR}/App/Assets.xcassets")
 
-add_executable(openrct2-touch MACOSX_BUNDLE
+set(_openrct2_touch_sources
     "${CMAKE_CURRENT_LIST_DIR}/App/AppLifecycle.iOS.mm"
-    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm"
-    "${OPENRCT2_TOUCH_ASSET_CATALOG}")
+    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm")
+if (CMAKE_GENERATOR STREQUAL "Xcode")
+    list(APPEND _openrct2_touch_sources "${OPENRCT2_TOUCH_ASSET_CATALOG}")
+endif ()
 
-set_source_files_properties("${OPENRCT2_TOUCH_ASSET_CATALOG}" PROPERTIES
-    MACOSX_PACKAGE_LOCATION Resources)
+add_executable(openrct2-touch MACOSX_BUNDLE ${_openrct2_touch_sources})
+
+if (CMAKE_GENERATOR STREQUAL "Xcode")
+    set_source_files_properties("${OPENRCT2_TOUCH_ASSET_CATALOG}" PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources)
+endif ()
 
 option(OPENRCT2_IOS_CODE_SIGNING "Allow Xcode to sign the iPadOS app" OFF)
 set(OPENRCT2_IOS_DEVELOPMENT_TEAM "" CACHE STRING "Apple development team used only for a signed iPadOS build")
+option(OPENRCT2_BUNDLE_LOCAL_RCT2 "Copy ignored ref/rct2 into the local .app before codesign (personal installs only)" OFF)
 
 if (OPENRCT2_IOS_CODE_SIGNING)
     if (NOT CMAKE_GENERATOR STREQUAL "Xcode")
@@ -45,10 +52,13 @@ if (CMAKE_GENERATOR STREQUAL "Xcode")
         "LINKER:-force_load,$<TARGET_FILE:openrct2-ui>")
 else ()
     add_custom_command(TARGET openrct2-touch POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${CMAKE_CURRENT_LIST_DIR}/App/Info.plist"
+            "$<TARGET_BUNDLE_DIR:openrct2-touch>/Info.plist"
         COMMAND "${ROOT_DIR}/scripts/compile-ios-assets.sh"
             "$<TARGET_BUNDLE_DIR:openrct2-touch>"
             "${OPENRCT2_IOS_PLATFORM}"
-        COMMENT "Compiling the iPad app icon catalog")
+        COMMENT "Installing Info.plist and compiling the iOS app icon catalog")
 endif ()
 
 set_target_properties(openrct2-touch PROPERTIES
@@ -59,7 +69,7 @@ set_target_properties(openrct2-touch PROPERTIES
     XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${OPENRCT2_IOS_DEVELOPMENT_TEAM}"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.chrissotraidis.openrct2touch"
     XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
-    XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "2")
+    XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
 
 if (CMAKE_GENERATOR STREQUAL "Xcode")
     # A signed bundle must not be modified after Xcode's CodeSign phase. Attach
@@ -73,6 +83,12 @@ if (CMAKE_GENERATOR STREQUAL "Xcode")
         "${VCPKG_INSTALLED_DIR}"
         "${VCPKG_TARGET_TRIPLET}"
         COMMENT "Staging redistributable OpenRCT2 engine assets before signing")
+    if (OPENRCT2_BUNDLE_LOCAL_RCT2)
+        add_custom_command(TARGET openrct2-touch PRE_BUILD
+            COMMAND "${ROOT_DIR}/scripts/bundle-local-rct2.sh"
+            "$<TARGET_BUNDLE_DIR:openrct2-touch>"
+            COMMENT "Copying personal RCT2 data into the local app before signing")
+    endif ()
     add_custom_target(openrct2-touch-stage DEPENDS openrct2-touch)
 else ()
     add_custom_target(openrct2-touch-stage
