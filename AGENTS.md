@@ -27,6 +27,6 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 
 ## Current goal
 
-**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is the **universal portrait viewport**, now Simulator screenshot-green: iPhone and iPad install, a tall full-screen park canvas, hidden in-engine toolbars, and clamped tool windows. Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware.
+**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is a **native iOS chrome overlay**: a UIKit **Build ride** control that invokes the existing in-engine new-ride window. Portrait full-screen canvas and hidden in-engine toolbars are already Simulator screenshot-green. Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.

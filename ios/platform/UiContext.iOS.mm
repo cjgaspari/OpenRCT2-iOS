@@ -11,6 +11,7 @@
 
 #if TARGET_OS_IOS
 
+    #include "NativeChrome.iOS.h"
     #include "RCT2Importer.iOS.h"
 
     #include <openrct2-ui/IosSafeArea.h>
@@ -219,6 +220,7 @@ namespace OpenRCT2::Ui
         ~iOSContext() override
         {
             EndTextInput();
+            NativeChromeDetach();
             [_textField removeFromSuperview];
             [_textField release];
             _textField = nil;
@@ -226,6 +228,16 @@ namespace OpenRCT2::Ui
 
         void SetWindowIcon([[maybe_unused]] SDL_Window* window) override
         {
+        }
+
+        void AttachNativeOverlay(SDL_Window* window) override
+        {
+            NativeChromeAttach(window);
+        }
+
+        bool HandleSdlEvent(const SDL_Event& event) override
+        {
+            return NativeChromeHandleEvent(event);
         }
 
         bool IsSteamOverlayAttached() override

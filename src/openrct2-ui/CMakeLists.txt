@@ -47,7 +47,9 @@ file(GLOB_RECURSE OPENRCT2_UI_HEADERS
 if (APPLE)
     file(GLOB_RECURSE OPENRCT2_UI_MM_SOURCES "${CMAKE_CURRENT_LIST_DIR}/*.mm")
     if (OPENRCT2_IOS)
-        list(APPEND OPENRCT2_UI_MM_SOURCES "${ROOT_DIR}/ios/platform/UiContext.iOS.mm")
+        list(APPEND OPENRCT2_UI_MM_SOURCES
+            "${ROOT_DIR}/ios/platform/UiContext.iOS.mm"
+            "${ROOT_DIR}/ios/platform/NativeChrome.iOS.mm")
     endif ()
     set_source_files_properties(${OPENRCT2_UI_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules")
 endif ()

@@ -1295,6 +1295,10 @@ public:
                     break;
                 default:
                 {
+                    if (_platformUiContext->HandleSdlEvent(e))
+                    {
+                        break;
+                    }
                     _inputManager.queueInputEvent(e);
                     break;
                 }
@@ -1556,6 +1560,7 @@ private:
 #endif
         SetCursorTrap(Config::Get().general.trapCursor);
         _platformUiContext->SetWindowIcon(_window);
+        _platformUiContext->AttachNativeOverlay(_window);
 
         // Initialise the surface, palette and draw buffer
         DrawingEngineInit();

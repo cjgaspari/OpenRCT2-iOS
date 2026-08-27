@@ -46,7 +46,7 @@ Everything else, including broad polish and public-store distribution, is out of
 - Bundling any game assets.
 - The OpenGL hardware renderer on iOS (we use the software renderer — §8 Phase 4).
 - SDL3 migration (upstream is mid-migration; we stay on SDL2).
-- Rewriting the in-engine UI. We *adapt input*, we don't rebuild windows.
+- Rewriting the in-engine UI. We *adapt input* and may add a native chrome overlay that *triggers* existing window intents; we don't rebuild those windows.
 
 ---
 

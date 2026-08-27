@@ -14,6 +14,7 @@
 #include <vector>
 
 struct SDL_Window;
+union SDL_Event;
 
 namespace OpenRCT2
 {
@@ -55,6 +56,15 @@ namespace OpenRCT2::Ui
 
         virtual void EndTextInput()
         {
+        }
+
+        virtual void AttachNativeOverlay([[maybe_unused]] SDL_Window* window)
+        {
+        }
+
+        virtual bool HandleSdlEvent([[maybe_unused]] const SDL_Event& event)
+        {
+            return false;
         }
     };
 

@@ -246,6 +246,7 @@ verify_family() {
     done
 
     for required_event in \
+        'native chrome: attached build-ride overlay' \
         'renderer: driver=metal' \
         'presentation: window_points=' \
         'safe_area_points=' \
