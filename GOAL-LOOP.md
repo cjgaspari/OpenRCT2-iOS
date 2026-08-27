@@ -77,7 +77,7 @@ Each iteration reports: current goal, slice, changed files, proof commands and o
 
 ### Goal 7 — Finger-first controls
 
-- Pinch zoom, two-finger pan, long-press secondary action, tap/confirm placement, window manipulation, and usable hit targets pass focused tests.
+- Pinch zoom, one-finger map pan, long-press secondary action, tap/confirm placement, window manipulation, and usable hit targets pass focused tests.
 - The human confirms the MVP can be completed with fingers and the interaction feels acceptable.
 
 ### Goal 8 — Release documentation and package hygiene

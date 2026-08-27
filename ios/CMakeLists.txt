@@ -8,12 +8,18 @@ set(OPENRCT2_TOUCH_ASSET_CATALOG "${CMAKE_CURRENT_LIST_DIR}/App/Assets.xcassets"
 
 set(_openrct2_touch_sources
     "${CMAKE_CURRENT_LIST_DIR}/App/AppLifecycle.iOS.mm"
-    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm")
+    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm"
+    "${CMAKE_CURRENT_LIST_DIR}/platform/chrome/OpenRCT2TouchSwiftRuntime.swift")
 if (CMAKE_GENERATOR STREQUAL "Xcode")
     list(APPEND _openrct2_touch_sources "${OPENRCT2_TOUCH_ASSET_CATALOG}")
 endif ()
 
 add_executable(openrct2-touch MACOSX_BUNDLE ${_openrct2_touch_sources})
+
+set_source_files_properties(
+    "${CMAKE_CURRENT_LIST_DIR}/App/AppLifecycle.iOS.mm"
+    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm"
+    PROPERTIES COMPILE_FLAGS "-fno-objc-arc")
 
 if (CMAKE_GENERATOR STREQUAL "Xcode")
     set_source_files_properties("${OPENRCT2_TOUCH_ASSET_CATALOG}" PROPERTIES
@@ -38,7 +44,11 @@ endif ()
 
 target_link_libraries(openrct2-touch PRIVATE
     SDL2::SDL2main
-    OpenRCT2::openrct2-ui)
+    OpenRCT2::openrct2-ui
+    "-framework SwiftUI"
+    "-framework Combine")
+set_target_properties(openrct2-touch PROPERTIES
+    Swift_MODULE_NAME OpenRCT2Touch)
 target_link_options(openrct2-touch PRIVATE
     "LINKER:-ObjC"
     "LINKER:-no_warn_duplicate_libraries")

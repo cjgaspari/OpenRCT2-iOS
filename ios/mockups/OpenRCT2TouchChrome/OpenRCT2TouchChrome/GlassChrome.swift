@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct GlassIconButton: View {
-    let systemImage: String
+    var systemImage: String?
+    var title: String?
     let accessibilityLabel: String
     var prominent = false
     var size: CGFloat = 48
@@ -20,10 +21,18 @@ struct GlassIconButton: View {
         }
     }
 
+    @ViewBuilder
     private func label() -> some View {
-        Image(systemName: systemImage)
-            .font(.body.weight(.semibold))
-            .frame(width: size, height: size)
+        if let title {
+            Text(title)
+                .font(.body.weight(.semibold))
+                .monospacedDigit()
+                .frame(width: size, height: size)
+        } else {
+            Image(systemName: systemImage ?? "circle")
+                .font(.body.weight(.semibold))
+                .frame(width: size, height: size)
+        }
     }
 }
 
@@ -39,9 +48,14 @@ struct CameraCluster: View {
                     action: model.pauseButtonTapped
                 )
                 GlassIconButton(
-                    systemImage: model.speed.symbol,
-                    accessibilityLabel: "Game speed \(model.speed.rawValue)",
+                    title: model.speed.multiplierLabel,
+                    accessibilityLabel: "Game speed \(model.speed.multiplierLabel)",
                     action: model.speedButtonTapped
+                )
+                GlassIconButton(
+                    systemImage: "plus.magnifyingglass",
+                    accessibilityLabel: "Zoom in",
+                    action: { model.toolTapped(.viewOptions) }
                 )
                 GlassIconButton(
                     systemImage: "minus.magnifyingglass",
@@ -49,7 +63,7 @@ struct CameraCluster: View {
                     action: { model.toolTapped(.viewOptions) }
                 )
                 GlassIconButton(
-                    systemImage: "rotate.right",
+                    systemImage: "camera.rotate",
                     accessibilityLabel: "Rotate view",
                     action: { model.toolTapped(.viewOptions) }
                 )

@@ -37,6 +37,6 @@ Team and UDID live in gitignored `runtime/device.env` (copy `scripts/device.env.
 
 ## Current goal
 
-**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is the **native iOS park chrome**: two park-only Liquid Glass layouts (floating bottom cluster with Trees / Build ride / Paths / More, and a Find My-style inset sheet with Build / Park / View / More tabs). Overflow (…) in both layouts switches the layout; the choice is persisted. Portrait full-screen canvas and hidden in-engine toolbars are already Simulator screenshot-green. Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware.
+**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is the **native SwiftUI park chrome**: a park-only Liquid Glass floating cluster (Trees / Build ride / Paths / More, plus camera controls and a live status capsule). More opens a Park Tools sheet. Portrait full-screen canvas and hidden in-engine toolbars are already Simulator screenshot-green. Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.

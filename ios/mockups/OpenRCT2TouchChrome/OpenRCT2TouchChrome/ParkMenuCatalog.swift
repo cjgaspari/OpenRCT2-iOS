@@ -83,7 +83,7 @@ enum ParkMenuCatalog {
     ]
 
     static let alwaysBuild = Array(build.prefix(3))
-    static let cameraSymbols = ["minus.magnifyingglass", "plus.magnifyingglass", "rotate.right"]
+    static let cameraSymbols = ["plus.magnifyingglass", "minus.magnifyingglass", "camera.rotate"]
     static let viewToggles = [
         "Underground", "See-through rides", "See-through scenery",
         "Guests", "Staff", "Path issues", "Height marks",

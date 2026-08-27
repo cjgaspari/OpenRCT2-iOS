@@ -18,6 +18,15 @@ endif ()
 set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "" FORCE)
 set(CMAKE_OSX_DEPLOYMENT_TARGET 15.0 CACHE STRING "Minimum iOS version")
 
+if (NOT CMAKE_Swift_COMPILER)
+    set(CMAKE_Swift_COMPILER /usr/bin/swiftc CACHE FILEPATH "Swift compiler")
+endif ()
+if (OPENRCT2_IOS_PLATFORM STREQUAL "SIMULATOR")
+    set(CMAKE_Swift_COMPILER_TARGET "arm64-apple-ios15.0-simulator")
+else ()
+    set(CMAKE_Swift_COMPILER_TARGET "arm64-apple-ios15.0")
+endif ()
+
 # Keep host packages out of target discovery. Dependencies are provided by the
 # pinned vcpkg installation or an explicit CMAKE_PREFIX_PATH.
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)

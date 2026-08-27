@@ -45,10 +45,58 @@ struct MockupA_FloatingCluster: View {
         .safeAreaPadding(.horizontal, 16)
         .sheet(isPresented: $isShowingOverflow) {
             NavigationStack {
-                MenuList(items: Array(ParkMenuCatalog.build.dropFirst(3)) + ParkMenuCatalog.park + ParkMenuCatalog.view + ParkMenuCatalog.more) { window in
-                    isShowingOverflow = false
-                    model.toolTapped(window)
+                List {
+                    Section("Build") {
+                        ForEach(Array(ParkMenuCatalog.build.dropFirst(3))) { item in
+                            Button {
+                                isShowingOverflow = false
+                                model.toolTapped(item.window)
+                            } label: {
+                                menuLabel(item)
+                            }
+                            .listRowBackground(Color.clear)
+                        }
+                    }
+                    Section("Park") {
+                        ForEach(ParkMenuCatalog.park) { item in
+                            Button {
+                                isShowingOverflow = false
+                                model.toolTapped(item.window)
+                            } label: {
+                                menuLabel(item)
+                            }
+                            .listRowBackground(Color.clear)
+                        }
+                    }
+                    Section("View") {
+                        ForEach(ParkMenuCatalog.view) { item in
+                            Button {
+                                isShowingOverflow = false
+                                model.toolTapped(item.window)
+                            } label: {
+                                menuLabel(item)
+                            }
+                            .listRowBackground(Color.clear)
+                        }
+                        ForEach(ParkMenuCatalog.viewToggles, id: \.self) { name in
+                            Toggle(name, isOn: $model[viewFlag: name])
+                                .listRowBackground(Color.clear)
+                        }
+                    }
+                    Section("More") {
+                        ForEach(ParkMenuCatalog.more) { item in
+                            Button {
+                                isShowingOverflow = false
+                                model.toolTapped(item.window)
+                            } label: {
+                                menuLabel(item)
+                            }
+                            .listRowBackground(Color.clear)
+                        }
+                    }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
                 .navigationTitle("Park tools")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -63,5 +111,19 @@ struct MockupA_FloatingCluster: View {
 
     private func overflowButtonTapped() {
         isShowingOverflow = true
+    }
+
+    private func menuLabel(_ item: ParkMenuItem) -> some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.body.weight(.semibold))
+                Text(item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } icon: {
+            Image(systemName: item.systemImage)
+        }
     }
 }

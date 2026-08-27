@@ -50,8 +50,15 @@ if (APPLE)
         list(APPEND OPENRCT2_UI_MM_SOURCES
             "${ROOT_DIR}/ios/platform/UiContext.iOS.mm"
             "${ROOT_DIR}/ios/platform/NativeChrome.iOS.mm")
+        set(OPENRCT2_UI_SWIFT_SOURCES
+            "${ROOT_DIR}/ios/platform/chrome/ParkChromeActions.swift"
+            "${ROOT_DIR}/ios/platform/chrome/ParkMenuCatalog.swift"
+            "${ROOT_DIR}/ios/platform/chrome/ParkChromeModel.swift"
+            "${ROOT_DIR}/ios/platform/chrome/GlassChrome.swift"
+            "${ROOT_DIR}/ios/platform/chrome/ParkChromeRootView.swift"
+            "${ROOT_DIR}/ios/platform/chrome/ParkChromeHost.swift")
     endif ()
-    set_source_files_properties(${OPENRCT2_UI_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules")
+    set_source_files_properties(${OPENRCT2_UI_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules -fno-objc-arc")
 endif ()
 
 # Outputs
@@ -60,8 +67,11 @@ endif ()
 # that the app target can link.
 if (OPENRCT2_IOS)
     set(OPENRCT2_UI_TARGET openrct2-ui)
-    add_library(${OPENRCT2_UI_TARGET} STATIC ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
+    add_library(${OPENRCT2_UI_TARGET} STATIC ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES} ${OPENRCT2_UI_SWIFT_SOURCES})
     add_library(OpenRCT2::openrct2-ui ALIAS ${OPENRCT2_UI_TARGET})
+    set_target_properties(${OPENRCT2_UI_TARGET} PROPERTIES
+        Swift_MODULE_NAME OpenRCT2TouchChrome)
+    target_include_directories(${OPENRCT2_UI_TARGET} PRIVATE "${ROOT_DIR}/ios/platform")
 else ()
     set(OPENRCT2_UI_TARGET openrct2)
     add_executable(${OPENRCT2_UI_TARGET} ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
@@ -85,6 +95,9 @@ elseif (OPENRCT2_IOS)
         message(FATAL_ERROR "SDL2 did not provide a linkable CMake target")
     endif ()
     target_link_libraries(${OPENRCT2_UI_TARGET} "libopenrct2" ${OPENRCT2_SDL_TARGET})
+    target_link_libraries(${OPENRCT2_UI_TARGET}
+        "-framework SwiftUI"
+        "-framework Combine")
 elseif (NOT MSVC AND NOT WIN32)
     target_link_libraries(${OPENRCT2_UI_TARGET} "libopenrct2"
                                     PkgConfig::SDL2)

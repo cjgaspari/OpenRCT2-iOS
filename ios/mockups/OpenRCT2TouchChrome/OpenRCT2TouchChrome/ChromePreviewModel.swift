@@ -41,6 +41,15 @@ enum GameSpeed: String, CaseIterable {
         case .turbo: "forward.end.alt.fill"
         }
     }
+
+    var multiplierLabel: String {
+        switch self {
+        case .normal: "1x"
+        case .quick: "2x"
+        case .fast: "3x"
+        case .turbo: "4x"
+        }
+    }
 }
 
 enum SheetTab: String, CaseIterable, Identifiable {

@@ -9,18 +9,19 @@ touch gestures into those established actions wherever practical.
 | Input | Action | Design reason |
 | --- | --- | --- |
 | One-finger tap on UI | Primary click | Preserves ordinary OpenRCT2 button and window behavior. |
+| One-finger drag on the park map | Inverted, half-speed viewport pan after a 10 px slop | Apple Maps-style: a quick tap or small movement still selects; dragging past slop pans. Placement tools keep one-finger preview movement instead of panning. |
 | One-finger move with a placement tool | Move the construction preview without placing it | A finger needs pointer-like hover before committing a ride, scenery item, entrance, or exit. |
 | Double tap within 390 ms during placement | Confirm placement | Deliberate confirmation prevents an initial positioning touch from placing accidentally. |
 | One-finger hold for 350 ms, then drag | Paint with footpath, land, water, or clear-scenery tools | Reuses each tool's existing left-button drag callback for continuous work. |
 | One-finger long press outside those paint tools | Secondary click | Provides the normal contextual/right-click action without affecting one-finger placement movement. |
-| Two-finger drag | Inverted, half-speed viewport pan | Matches direct-manipulation expectations while keeping movement precise. The first finger may land before the second without causing one-finger panning. |
+| Two-finger drag | Inverted, half-speed viewport pan | Still available while a placement tool is active, and as a second navigation gesture. The first finger may land before the second without causing a tap. |
 | Two-finger pinch | Zoom | A deliberate span change must dominate centroid movement, preventing ordinary pans from becoming zooms. |
 | Two-finger twist during supported placement | Rotate scenery, ride construction, or track-design placement | A 15-degree turn starts rotation. Pan waits for stronger translation while a rotatable tool is active, so twisting does not move the map first. |
 | Two-finger tap while a removable construction tool is active | Secondary click/remove | Mirrors a trackpad secondary click without conflicting with primary placement. |
 | Two-finger hold for 350 ms over a footpath, then drag | Remove footpaths continuously | Immediate movement remains viewport pan; the stationary hold clearly selects erase intent. |
 | Trackpad/mouse input | Existing pointer controls | Touch changes must not regress desktop-style play on an attached keyboard and trackpad. Viewport wheel zoom is throttled to one game zoom step per four wheel units. |
 | Text field with hardware keyboard attached | Hardware keyboard input | iPadOS normally suppresses its software keyboard while hardware input is available. |
-| Native park chrome (park only) | Opens or toggles the matching in-engine windows | Two Liquid Glass layouts: a floating bottom cluster (Trees / Build ride / Paths / More) and a Find My-style inset sheet with Build / Park / View / More tabs. Overflow (…) switches layouts and lists the remaining tools. Hidden on title, loading, and editor scenes. |
+| Native park chrome (park only) | Opens or toggles the matching in-engine windows | SwiftUI Liquid Glass cluster: Trees / Build ride / Paths / More, camera controls (pause, 1x/2x/… speed, zoom in/out, rotate), and a live cash/guests/rating/date capsule. More opens a Park Tools sheet grouped into Build, Park, View, and More. Hidden on title, loading, and editor scenes. |
 
 ## Gesture arbitration
 
@@ -31,9 +32,12 @@ erase is selected only by holding nearly still over something the engine says
 is removable. This keeps the common navigation gestures available without
 adding a permanent on-screen mode switch.
 
-One-finger movement never pans the viewport. It either moves a placement
-preview, performs a deliberate paint drag after the hold threshold, or drags an
-in-game window/control that already supports left-button dragging.
+One-finger movement on the park map pans the viewport after a 10 px slop,
+matching Apple Maps: a tap or small movement still clicks/selects. While a
+placement tool is active, one-finger movement still moves the construction
+preview instead of panning; two-finger pan remains available then. Paint tools
+still require a hold before drag. In-game windows and controls still use
+left-button dragging when the gesture does not start on the park viewport.
 
 ## Device-validation notes
 
@@ -51,6 +55,17 @@ in-game window/control that already supports left-button dragging.
   reports should be measured separately before treating them as input debt.
 
 ## Change log
+
+### August 27, 2026
+
+- Park chrome is a single SwiftUI floating cluster. The Find My inset-sheet
+  layout, Cluster/Sheet switcher, and persisted `OpenRCT2Touch.parkChromeLayout`
+  key are gone.
+- One-finger drag on the map pans after a 10 px slop. Taps and placement-tool
+  preview movement are unchanged. Two-finger pinch, rotate, and pan remain.
+- Remaining feel risk: short pans under 500 ticks still share the engine's
+  right-button-drag path, which can interpret a very brief drag as a right
+  click. Placement still uses two-finger pan when a tool is active.
 
 ### July 16, 2026
 

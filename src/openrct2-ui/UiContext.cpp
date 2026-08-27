@@ -80,6 +80,7 @@ private:
 
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
     constexpr static int32_t kTouchDragThreshold = 8;
+    constexpr static int32_t kTouchOneFingerPanThreshold = 10;
     constexpr static int32_t kTouchPanStartThreshold = 3;
     constexpr static int32_t kTouchConstructionPanStartThreshold = 12;
     constexpr static int32_t kTouchRemovalPanStartThreshold = 10;
@@ -102,6 +103,7 @@ private:
         none,
         singlePending,
         singleDrag,
+        singlePan,
         longPressFired,
         multiPending,
         multiPan,
@@ -371,6 +373,25 @@ private:
         }
     }
 
+    void BeginTouchPan(const ScreenCoordsXY& origin)
+    {
+        StoreTouchPress(MouseState::rightPress, origin);
+        _touchLastCentroid = origin;
+        _touchPanCursorX = static_cast<float>(origin.x);
+        _touchPanCursorY = static_cast<float>(origin.y);
+    }
+
+    void ContinueTouchPan(const ScreenCoordsXY& current)
+    {
+        const auto delta = current - _touchLastCentroid;
+        _touchLastCentroid = current;
+        _touchPanCursorX -= static_cast<float>(delta.x) * kTouchPanSensitivity;
+        _touchPanCursorY -= static_cast<float>(delta.y) * kTouchPanSensitivity;
+        _cursorState.position = { static_cast<int32_t>(std::lround(_touchPanCursorX)),
+                                  static_cast<int32_t>(std::lround(_touchPanCursorY)) };
+        _cursorState.touch = true;
+    }
+
     void FireTouchTap(const ScreenCoordsXY& position)
     {
         StoreTouchPress(MouseState::leftPress, position);
@@ -471,6 +492,10 @@ private:
         {
             StoreTouchRelease(MouseState::leftRelease, _primaryTouch.position);
         }
+        else if (_touchGestureMode == TouchGestureMode::singlePan)
+        {
+            StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
+        }
 
         _lastTouchToolTapTimestamp = 0;
 
@@ -556,7 +581,7 @@ private:
 
                     if (centroidDistance >= panThreshold)
                     {
-                        StoreTouchPress(MouseState::rightPress, _touchGestureStart);
+                        BeginTouchPan(_touchGestureStart);
                         _touchGestureMode = TouchGestureMode::multiPan;
                     }
                 }
@@ -580,12 +605,7 @@ private:
                 }
                 else
                 {
-                    const auto delta = centroid - _touchLastCentroid;
-                    _touchLastCentroid = centroid;
-                    _touchPanCursorX -= delta.x * kTouchPanSensitivity;
-                    _touchPanCursorY -= delta.y * kTouchPanSensitivity;
-                    _cursorState.position = { static_cast<int32_t>(std::lround(_touchPanCursorX)),
-                                              static_cast<int32_t>(std::lround(_touchPanCursorY)) };
+                    ContinueTouchPan(centroid);
                 }
             }
 
@@ -620,15 +640,36 @@ private:
             return;
         }
 
-        if (_touchGestureMode == TouchGestureMode::singlePending
-            && GetTouchDistanceSquared(position, _touchGestureStart) >= dragThresholdSquared)
+        if (_touchGestureMode == TouchGestureMode::singlePan)
         {
-            if (ViewportFindFromPoint(_touchGestureStart) != nullptr)
+            ContinueTouchPan(position);
+            return;
+        }
+
+        if (_touchGestureMode == TouchGestureMode::singlePending)
+        {
+            const int64_t distanceSquared = GetTouchDistanceSquared(position, _touchGestureStart);
+            const bool onViewport = ViewportFindFromPoint(_touchGestureStart) != nullptr;
+            if (onViewport)
             {
-                _lastTouchToolTapTimestamp = 0;
-                _touchGestureMode = TouchGestureMode::suppressed;
+                if (gInputFlags.has(InputFlag::toolActive))
+                {
+                    if (distanceSquared >= dragThresholdSquared)
+                    {
+                        _lastTouchToolTapTimestamp = 0;
+                        _touchGestureMode = TouchGestureMode::suppressed;
+                    }
+                }
+                else if (distanceSquared >= kTouchOneFingerPanThreshold * kTouchOneFingerPanThreshold)
+                {
+                    _lastTouchToolTapTimestamp = 0;
+                    BeginTouchPan(_touchGestureStart);
+                    _touchGestureMode = TouchGestureMode::singlePan;
+                    ContinueTouchPan(position);
+                    return;
+                }
             }
-            else
+            else if (distanceSquared >= dragThresholdSquared)
             {
                 StoreTouchPress(MouseState::leftPress, _touchGestureStart);
                 _touchGestureMode = TouchGestureMode::singleDrag;
@@ -705,6 +746,9 @@ private:
                 break;
             case TouchGestureMode::singleDrag:
                 StoreTouchRelease(MouseState::leftRelease, position);
+                break;
+            case TouchGestureMode::singlePan:
+                StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
                 break;
             case TouchGestureMode::suppressed:
             case TouchGestureMode::longPressFired:
@@ -948,7 +992,8 @@ public:
     ScreenCoordsXY GetCursorPosition() override
     {
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        if (_touchGestureMode == TouchGestureMode::multiPan)
+        if (_touchGestureMode == TouchGestureMode::multiPan
+            || _touchGestureMode == TouchGestureMode::singlePan)
         {
             return _cursorState.position;
         }
@@ -1266,7 +1311,7 @@ public:
                 }
                 case SDL_MULTIGESTURE:
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-                    // iPadOS touch handling classifies two-finger motion as pan or pinch above.
+                    // iPadOS touch handling classifies one- and two-finger motion as pan or pinch above.
 #else
                     if (e.mgesture.numFingers == 2)
                     {
