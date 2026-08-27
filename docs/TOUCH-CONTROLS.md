@@ -20,7 +20,7 @@ touch gestures into those established actions wherever practical.
 | Two-finger hold for 350 ms over a footpath, then drag | Remove footpaths continuously | Immediate movement remains viewport pan; the stationary hold clearly selects erase intent. |
 | Trackpad/mouse input | Existing pointer controls | Touch changes must not regress desktop-style play on an attached keyboard and trackpad. Viewport wheel zoom is throttled to one game zoom step per four wheel units. |
 | Text field with hardware keyboard attached | Hardware keyboard input | iPadOS normally suppresses its software keyboard while hardware input is available. |
-| Native Trees / Build ride / Paths cluster (park only) | Opens scenery, new-ride, or footpath windows | Floating Liquid Glass icon buttons replace the hidden iOS toolbar. Hidden on title, loading, and editor scenes. |
+| Native park chrome (park only) | Opens or toggles the matching in-engine windows | Two Liquid Glass layouts: a floating bottom cluster (Trees / Build ride / Paths / More) and a Find My-style inset sheet with Build / Park / View / More tabs. Overflow (…) switches layouts and lists the remaining tools. Hidden on title, loading, and editor scenes. |
 
 ## Gesture arbitration
 

@@ -262,14 +262,24 @@ only as environment variables; the scripts never save them in the repository.
 
 ### 4. Sign, install, and launch
 
+One-time local setup (team and device identifiers stay out of git):
+
 ```sh
-OPENRCT2_DEVELOPMENT_TEAM=<team-identifier> \
-    ./scripts/play-ios-device.sh
+mkdir -p runtime
+cp scripts/device.env.example runtime/device.env
+# Set OPENRCT2_DEVELOPMENT_TEAM in runtime/device.env
+```
+
+Then:
+
+```sh
+./scripts/play-ios-device.sh
 ```
 
 That signs a device build, copies ignored `ref/rct2` into the `.app` before
-codesign, installs it on the connected iPhone or iPad, and launches. Or run the
-two-step form:
+codesign, installs it on the connected iPhone or iPad, and launches. You can
+still pass identifiers as environment variables instead of `runtime/device.env`.
+Or run the two-step form:
 
 ```sh
 OPENRCT2_DEVELOPMENT_TEAM=<team-identifier> \

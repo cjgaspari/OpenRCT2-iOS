@@ -25,8 +25,18 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 - Prefer the macOS headless loop, then Simulator, then physical device. Never promote a known-red change.
 - Stop for provisioning/signing, any git/IPA/xcarchive packaging of proprietary data, repeated dependency dead ends, and touch-control feel judgments.
 
+## Device play
+
+Install and launch on the connected iPhone (prefers CJ’s iPhone Air):
+
+```sh
+./scripts/play-ios-device.sh
+```
+
+Team and UDID live in gitignored `runtime/device.env` (copy `scripts/device.env.example` once). Unlock the phone before launch. Pass `--console` only when you need streamed device logs. Do not put team or UDID in git, docs, or commits.
+
 ## Current goal
 
-**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is the **native iOS park chrome**: floating Liquid Glass icon buttons for Trees, Build ride, and Paths, shown only while a park is open. Portrait full-screen canvas and hidden in-engine toolbars are already Simulator screenshot-green. Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware.
+**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is the **native iOS park chrome**: two park-only Liquid Glass layouts (floating bottom cluster with Trees / Build ride / Paths / More, and a Find My-style inset sheet with Build / Park / View / More tabs). Overflow (…) in both layouts switches the layout; the choice is persisted. Portrait full-screen canvas and hidden in-engine toolbars are already Simulator screenshot-green. Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.

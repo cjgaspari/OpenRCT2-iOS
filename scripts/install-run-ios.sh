@@ -33,19 +33,24 @@ fi
 
 xcrun devicectl device install app --device "$DEVICE" "$APP"
 mkdir -p "$(dirname "$LOG_FILE")"
-echo "Streaming launch output to $LOG_FILE"
+LAUNCH_ARGS=(device process launch --terminate-existing --device "$DEVICE" "$BUNDLE_ID")
+if [[ "${OPENRCT2_DEVICE_CONSOLE:-1}" == "1" ]]; then
+    LAUNCH_ARGS+=(--console)
+    echo "Streaming launch output to $LOG_FILE"
+else
+    echo "Launching $BUNDLE_ID (logs: $LOG_FILE)"
+fi
 set +e
-xcrun devicectl device process launch \
-    --console \
-    --terminate-existing \
-    --device "$DEVICE" \
-    "$BUNDLE_ID" 2>&1 | tee "$LOG_FILE"
+xcrun devicectl "${LAUNCH_ARGS[@]}" 2>&1 | tee "$LOG_FILE"
 LAUNCH_STATUS="${PIPESTATUS[0]}"
 set -e
 
 if [[ "$LAUNCH_STATUS" -ne 0 ]]; then
     echo "Device launch exited $LAUNCH_STATUS. Console log: $LOG_FILE" >&2
-    echo "After an app crash, collect the iPad report with:" >&2
+    if grep -q 'Locked\|FBSOpenApplicationErrorDomain' "$LOG_FILE"; then
+        echo "Unlock the iPhone, then rerun: ./scripts/play-ios-device.sh" >&2
+    fi
+    echo "After an app crash, collect the device report with:" >&2
     echo "  OPENRCT2_DEVICE_UDID=$DEVICE ./scripts/collect-crash.sh" >&2
 fi
 exit "$LAUNCH_STATUS"

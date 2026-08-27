@@ -51,12 +51,13 @@ Use this for anything that isn't iOS-specific. If it's red, fix before moving on
 ```
 UI rendering, asset-import plumbing, input wiring. Use `iphone` or `ipad` instead of `all` for a single family.
 
-**Outer loop — physical iPad (needs the human for setup + feel):**
+**Outer loop — physical iPhone or iPad (needs the human for setup + feel):**
 ```bash
-./scripts/build-ios.sh device
-./scripts/install-run-ios.sh      # devicectl (iOS 17+) / ios-deploy (≤16), streams logs
+./scripts/play-ios-device.sh      # signed install + launch; prefers a connected iPhone Air
 ./scripts/collect-crash.sh        # pulls matching crash reports via CoreDevice
 ```
+
+Team and UDID live in gitignored `runtime/device.env` (copy `scripts/device.env.example`). Unlock the device before launch.
 
 If a script doesn't exist yet, creating it is part of the current phase (see the [master plan §9](openrct2-ipados-BUILD-PLAN.md#9-the-automation-harness)).
 
