@@ -65,8 +65,9 @@ if [[ ! -f "$RCT2_DATA/Data/g1.dat" ]]; then
     exit 1
 fi
 
-if [[ ! -d "$ROOT/vendor/ios-arm64/openrct2-arm64-ios" ]]; then
-    echo "Device dependencies are missing. Building them once (this is slow)."
+if [[ ! -f "$ROOT/vendor/ios-arm64/openrct2-arm64-ios/lib/libzstd.a" \
+    || ! -d "$ROOT/vendor/ios-arm64/openrct2-arm64-ios/share/sdl2" ]]; then
+    echo "Device dependencies are missing or incomplete. Building them once (this is slow)."
     "$ROOT/scripts/build-ios-deps.sh" device
 fi
 
