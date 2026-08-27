@@ -13,5 +13,6 @@ namespace OpenRCT2::Ui
 {
     void NativeChromeAttach(SDL_Window* window);
     void NativeChromeDetach();
+    void NativeChromeTick();
     bool NativeChromeHandleEvent(const SDL_Event& event);
 }

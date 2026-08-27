@@ -3,7 +3,7 @@
 - **Last updated:** August 27, 2026
 - **Working branch:** `touch/iphone-vertical`
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
-- **Live slice:** native iOS chrome overlay that fires existing in-engine intents (starting with Build ride); Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware
+- **Live slice:** park-only Liquid Glass chrome (Trees / Build ride / Paths) firing existing in-engine intents; Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware
 - **Accepted checkpoint:** physical Files import, persistence, and scenario load on July 16
 
 The implementation has completed Goals 0–5 and Goal 8. A signed build runs on
@@ -123,10 +123,10 @@ Goal 6/7 landscape device proofs pause while the presentation contract moves
 to a universal iPhone and iPad build locked to portrait. The software canvas
 is the tall screen in points (`window_scale` 1), presented full-screen through
 SDL Metal (notch and home-indicator overlap is accepted). In-engine top and
-bottom toolbars are skipped on iOS. A native UIKit overlay at the bottom of
-the window now starts replacing them: **Build ride** opens the same
-in-engine construct-ride window as the hidden top-toolbar button. The ride
-picker itself stays an in-engine window.
+bottom toolbars are skipped on iOS. A native UIKit overlay appears only while
+a park is open: floating Liquid Glass icon buttons for Trees, Build ride, and
+Paths, mapped to the hidden toolbar scenery, construct-ride, and footpath
+actions. The in-engine windows themselves are unchanged.
 Oversized in-engine windows (scenario select, scenery, load/save) are clamped
 to the canvas rather than rewritten.
 

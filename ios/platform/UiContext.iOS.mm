@@ -240,6 +240,11 @@ namespace OpenRCT2::Ui
             return NativeChromeHandleEvent(event);
         }
 
+        void TickNativeOverlay() override
+        {
+            NativeChromeTick();
+        }
+
         bool IsSteamOverlayAttached() override
         {
             return false;

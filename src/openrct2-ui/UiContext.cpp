@@ -804,6 +804,7 @@ public:
         _windowManager->UpdateMapTooltip();
 
         WindowDispatchUpdateAll();
+        _platformUiContext->TickNativeOverlay();
     }
 
     void Draw(RenderTarget& rt) override

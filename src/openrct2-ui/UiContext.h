@@ -66,6 +66,10 @@ namespace OpenRCT2::Ui
         {
             return false;
         }
+
+        virtual void TickNativeOverlay()
+        {
+        }
     };
 
     [[nodiscard]] std::unique_ptr<IUiContext> CreateUiContext(IPlatformEnvironment& env);

@@ -246,7 +246,7 @@ verify_family() {
     done
 
     for required_event in \
-        'native chrome: attached build-ride overlay' \
+        'native chrome: attached park overlay' \
         'renderer: driver=metal' \
         'presentation: window_points=' \
         'safe_area_points=' \
