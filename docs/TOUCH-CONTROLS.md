@@ -21,7 +21,7 @@ touch gestures into those established actions wherever practical.
 | Two-finger hold for 350 ms over a footpath, then drag | Remove footpaths continuously | Immediate movement remains viewport pan; the stationary hold clearly selects erase intent. |
 | Trackpad/mouse input | Existing pointer controls | Touch changes must not regress desktop-style play on an attached keyboard and trackpad. Viewport wheel zoom is throttled to one game zoom step per four wheel units. |
 | Text field with hardware keyboard attached | Hardware keyboard input | iPadOS normally suppresses its software keyboard while hardware input is available. |
-| Native park chrome (park only) | Opens or toggles the matching in-engine windows | SwiftUI Liquid Glass cluster: Trees / Build ride / Paths / More, a leading pause/speed menu (tap for Pause/Resume and 1x–4x), grouped zoom in/out plus a separate rotate control, and a live cash/guests/rating/date capsule. More opens a half-height Park Tools sheet that expands to full when you swipe the list. Park Tools More includes Quit to menu (desktop save-before-quit). Hidden on title, loading, and editor scenes. |
+| Native park chrome (park only) | Opens or toggles the matching in-engine windows | SwiftUI Liquid Glass: full-width status+pause union (tap pauses; a speed, Park, or More item resumes). Status opens Park windows; pause opens speed, More, and quit. Leading stacked View-over-rotate union; trailing Build hammer. View sheet includes zoom and visibility toggles. Hidden on title, loading, and editor scenes. |
 
 ## Gesture arbitration
 
@@ -66,10 +66,11 @@ left-button dragging when the gesture does not start on the park viewport.
 - Remaining feel risk: short pans under 500 ticks still share the engine's
   right-button-drag path, which can interpret a very brief drag as a right
   click. Placement still uses two-finger pan when a tool is active.
-- Park Tools is a medium-detent sheet. The list scrolls at half height;
-  dragging the sheet chrome/grabber grows it to large. Pause and speed share one leading menu;
-  zoom in/out are a clustered pair; rotate is a separate trailing control.
-- Quit to menu in Park Tools More uses the desktop save-before-quit path.
+- Build and View are separate medium-detent sheets. View sits above rotate in a
+  leading icon union; Build is a trailing untinted hammer (no labels). Tapping
+  the status or pause side of the top bar pauses. Status opens Park windows; a
+  speed, Park, or More item resumes. More and quit live on the pause menu.
+- Quit to menu on the pause More menu uses the desktop save-before-quit path.
 
 ### July 16, 2026
 

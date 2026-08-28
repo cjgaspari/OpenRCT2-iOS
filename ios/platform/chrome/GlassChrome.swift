@@ -68,11 +68,16 @@ struct ChromeGlassCluster<Content: View>: View {
 /// plus the current speed, matching a compact pull-down control.
 struct PauseSpeedMenu: View {
     @ObservedObject var model: ParkChromeModel
+    var usesOwnGlass = true
 
     var body: some View {
         Menu {
             Button {
-                model.queue(.pause)
+                if model.isPaused {
+                    model.ensurePlaying()
+                } else {
+                    model.ensurePaused()
+                }
             } label: {
                 Label(
                     model.isPaused ? "Resume" : "Pause",
@@ -80,15 +85,33 @@ struct PauseSpeedMenu: View {
             }
             .accessibilityIdentifier("openrct2.touch.pause")
 
-            Divider()
-
-            Picker("Speed", selection: speedBinding) {
-                Text("1x").tag(UInt8(1))
-                Text("2x").tag(UInt8(2))
-                Text("3x").tag(UInt8(3))
-                Text("4x").tag(UInt8(4))
+            Section("Speed") {
+                Picker("Speed", selection: speedBinding) {
+                    Text("1x").tag(UInt8(1))
+                    Text("2x").tag(UInt8(2))
+                    Text("3x").tag(UInt8(3))
+                    Text("4x").tag(UInt8(4))
+                }
+                .accessibilityIdentifier("openrct2.touch.speed")
             }
-            .accessibilityIdentifier("openrct2.touch.speed")
+
+            Section("More") {
+                ForEach(ParkMenuCatalog.fileAndSettings) { item in
+                    Button {
+                        model.queueParkMenu(item.action)
+                    } label: {
+                        Label(item.title, systemImage: item.systemImage)
+                    }
+                }
+            }
+
+            Section {
+                Button(role: .destructive) {
+                    model.queue(.quitToMenu)
+                } label: {
+                    Label("Quit to menu", systemImage: "rectangle.portrait.and.arrow.right")
+                }
+            }
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
@@ -99,17 +122,21 @@ struct PauseSpeedMenu: View {
                     .monospacedDigit()
             }
         }
-        .modifier(PlaybackMenuChrome())
+        .modifier(PlaybackMenuChrome(usesOwnGlass: usesOwnGlass))
+        .simultaneousGesture(TapGesture().onEnded { model.ensurePaused() })
         .controlSize(.regular)
         .accessibilityLabel(menuAccessibilityLabel)
-        .accessibilityHint("Opens pause and game speed")
+        .accessibilityHint("Opens pause, speed, and more")
         .accessibilityIdentifier("openrct2.touch.playbackMenu")
     }
 
     private var speedBinding: Binding<UInt8> {
         Binding(
             get: { max(1, min(4, model.speed)) },
-            set: { model.queue(.gameSpeed, extra: Int32($0)) }
+            set: {
+                model.queue(.gameSpeed, extra: Int32($0))
+                model.ensurePlaying()
+            }
         )
     }
 
@@ -119,81 +146,191 @@ struct PauseSpeedMenu: View {
     }
 }
 
-/// Zoom in/out as one clustered control; rotate stays a separate capsule.
-struct CameraCluster: View {
+/// Status and pause share one full-width Liquid Glass capsule.
+struct UnitedTopBar: View {
     @ObservedObject var model: ParkChromeModel
+    @Namespace private var topUnion
 
     var body: some View {
-        HStack(spacing: 12) {
-            ZoomPair(model: model)
-            GlassIconButton(
-                systemImage: ParkMenuCatalog.rotateViewSymbol,
-                fallbackImage: ParkMenuCatalog.rotateViewFallbackSymbol,
-                accessibilityLabel: "Rotate view",
-                accessibilityIdentifier: "openrct2.touch.rotate",
-                action: { model.queue(.rotateCW) }
-            )
+        GlassEffectContainer(spacing: 4) {
+            HStack(spacing: 4) {
+                StatusMenu(model: model, usesOwnGlass: false, fillsWidth: true)
+                    .frame(maxWidth: .infinity)
+                    .glassEffect()
+                    .glassEffectUnion(id: "topBar", namespace: topUnion)
+
+                PauseSpeedMenu(model: model, usesOwnGlass: false)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .glassEffect()
+                    .glassEffectUnion(id: "topBar", namespace: topUnion)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Park status and playback")
+        .accessibilityIdentifier("openrct2.touch.unitedTopBar")
+    }
+}
+
+/// View above rotate, sharing one Liquid Glass capsule on the lead thumb.
+struct ViewRotateCluster: View {
+    @ObservedObject var model: ParkChromeModel
+    @Namespace private var unionNamespace
+
+    var body: some View {
+        GlassEffectContainer(spacing: 8) {
+            VStack(spacing: 8) {
+                unionedIcon(
+                    systemImage: ParkMenuCatalog.viewSheetSymbol,
+                    label: "View",
+                    identifier: "openrct2.touch.viewSheet"
+                ) {
+                    model.presentViewTools()
+                }
+                unionedIcon(
+                    systemImage: ParkMenuCatalog.rotateViewSymbol,
+                    label: "Rotate view",
+                    identifier: "openrct2.touch.rotate"
+                ) {
+                    model.queue(.rotateCW)
+                }
+            }
         }
         .fixedSize()
-        .accessibilityIdentifier("openrct2.touch.cameraCluster")
+        .accessibilityIdentifier("openrct2.touch.viewRotate")
+    }
+
+    private func unionedIcon(
+        systemImage: String,
+        label: String,
+        identifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .imageScale(.medium)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+                .glassEffect()
+                .glassEffectUnion(id: "viewRotate", namespace: unionNamespace)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(identifier)
     }
 }
 
-private struct ZoomPair: View {
+/// Build control on the trailing thumb.
+struct BuildCluster: View {
     @ObservedObject var model: ParkChromeModel
 
     var body: some View {
-        ControlGroup {
-            Button {
-                model.queue(.zoomIn)
-            } label: {
-                Image(systemName: "plus.magnifyingglass")
-                    .font(.body.weight(.semibold))
-                    .imageScale(.medium)
-            }
-            .accessibilityLabel("Zoom in")
-            .accessibilityIdentifier("openrct2.touch.zoomIn")
-
-            Button {
-                model.queue(.zoomOut)
-            } label: {
-                Image(systemName: "minus.magnifyingglass")
-                    .font(.body.weight(.semibold))
-                    .imageScale(.medium)
-            }
-            .accessibilityLabel("Zoom out")
-            .accessibilityIdentifier("openrct2.touch.zoomOut")
+        Button {
+            model.presentBuildTools()
+        } label: {
+            Image(systemName: ParkMenuCatalog.buildSheetSymbol)
+                .font(.body.weight(.semibold))
+                .imageScale(.medium)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+                .glassEffect(.regular.interactive())
         }
-        .controlGroupStyle(.navigation)
+        .buttonStyle(.plain)
+        .accessibilityLabel("Build")
+        .accessibilityHint("Opens ride, scenery, paths, and terrain tools")
+        .accessibilityIdentifier("openrct2.touch.buildSheet")
+        .sheet(isPresented: $model.isShowingBuildTools) {
+            BuildToolsSheet(model: model)
+        }
+    }
+}
+
+/// Tappable park status. Opens a `Menu` (tap, not long-press) with Park windows.
+struct StatusMenu: View {
+    @ObservedObject var model: ParkChromeModel
+    var usesOwnGlass = true
+    var fillsWidth = false
+
+    var body: some View {
+        Menu {
+            Section("Park") {
+                ForEach(ParkMenuCatalog.park) { item in
+                    Button {
+                        model.queueParkMenu(item.action)
+                    } label: {
+                        Label(item.title, systemImage: item.systemImage)
+                    }
+                }
+            }
+        } label: {
+            StatusStripLabel(model: model)
+                .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
+        }
+        .modifier(PlaybackMenuChrome(usesOwnGlass: usesOwnGlass))
+        .simultaneousGesture(TapGesture().onEnded { model.ensurePaused() })
         .controlSize(.regular)
-        .labelStyle(.iconOnly)
-        .modifier(GlassControlGroupChrome())
-    }
-}
-
-struct StatusStrip: View {
-    @ObservedObject var model: ParkChromeModel
-
-    var body: some View {
-        HStack(spacing: 14) {
-            labeled("banknote", model.cash)
-            labeled("person.3.fill", model.guests)
-            labeled("star.fill", model.rating)
-            labeled("calendar", model.date)
-        }
-        .font(.caption.weight(.semibold))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .modifier(ChromeCapsuleBackground())
-        .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "Cash \(model.cash), \(model.guests) guests, park rating \(model.rating), \(model.date)")
+        .accessibilityHint("Opens park information")
         .accessibilityIdentifier("openrct2.touch.statusStrip")
     }
+}
 
-    private func labeled(_ symbol: String, _ text: String) -> some View {
-        Label(text, systemImage: symbol)
-            .labelStyle(.titleAndIcon)
+struct StatusStripLabel: View {
+    @ObservedObject var model: ParkChromeModel
+
+    var body: some View {
+        HStack(spacing: 6) {
+            statusItem("banknote", model.cash, prototype: "$9,999,999.99", color: .green)
+                .layoutPriority(1)
+            statusItem("person.3.fill", model.guests, prototype: "9999", color: .purple)
+            statusItem("star.fill", model.rating, prototype: "9999", color: .yellow)
+            calendarItem(model.date)
+        }
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+    }
+
+    private func statusItem(_ symbol: String, _ text: String, prototype: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: symbol)
+                .foregroundStyle(color)
+                .symbolRenderingMode(.hierarchical)
+            TabularStatusValue(text: text, prototype: prototype)
+        }
+    }
+
+    private func calendarItem(_ text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "calendar")
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.red, .white)
+            TabularStatusValue(text: text, prototype: "May 31")
+        }
+    }
+}
+
+/// Tabular figures plus a hidden prototype string keep live values from
+/// resizing the capsule (Apple's `monospacedDigit` / tabular numbers).
+/// `numericText` morphs digits in place when the value ticks.
+private struct TabularStatusValue: View {
+    let text: String
+    let prototype: String
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Text(prototype)
+                .hidden()
+            Text(text)
+                .contentTransition(.numericText())
+        }
+        .monospacedDigit()
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .animation(.default, value: text)
     }
 }
 
@@ -211,78 +348,29 @@ private struct GlassButtonChrome: ViewModifier {
     var prominent = false
 
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            if prominent {
-                content.buttonStyle(.glassProminent).tint(.blue)
-            } else {
-                content.buttonStyle(.glass)
-            }
+        if prominent {
+            content.buttonStyle(.glass).tint(.blue)
         } else {
-            content
-                .buttonStyle(.plain)
-                .foregroundStyle(prominent ? Color.white : Color.primary)
-                .frame(minWidth: 44, minHeight: 44)
-                .background(prominent ? Color.blue : Color.primary.opacity(0.12), in: Circle())
+            content.buttonStyle(.glass)
         }
     }
 }
 
 private struct PlaybackMenuChrome: ViewModifier {
+    var usesOwnGlass = true
+
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if usesOwnGlass {
             content
                 .menuOrder(.fixed)
                 .menuStyle(.button)
                 .buttonBorderShape(.capsule)
                 .buttonStyle(.glass)
-        } else if #available(iOS 16.4, *) {
+        } else {
             content
                 .menuOrder(.fixed)
                 .menuStyle(.button)
-                .buttonBorderShape(.capsule)
                 .buttonStyle(.plain)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(.ultraThinMaterial, in: Capsule())
-        } else if #available(iOS 16.0, *) {
-            content
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(.ultraThinMaterial, in: Capsule())
-        } else {
-            content
-                .buttonStyle(.plain)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(Color.primary.opacity(0.12), in: Capsule())
-        }
-    }
-}
-
-private struct GlassControlGroupChrome: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            ChromeGlassCluster(spacing: 0) {
-                content.buttonStyle(.glass)
-            }
-        } else {
-            content
-                .buttonStyle(.plain)
-                .frame(minHeight: 44)
-                .padding(.horizontal, 4)
-                .background(.ultraThinMaterial, in: Capsule())
-        }
-    }
-}
-
-private struct ChromeCapsuleBackground: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.glassEffect(in: .capsule)
-        } else {
-            content.background(.ultraThinMaterial, in: Capsule())
         }
     }
 }

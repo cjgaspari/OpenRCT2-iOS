@@ -19,7 +19,7 @@ enum ParkMenuCatalog {
     static let build: [ParkMenuItem] = [
         .init(
             id: "ride", title: "Build ride", subtitle: "New transport, thrill, gentle, shops",
-            systemImage: "plus", fallbackImage: "plus.circle.fill", action: .constructRide),
+            systemImage: "car.fill", fallbackImage: "car", action: .constructRide),
         .init(
             id: "scenery", title: "Trees & scenery", subtitle: "Gardens, theming, walls",
             systemImage: "tree.fill", fallbackImage: "leaf.fill", action: .scenery),
@@ -106,8 +106,8 @@ enum ParkMenuCatalog {
             fallbackImage: "arrow.uturn.left", action: .quitToMenu),
     ]
 
-    static let dockBuild = Array(build.prefix(3))
-    static let overflowBuild = Array(build.dropFirst(3))
+    static let viewWindows: [ParkMenuItem] = view.filter { $0.id != "viewOptions" }
+    static let fileAndSettings: [ParkMenuItem] = more.filter { $0.action != .quitToMenu }
 
     static let viewToggles: [ParkMenuItem] = [
         .init(
@@ -134,7 +134,10 @@ enum ParkMenuCatalog {
             systemImage: "ruler.fill", fallbackImage: "ruler", action: .viewHeightMarks),
     ]
 
-    /// Camera-rotate glyph that exists on iOS 14+. Prefer this over `rotate.right`.
-    static let rotateViewSymbol = "camera.rotate"
+    static let constructRideSymbol = "car.fill"
+    static let buildSheetSymbol = "hammer.fill"
+    static let viewSheetSymbol = "map.fill"
+    /// Rotate the isometric viewport 90°. Prefer this over `camera.rotate`.
+    static let rotateViewSymbol = "arrow.trianglehead.clockwise.rotate.90"
     static let rotateViewFallbackSymbol = "arrow.triangle.2.circlepath"
 }

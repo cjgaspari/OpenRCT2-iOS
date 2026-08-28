@@ -11,13 +11,13 @@ struct ParkChromeRootView: View {
 
     var body: some View {
         VStack {
-            HStack {
-                PauseSpeedMenu(model: model)
-                Spacer()
-                CameraCluster(model: model)
-            }
+            UnitedTopBar(model: model)
             Spacer()
-            ParkChromeDockView(model: model)
+            HStack(alignment: .bottom) {
+                ParkChromeDockView(model: model)
+                Spacer()
+                BuildCluster(model: model)
+            }
         }
         .padding(.bottom, 8)
         .padding(.horizontal, 16)
@@ -30,96 +30,25 @@ struct ParkChromeDockView: View {
     @ObservedObject var model: ParkChromeModel
 
     var body: some View {
-        VStack(spacing: 8) {
-            StatusStrip(model: model)
-            ChromeGlassCluster(spacing: 16) {
-                HStack(alignment: .center, spacing: 16) {
-                    GlassIconButton(
-                        systemImage: "tree.fill",
-                        fallbackImage: "leaf.fill",
-                        accessibilityLabel: "Trees",
-                        accessibilityIdentifier: "openrct2.touch.trees",
-                        action: { model.queue(.scenery) }
-                    )
-                    GlassIconButton(
-                        systemImage: "plus",
-                        fallbackImage: "plus.circle.fill",
-                        accessibilityLabel: "Build new ride or attraction",
-                        accessibilityIdentifier: "openrct2.touch.buildRide",
-                        prominent: true,
-                        controlSize: .large,
-                        action: { model.queue(.constructRide) }
-                    )
-                    GlassIconButton(
-                        systemImage: "point.bottomleft.forward.to.point.topright.scurvepath",
-                        fallbackImage: "road.lanes",
-                        accessibilityLabel: "Paths",
-                        accessibilityIdentifier: "openrct2.touch.paths",
-                        action: { model.queue(.footpath) }
-                    )
-                    GlassIconButton(
-                        systemImage: "ellipsis",
-                        fallbackImage: "ellipsis.circle",
-                        accessibilityLabel: "More tools",
-                        accessibilityIdentifier: "openrct2.touch.more",
-                        action: { model.isShowingParkTools = true }
-                    )
-                }
+        ViewRotateCluster(model: model)
+            .sheet(isPresented: $model.isShowingViewTools) {
+                ViewToolsSheet(model: model)
             }
-            .accessibilityIdentifier("openrct2.touch.nativeChrome")
-        }
-        .fixedSize()
-        .sheet(isPresented: $model.isShowingParkTools) {
-            ParkToolsSheet(model: model)
-        }
     }
 }
 
-struct ParkToolsSheet: View {
+struct BuildToolsSheet: View {
     @ObservedObject var model: ParkChromeModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        sheetNavigation {
+        ChromeToolsSheetScaffold(title: "Build", onClose: dismissSheet) {
             List {
-                ParkToolsButtonSection(title: "Build", items: ParkMenuCatalog.overflowBuild, onSelect: select)
-                ParkToolsButtonSection(title: "Park", items: ParkMenuCatalog.park, onSelect: select)
-                Section("View") {
-                    ForEach(ParkMenuCatalog.view) { item in
-                        Button {
-                            select(item)
-                        } label: {
-                            MenuRow(item: item)
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                    ForEach(ParkMenuCatalog.viewToggles) { item in
-                        Toggle(isOn: model.toggleBinding(for: item.action)) {
-                            MenuRow(item: item)
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                }
-                ParkToolsButtonSection(title: "More", items: ParkMenuCatalog.more, onSelect: select)
+                ParkToolsButtonSection(title: nil, items: ParkMenuCatalog.build, onSelect: select)
             }
             .listStyle(.plain)
             .modifier(ClearListBackground())
         }
-    }
-
-    @ViewBuilder
-    private func sheetNavigation<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        NavigationStack {
-            content()
-                .navigationTitle("Park tools")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") { dismissSheet() }
-                    }
-                }
-        }
-        .modifier(ParkToolsSheetPresentation())
     }
 
     private func select(_ item: ParkMenuItem) {
@@ -128,39 +57,112 @@ struct ParkToolsSheet: View {
     }
 
     private func dismissSheet() {
-        model.isShowingParkTools = false
+        model.isShowingBuildTools = false
         dismiss()
     }
 }
 
-private struct ParkToolsButtonSection: View {
+struct ViewToolsSheet: View {
+    @ObservedObject var model: ParkChromeModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ChromeToolsSheetScaffold(title: "View", onClose: dismissSheet) {
+            List {
+                Section("Camera") {
+                    Button {
+                        model.queue(.zoomIn)
+                    } label: {
+                        Label("Zoom in", systemImage: "plus.magnifyingglass")
+                    }
+                    .listRowBackground(Color.clear)
+                    .accessibilityIdentifier("openrct2.touch.zoomIn")
+
+                    Button {
+                        model.queue(.zoomOut)
+                    } label: {
+                        Label("Zoom out", systemImage: "minus.magnifyingglass")
+                    }
+                    .listRowBackground(Color.clear)
+                    .accessibilityIdentifier("openrct2.touch.zoomOut")
+                }
+
+                ParkToolsButtonSection(title: "Windows", items: ParkMenuCatalog.viewWindows, onSelect: select)
+
+                Section("Options") {
+                    ForEach(ParkMenuCatalog.viewToggles) { item in
+                        Toggle(isOn: model.toggleBinding(for: item.action)) {
+                            MenuRow(item: item)
+                        }
+                        .listRowBackground(Color.clear)
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .modifier(ClearListBackground())
+        }
+    }
+
+    private func select(_ item: ParkMenuItem) {
+        dismissSheet()
+        model.queue(item.action)
+    }
+
+    private func dismissSheet() {
+        model.isShowingViewTools = false
+        dismiss()
+    }
+}
+
+private struct ChromeToolsSheetScaffold<Content: View>: View {
     let title: String
+    var onClose: () -> Void
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        NavigationStack {
+            content()
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close", action: onClose)
+                    }
+                }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationContentInteraction(.scrolls)
+        .presentationSizing(.page)
+    }
+}
+
+private struct ParkToolsButtonSection: View {
+    var title: String?
     let items: [ParkMenuItem]
     let onSelect: (ParkMenuItem) -> Void
 
     var body: some View {
-        Section(title) {
-            ForEach(items) { item in
-                Button {
-                    onSelect(item)
-                } label: {
-                    MenuRow(item: item)
-                }
-                .listRowBackground(Color.clear)
+        if let title {
+            Section(title) {
+                rows
+            }
+        } else {
+            Section {
+                rows
             }
         }
     }
-}
 
-/// Half sheet that keeps scrolling at medium. Drag the grabber/sheet chrome
-/// to grow to large. Apple: `presentationContentInteraction(.scrolls)`.
-private struct ParkToolsSheetPresentation: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationContentInteraction(.scrolls)
-            .presentationSizing(.page)
+    private var rows: some View {
+        ForEach(items) { item in
+            Button {
+                onSelect(item)
+            } label: {
+                MenuRow(item: item)
+            }
+            .listRowBackground(Color.clear)
+        }
     }
 }
 

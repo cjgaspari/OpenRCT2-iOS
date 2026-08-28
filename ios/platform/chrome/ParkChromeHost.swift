@@ -32,10 +32,11 @@ private final class ParkChromeHostingController<Content: View>: UIHostingControl
 final class ParkChromeSession: NSObject {
     let model = ParkChromeModel()
     private let onAction: @convention(c) (Int32, Int32) -> Void
-    private var cameraHost: ParkChromeHostingController<CameraCluster>?
-    private var playbackHost: ParkChromeHostingController<PauseSpeedMenu>?
+    private var cameraHost: ParkChromeHostingController<BuildCluster>?
+    private var topHost: ParkChromeHostingController<UnitedTopBar>?
     private var dockHost: ParkChromeHostingController<ParkChromeDockView>?
     private var container: ParkChromePassThroughView?
+    private var bottomConstraints: [NSLayoutConstraint] = []
 
     init(onAction: @escaping @convention(c) (Int32, Int32) -> Void) {
         self.onAction = onAction
@@ -62,43 +63,40 @@ final class ParkChromeSession: NSObject {
         ])
 
         let parentController = parent.owningViewController
-        let playbackHost = ParkChromeHostingController(rootView: PauseSpeedMenu(model: model))
-        let cameraHost = ParkChromeHostingController(rootView: CameraCluster(model: model))
+        let topHost = ParkChromeHostingController(rootView: UnitedTopBar(model: model))
+        let cameraHost = ParkChromeHostingController(rootView: BuildCluster(model: model))
         let dockHost = ParkChromeHostingController(rootView: ParkChromeDockView(model: model))
-        install(playbackHost, in: container, parent: parentController)
+        install(topHost, in: container, parent: parentController)
         install(cameraHost, in: container, parent: parentController)
         install(dockHost, in: container, parent: parentController)
 
-        let playbackView = playbackHost.view!
-        let cameraView = cameraHost.view!
-        let dockView = dockHost.view!
+        let topView = topHost.view!
         let safe = container.safeAreaLayoutGuide
+        topView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         NSLayoutConstraint.activate([
-            playbackView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
-            playbackView.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
-            cameraView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
-            cameraView.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
-            playbackView.trailingAnchor.constraint(lessThanOrEqualTo: cameraView.leadingAnchor, constant: -12),
-            dockView.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
-            dockView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            dockView.leadingAnchor.constraint(greaterThanOrEqualTo: safe.leadingAnchor, constant: 16),
-            dockView.trailingAnchor.constraint(lessThanOrEqualTo: safe.trailingAnchor, constant: -16),
+            topView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
+            topView.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
+            topView.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+            topView.widthAnchor.constraint(lessThanOrEqualTo: safe.widthAnchor, constant: -32),
         ])
 
-        self.playbackHost = playbackHost
+        self.topHost = topHost
         self.cameraHost = cameraHost
         self.dockHost = dockHost
         self.container = container
+        applyBottomLayout()
         applyParkOpen()
         bringToFront()
     }
 
     func detach() {
-        detachHost(playbackHost)
+        NSLayoutConstraint.deactivate(bottomConstraints)
+        bottomConstraints = []
+        detachHost(topHost)
         detachHost(cameraHost)
         detachHost(dockHost)
         container?.removeFromSuperview()
-        playbackHost = nil
+        topHost = nil
         cameraHost = nil
         dockHost = nil
         container = nil
@@ -106,7 +104,8 @@ final class ParkChromeSession: NSObject {
 
     func setParkOpen(_ open: Bool) {
         if !open {
-            model.isShowingParkTools = false
+            model.isShowingBuildTools = false
+            model.isShowingViewTools = false
         }
         model.isParkOpen = open
         applyParkOpen()
@@ -133,6 +132,23 @@ final class ParkChromeSession: NSObject {
             return
         }
         container.superview?.bringSubviewToFront(container)
+    }
+
+    private func applyBottomLayout() {
+        guard let camera = cameraHost?.view, let dock = dockHost?.view, let container else {
+            return
+        }
+
+        NSLayoutConstraint.deactivate(bottomConstraints)
+        let safe = container.safeAreaLayoutGuide
+        bottomConstraints = [
+            dock.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
+            dock.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+            camera.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+            camera.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+            dock.trailingAnchor.constraint(lessThanOrEqualTo: camera.leadingAnchor, constant: -12),
+        ]
+        NSLayoutConstraint.activate(bottomConstraints)
     }
 
     private func applyParkOpen() {

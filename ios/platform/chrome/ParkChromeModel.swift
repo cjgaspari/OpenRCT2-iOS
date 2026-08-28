@@ -15,12 +15,49 @@ final class ParkChromeModel: ObservableObject {
     @Published var guests = "—"
     @Published var rating = "—"
     @Published var date = "—"
-    @Published var isShowingParkTools = false
+    @Published var isShowingBuildTools = false
+    @Published var isShowingViewTools = false
 
     var onAction: ((Int32, Int32) -> Void)?
 
     var speedLabel: String {
         "\(max(1, Int(speed)))x"
+    }
+
+    func presentBuildTools() {
+        isShowingViewTools = false
+        isShowingBuildTools = true
+    }
+
+    func presentViewTools() {
+        isShowingBuildTools = false
+        isShowingViewTools = true
+    }
+
+    func dismissToolsSheets() {
+        isShowingBuildTools = false
+        isShowingViewTools = false
+    }
+
+    func ensurePaused() {
+        guard !isPaused else {
+            return
+        }
+        isPaused = true
+        queue(.pause)
+    }
+
+    func ensurePlaying() {
+        guard isPaused else {
+            return
+        }
+        isPaused = false
+        queue(.pause)
+    }
+
+    func queueParkMenu(_ action: ParkChromeAction) {
+        ensurePlaying()
+        queue(action)
     }
 
     func queue(_ action: ParkChromeAction, extra: Int32 = ParkChromeAction.extraXor) {
