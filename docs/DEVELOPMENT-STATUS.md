@@ -3,7 +3,7 @@
 - **Last updated:** August 27, 2026
 - **Working branch:** `touch/iphone-vertical`
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
-- **Live slice:** park-only SwiftUI Liquid Glass cluster (floating Trees / Build ride / Paths / More, camera controls, live status capsule, Park Tools sheet); Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware
+- **Live slice:** park-only SwiftUI Liquid Glass cluster (Trees / Build ride / Paths / More, leading pause/speed menu, grouped zoom plus rotate, live status capsule, Park Tools half-to-full sheet); Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware
 - **Accepted checkpoint:** physical Files import, persistence, and scenario load on July 16
 
 The implementation has completed Goals 0–5 and Goal 8. A signed build runs on
@@ -125,11 +125,12 @@ is the tall screen in points (`window_scale` 1), presented full-screen through
 SDL Metal (notch and home-indicator overlap is accepted). In-engine top and
 bottom toolbars are skipped on iOS. A native SwiftUI overlay appears only while
 a park is open: a floating bottom cluster (Trees, Build ride, Paths, More), a
-top-trailing camera cluster (pause, speed as 1x/2x/…, zoom in/out, rotate), and
-a live status capsule. More opens a full-width Park Tools sheet with Build,
-Park, View, and More sections. Every control queues the same in-engine window
-intents as the hidden iOS top/bottom toolbars. The in-engine windows themselves
-are unchanged.
+top-leading pause/speed menu, a top-trailing zoom pair plus separate rotate
+control, and a live status capsule. More opens a half-height Park Tools sheet
+(medium detent; list scrolls in place, drag the sheet up for large) with Build, Park, View, and More
+sections, including Quit to menu. Every control queues the same in-engine
+window intents as the hidden iOS top/bottom toolbars. Chrome-opened in-engine
+windows are centred on the iOS canvas and clamped if they are oversized.
 Oversized in-engine windows (scenario select, scenery, load/save) are clamped
 to the canvas rather than rewritten.
 

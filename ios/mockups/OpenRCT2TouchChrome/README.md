@@ -8,7 +8,7 @@ The park canvas is a green-to-blue gradient, not RCT2 art.
 
 ## Layouts
 
-1. **Cluster** — Floating bottom glass cluster (Trees / + / Paths / More), camera row (pause, 1x/2x speed, zoom in/out, rotate), and Park Tools sheet. Closest to the live overlay.
+1. **Cluster** — Floating bottom glass cluster (Trees / + / Paths / More), leading pause/speed menu, grouped zoom plus rotate, and a Park Tools half-to-full sheet. Closest to the live overlay.
 2. **Rail** — Maps-style trailing vertical tool rail.
 3. **FAB** — One prominent build button that morphs into land, water, trees, paths, and rides.
 4. **Sheet** — Find My pattern: inset sheet with grabber, detents, integrated tab bar (Build / Park / View / More), and corner glass controls. The park stays interactive at the compact detent.

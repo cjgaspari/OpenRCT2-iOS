@@ -40,7 +40,7 @@ build_slice() {
         -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="$ROOT/ios/toolchain/ios.toolchain.cmake" \
         -DOPENRCT2_IOS_PLATFORM="$platform" \
         -DCMAKE_OSX_ARCHITECTURES=arm64 \
-        -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=27.0 \
         -DVCPKG_TARGET_TRIPLET="$triplet" \
         -DVCPKG_INSTALLED_DIR="$install_root" \
         -DVCPKG_MANIFEST_MODE=OFF \

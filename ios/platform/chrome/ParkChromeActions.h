@@ -49,6 +49,7 @@ enum
     kNativeChromeViewStaff = 32,
     kNativeChromeViewPathIssues = 33,
     kNativeChromeViewHeightMarks = 34,
+    kNativeChromeQuitToMenu = 35,
     kNativeChromeExtraXor = -1,
 };
 

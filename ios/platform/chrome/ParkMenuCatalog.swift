@@ -100,6 +100,10 @@ enum ParkMenuCatalog {
         .init(
             id: "about", title: "About", subtitle: "OpenRCT2 credits and version",
             systemImage: "info.circle.fill", fallbackImage: "info.circle", action: .about),
+        .init(
+            id: "quit", title: "Quit to menu", subtitle: "Return to the title screen",
+            systemImage: "rectangle.portrait.and.arrow.right",
+            fallbackImage: "arrow.uturn.left", action: .quitToMenu),
     ]
 
     static let dockBuild = Array(build.prefix(3))

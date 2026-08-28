@@ -18,6 +18,7 @@
     #include <SDL.h>
     #include <SDL_syswm.h>
     #include <UIKit/UIKit.h>
+    #include <algorithm>
     #include <cstdint>
     #include <openrct2/Context.h>
     #include <openrct2/Diagnostic.h>
@@ -26,6 +27,7 @@
     #include <openrct2/OpenRCT2.h>
     #include <openrct2/actions/GameActionRunner.h>
     #include <openrct2/actions/general/GameSetSpeedAction.h>
+    #include <openrct2/actions/general/LoadOrQuitAction.h>
     #include <openrct2/actions/general/PauseToggleAction.h>
     #include <openrct2/Date.h>
     #include <openrct2/interface/Viewport.h>
@@ -173,6 +175,10 @@ namespace
                 return "zoom-out";
             case kNativeChromeRotateCW:
                 return "rotate";
+            case kNativeChromeViewHeightMarks:
+                return "view-height-marks";
+            case kNativeChromeQuitToMenu:
+                return "quit-to-menu";
             default:
                 return "view-toggle";
         }
@@ -480,6 +486,16 @@ namespace OpenRCT2::Ui
             w->invalidate();
         }
 
+        void SetGameSpeed(uint8_t speed)
+        {
+            if (speed < 1 || speed > 4)
+            {
+                speed = 1;
+            }
+            auto setSpeedAction = GameActions::GameSetSpeedAction(speed);
+            GameActions::Execute(&setSpeedAction, getGameState());
+        }
+
         void CycleGameSpeed()
         {
             uint8_t newSpeed = gGameSpeed + 1;
@@ -487,8 +503,39 @@ namespace OpenRCT2::Ui
             {
                 newSpeed = 1;
             }
-            auto setSpeedAction = GameActions::GameSetSpeedAction(newSpeed);
-            GameActions::Execute(&setSpeedAction, getGameState());
+            SetGameSpeed(newSpeed);
+        }
+
+        void CentreOpenedWindow(WindowBase* w)
+        {
+            if (w == nullptr)
+            {
+                return;
+            }
+            if (w->classification == WindowClass::mainWindow)
+            {
+                return;
+            }
+            if (w->flags.hasAny(WindowFlag::stickToBack, WindowFlag::stickToFront))
+            {
+                return;
+            }
+
+            const int32_t screenWidth = ContextGetWidth();
+            const int32_t screenHeight = ContextGetHeight();
+            const int32_t x = std::clamp((screenWidth - w->width) / 2, 0, std::max(0, screenWidth - w->width));
+            const int32_t y = std::clamp((screenHeight - w->height) / 2, 0, std::max(0, screenHeight - w->height));
+            Windows::WindowSetPosition(*w, { x, y });
+        }
+
+        void CentreWindowClass(WindowClass cls)
+        {
+            auto* windowMgr = GetWindowManager();
+            if (windowMgr == nullptr)
+            {
+                return;
+            }
+            CentreOpenedWindow(windowMgr->FindByClass(cls));
         }
     } // namespace
 
@@ -658,70 +705,76 @@ namespace OpenRCT2::Ui
         switch (event.user.code)
         {
             case kNativeChromeBuildNewRide:
-                OpenRCT2::ContextOpenWindow(WindowClass::constructRide);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::constructRide));
                 break;
             case kNativeChromeTrees:
                 Windows::ToggleSceneryWindow();
+                CentreWindowClass(WindowClass::scenery);
                 break;
             case kNativeChromePaths:
                 Windows::ToggleFootpathWindow();
+                CentreWindowClass(WindowClass::footpath);
                 break;
             case kNativeChromeLand:
                 Windows::ToggleLandWindow();
+                CentreWindowClass(WindowClass::land);
                 break;
             case kNativeChromeWater:
                 Windows::ToggleWaterWindow();
+                CentreWindowClass(WindowClass::water);
                 break;
             case kNativeChromeClearScenery:
                 Windows::ToggleClearSceneryWindow();
+                CentreWindowClass(WindowClass::clearScenery);
                 break;
             case kNativeChromeRideList:
-                OpenRCT2::ContextOpenWindow(WindowClass::rideList);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::rideList));
                 break;
             case kNativeChromeParkInformation:
-                OpenRCT2::ContextOpenWindow(WindowClass::parkInformation);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::parkInformation));
                 break;
             case kNativeChromeStaffList:
-                OpenRCT2::ContextOpenWindow(WindowClass::staffList);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::staffList));
                 break;
             case kNativeChromeGuestList:
-                OpenRCT2::ContextOpenWindow(WindowClass::guestList);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::guestList));
                 break;
             case kNativeChromeFinances:
-                OpenRCT2::ContextOpenWindow(WindowClass::finances);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::finances));
                 break;
             case kNativeChromeResearch:
-                OpenRCT2::ContextOpenWindow(WindowClass::research);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::research));
                 break;
             case kNativeChromeRecentNews:
-                OpenRCT2::ContextOpenWindow(WindowClass::recentNews);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::recentNews));
                 break;
             case kNativeChromeMap:
-                OpenRCT2::ContextOpenWindow(WindowClass::map);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::map));
                 break;
             case kNativeChromeExtraViewport:
-                OpenRCT2::ContextOpenWindow(WindowClass::viewport);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::viewport));
                 break;
             case kNativeChromeViewClipping:
-                OpenRCT2::ContextOpenWindow(WindowClass::viewClipping);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::viewClipping));
                 break;
             case kNativeChromeTransparency:
-                OpenRCT2::ContextOpenWindow(WindowClass::transparency);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::transparency));
                 break;
             case kNativeChromeLoadSave:
                 SaveGameAs();
+                CentreWindowClass(WindowClass::loadsave);
                 break;
             case kNativeChromeOptions:
-                OpenRCT2::ContextOpenWindow(WindowClass::options);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::options));
                 break;
             case kNativeChromeAbout:
-                OpenRCT2::ContextOpenWindow(WindowClass::about);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::about));
                 break;
             case kNativeChromeCheats:
-                OpenRCT2::ContextOpenWindow(WindowClass::cheats);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::cheats));
                 break;
             case kNativeChromeTileInspector:
-                OpenRCT2::ContextOpenWindow(WindowClass::tileInspector);
+                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::tileInspector));
                 break;
             case kNativeChromePause:
                 if (Network::GetMode() != Network::Mode::client)
@@ -731,7 +784,14 @@ namespace OpenRCT2::Ui
                 }
                 break;
             case kNativeChromeGameSpeed:
-                CycleGameSpeed();
+                if (extra >= 1 && extra <= 4)
+                {
+                    SetGameSpeed(static_cast<uint8_t>(extra));
+                }
+                else
+                {
+                    CycleGameSpeed();
+                }
                 break;
             case kNativeChromeZoomIn:
                 mainWindow = WindowGetMain();
@@ -771,6 +831,20 @@ namespace OpenRCT2::Ui
             case kNativeChromeViewHeightMarks:
                 ApplyHeightMarks(extra);
                 break;
+            case kNativeChromeQuitToMenu:
+            {
+                auto* windowMgr = GetWindowManager();
+                if (windowMgr != nullptr)
+                {
+                    windowMgr->CloseByClass(WindowClass::manageTrackDesign);
+                    windowMgr->CloseByClass(WindowClass::trackDeletePrompt);
+                }
+                auto loadOrQuitAction = GameActions::LoadOrQuitAction(
+                    GameActions::LoadOrQuitModes::openSavePrompt, PromptMode::saveBeforeQuit);
+                GameActions::Execute(&loadOrQuitAction, getGameState());
+                CentreWindowClass(WindowClass::savePrompt);
+                break;
+            }
             default:
                 break;
         }

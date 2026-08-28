@@ -38,6 +38,10 @@
 #include <openrct2/ui/UiContext.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 using namespace OpenRCT2;
 using namespace OpenRCT2::Ui;
 using namespace OpenRCT2::Ui::Windows;
@@ -744,6 +748,14 @@ public:
         auto& uiContext = GetContext()->GetUiContext();
         ScreenSize screenSize = { uiContext.GetWidth(), uiContext.GetHeight() };
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        // Portrait iPhone/iPad: centre auto-positioned windows instead of the
+        // desktop top-left cascade. Oversized windows stay clamped to the canvas.
+        auto centred = ScreenCoordsXY{
+            (screenSize.width - windowSize.width) / 2,
+            std::max(0, (screenSize.height - windowSize.height) / 2) };
+        return ClampWindowToScreen(centred, screenSize, windowSize);
+#else
         // Place window in an empty corner of the screen
         const ScreenCoordsXY cornerPositions[] = {
             { 0, 30 },                                                                           // topLeft
@@ -826,6 +838,7 @@ public:
         }
 
         return ClampWindowToScreen(screenPos, screenSize, windowSize);
+#endif
     }
 
     static ScreenCoordsXY GetCentrePositionForNewWindow(ScreenSize size)

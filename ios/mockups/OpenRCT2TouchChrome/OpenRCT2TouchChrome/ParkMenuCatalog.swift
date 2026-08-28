@@ -4,7 +4,7 @@ enum ParkWindow: String, CaseIterable, Identifiable {
     case constructRide, scenery, footpath, land, water, clearScenery, rideList
     case map, extraViewport, viewClipping, transparency, viewOptions
     case parkInformation, staffList, guestList, finances, research, recentNews
-    case loadSave, options, about, cheats, tileInspector
+    case loadSave, options, about, cheats, tileInspector, quitToMenu
 
     var id: String { rawValue }
 
@@ -33,6 +33,7 @@ enum ParkWindow: String, CaseIterable, Identifiable {
         case .about: "About"
         case .cheats: "Cheats"
         case .tileInspector: "Tile inspector"
+        case .quitToMenu: "Quit to menu"
         }
     }
 }
@@ -80,6 +81,7 @@ enum ParkMenuCatalog {
         .init(id: "cheats", title: "Cheats", subtitle: "Sandbox, clearance, and debug", systemImage: "wand.and.stars", window: .cheats),
         .init(id: "inspector", title: "Tile inspector", subtitle: "Power-user map cell editor", systemImage: "square.grid.3x3.fill", window: .tileInspector),
         .init(id: "about", title: "About", subtitle: "OpenRCT2 credits and version", systemImage: "info.circle.fill", window: .about),
+        .init(id: "quit", title: "Quit to menu", subtitle: "Return to the title screen", systemImage: "rectangle.portrait.and.arrow.right", window: .quitToMenu),
     ]
 
     static let alwaysBuild = Array(build.prefix(3))

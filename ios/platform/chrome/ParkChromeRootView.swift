@@ -12,6 +12,7 @@ struct ParkChromeRootView: View {
     var body: some View {
         VStack {
             HStack {
+                PauseSpeedMenu(model: model)
                 Spacer()
                 CameraCluster(model: model)
             }
@@ -46,7 +47,7 @@ struct ParkChromeDockView: View {
                         accessibilityLabel: "Build new ride or attraction",
                         accessibilityIdentifier: "openrct2.touch.buildRide",
                         prominent: true,
-                        size: 56,
+                        controlSize: .large,
                         action: { model.queue(.constructRide) }
                     )
                     GlassIconButton(
@@ -81,26 +82,8 @@ struct ParkToolsSheet: View {
     var body: some View {
         sheetNavigation {
             List {
-                Section("Build") {
-                    ForEach(ParkMenuCatalog.overflowBuild) { item in
-                        Button {
-                            select(item)
-                        } label: {
-                            MenuRow(item: item)
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                }
-                Section("Park") {
-                    ForEach(ParkMenuCatalog.park) { item in
-                        Button {
-                            select(item)
-                        } label: {
-                            MenuRow(item: item)
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                }
+                ParkToolsButtonSection(title: "Build", items: ParkMenuCatalog.overflowBuild, onSelect: select)
+                ParkToolsButtonSection(title: "Park", items: ParkMenuCatalog.park, onSelect: select)
                 Section("View") {
                     ForEach(ParkMenuCatalog.view) { item in
                         Button {
@@ -117,16 +100,7 @@ struct ParkToolsSheet: View {
                         .listRowBackground(Color.clear)
                     }
                 }
-                Section("More") {
-                    ForEach(ParkMenuCatalog.more) { item in
-                        Button {
-                            select(item)
-                        } label: {
-                            MenuRow(item: item)
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                }
+                ParkToolsButtonSection(title: "More", items: ParkMenuCatalog.more, onSelect: select)
             }
             .listStyle(.plain)
             .modifier(ClearListBackground())
@@ -135,33 +109,17 @@ struct ParkToolsSheet: View {
 
     @ViewBuilder
     private func sheetNavigation<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        if #available(iOS 16.0, *) {
-            NavigationStack {
-                content()
-                    .navigationTitle("Park tools")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { dismissSheet() }
-                        }
+        NavigationStack {
+            content()
+                .navigationTitle("Park tools")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { dismissSheet() }
                     }
-            }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .modifier(FullWidthSheetSizing())
-        } else {
-            NavigationView {
-                content()
-                    .navigationTitle("Park tools")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { dismissSheet() }
-                        }
-                    }
-            }
-            .navigationViewStyle(.stack)
+                }
         }
+        .modifier(ParkToolsSheetPresentation())
     }
 
     private func select(_ item: ParkMenuItem) {
@@ -175,22 +133,39 @@ struct ParkToolsSheet: View {
     }
 }
 
-private struct FullWidthSheetSizing: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 18.0, *) {
-            content.presentationSizing(.page)
-        } else {
-            content
+private struct ParkToolsButtonSection: View {
+    let title: String
+    let items: [ParkMenuItem]
+    let onSelect: (ParkMenuItem) -> Void
+
+    var body: some View {
+        Section(title) {
+            ForEach(items) { item in
+                Button {
+                    onSelect(item)
+                } label: {
+                    MenuRow(item: item)
+                }
+                .listRowBackground(Color.clear)
+            }
         }
+    }
+}
+
+/// Half sheet that keeps scrolling at medium. Drag the grabber/sheet chrome
+/// to grow to large. Apple: `presentationContentInteraction(.scrolls)`.
+private struct ParkToolsSheetPresentation: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationContentInteraction(.scrolls)
+            .presentationSizing(.page)
     }
 }
 
 private struct ClearListBackground: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 16.0, *) {
-            content.scrollContentBackground(.hidden)
-        } else {
-            content
-        }
+        content.scrollContentBackground(.hidden)
     }
 }

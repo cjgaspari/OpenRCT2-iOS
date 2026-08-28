@@ -39,7 +39,7 @@ struct MockupB_TrailingRail: View {
                         systemImage: "plus",
                         accessibilityLabel: "Build new ride or attraction",
                         prominent: true,
-                        size: 56,
+                        controlSize: .large,
                         action: { model.toolTapped(.constructRide) }
                     )
                     GlassIconButton(

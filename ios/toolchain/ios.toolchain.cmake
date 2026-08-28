@@ -1,7 +1,7 @@
 # OpenRCT2 Touch iOS cross-compilation toolchain.
 
 set(CMAKE_SYSTEM_NAME iOS)
-set(CMAKE_SYSTEM_VERSION 15.0)
+set(CMAKE_SYSTEM_VERSION 27.0)
 
 set(OPENRCT2_IOS_PLATFORM "DEVICE" CACHE STRING "iOS target: DEVICE or SIMULATOR")
 set_property(CACHE OPENRCT2_IOS_PLATFORM PROPERTY STRINGS DEVICE SIMULATOR)
@@ -16,15 +16,15 @@ else ()
 endif ()
 
 set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "" FORCE)
-set(CMAKE_OSX_DEPLOYMENT_TARGET 15.0 CACHE STRING "Minimum iOS version")
+set(CMAKE_OSX_DEPLOYMENT_TARGET 27.0 CACHE STRING "Minimum iOS version")
 
 if (NOT CMAKE_Swift_COMPILER)
     set(CMAKE_Swift_COMPILER /usr/bin/swiftc CACHE FILEPATH "Swift compiler")
 endif ()
 if (OPENRCT2_IOS_PLATFORM STREQUAL "SIMULATOR")
-    set(CMAKE_Swift_COMPILER_TARGET "arm64-apple-ios15.0-simulator")
+    set(CMAKE_Swift_COMPILER_TARGET "arm64-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}-simulator")
 else ()
-    set(CMAKE_Swift_COMPILER_TARGET "arm64-apple-ios15.0")
+    set(CMAKE_Swift_COMPILER_TARGET "arm64-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif ()
 
 # Keep host packages out of target discovery. Dependencies are provided by the

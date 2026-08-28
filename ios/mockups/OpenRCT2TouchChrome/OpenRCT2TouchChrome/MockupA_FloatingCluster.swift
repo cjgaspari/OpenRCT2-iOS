@@ -7,6 +7,7 @@ struct MockupA_FloatingCluster: View {
     var body: some View {
         VStack {
             HStack {
+                PauseSpeedMenu(model: model)
                 Spacer()
                 CameraCluster(model: model)
             }
@@ -25,7 +26,7 @@ struct MockupA_FloatingCluster: View {
                         systemImage: "plus",
                         accessibilityLabel: "Build new ride or attraction",
                         prominent: true,
-                        size: 56,
+                        controlSize: .large,
                         action: { model.toolTapped(.constructRide) }
                     )
                     GlassIconButton(
@@ -106,6 +107,7 @@ struct MockupA_FloatingCluster: View {
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+            .presentationContentInteraction(.scrolls)
         }
     }
 

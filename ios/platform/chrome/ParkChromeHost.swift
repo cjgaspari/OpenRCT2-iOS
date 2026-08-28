@@ -24,12 +24,8 @@ private final class ParkChromeHostingController<Content: View>: UIHostingControl
         super.viewDidLoad()
         view.backgroundColor = .clear
         view.isOpaque = false
-        if #available(iOS 16.0, *) {
-            sizingOptions = [.intrinsicContentSize]
-        }
-        if #available(iOS 16.4, *) {
-            safeAreaRegions = []
-        }
+        sizingOptions = [.intrinsicContentSize]
+        safeAreaRegions = []
     }
 }
 
@@ -37,6 +33,7 @@ final class ParkChromeSession: NSObject {
     let model = ParkChromeModel()
     private let onAction: @convention(c) (Int32, Int32) -> Void
     private var cameraHost: ParkChromeHostingController<CameraCluster>?
+    private var playbackHost: ParkChromeHostingController<PauseSpeedMenu>?
     private var dockHost: ParkChromeHostingController<ParkChromeDockView>?
     private var container: ParkChromePassThroughView?
 
@@ -65,23 +62,30 @@ final class ParkChromeSession: NSObject {
         ])
 
         let parentController = parent.owningViewController
+        let playbackHost = ParkChromeHostingController(rootView: PauseSpeedMenu(model: model))
         let cameraHost = ParkChromeHostingController(rootView: CameraCluster(model: model))
         let dockHost = ParkChromeHostingController(rootView: ParkChromeDockView(model: model))
+        install(playbackHost, in: container, parent: parentController)
         install(cameraHost, in: container, parent: parentController)
         install(dockHost, in: container, parent: parentController)
 
+        let playbackView = playbackHost.view!
         let cameraView = cameraHost.view!
         let dockView = dockHost.view!
         let safe = container.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
+            playbackView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
+            playbackView.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
             cameraView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
             cameraView.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+            playbackView.trailingAnchor.constraint(lessThanOrEqualTo: cameraView.leadingAnchor, constant: -12),
             dockView.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
             dockView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             dockView.leadingAnchor.constraint(greaterThanOrEqualTo: safe.leadingAnchor, constant: 16),
             dockView.trailingAnchor.constraint(lessThanOrEqualTo: safe.trailingAnchor, constant: -16),
         ])
 
+        self.playbackHost = playbackHost
         self.cameraHost = cameraHost
         self.dockHost = dockHost
         self.container = container
@@ -90,9 +94,11 @@ final class ParkChromeSession: NSObject {
     }
 
     func detach() {
+        detachHost(playbackHost)
         detachHost(cameraHost)
         detachHost(dockHost)
         container?.removeFromSuperview()
+        playbackHost = nil
         cameraHost = nil
         dockHost = nil
         container = nil

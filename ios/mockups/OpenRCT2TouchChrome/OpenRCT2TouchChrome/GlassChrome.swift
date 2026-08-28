@@ -5,19 +5,19 @@ struct GlassIconButton: View {
     var title: String?
     let accessibilityLabel: String
     var prominent = false
-    var size: CGFloat = 48
+    var controlSize: ControlSize = .regular
     var action: () -> Void
 
     var body: some View {
+        let button = Button(action: action, label: label)
+            .controlSize(controlSize)
+            .buttonBorderShape(.circle)
+            .accessibilityLabel(accessibilityLabel)
+
         if prominent {
-            Button(action: action, label: label)
-                .buttonStyle(.glassProminent)
-                .tint(.blue)
-                .accessibilityLabel(accessibilityLabel)
+            button.buttonStyle(.glassProminent).tint(.blue)
         } else {
-            Button(action: action, label: label)
-                .buttonStyle(.glass)
-                .accessibilityLabel(accessibilityLabel)
+            button.buttonStyle(.glass)
         }
     }
 
@@ -25,14 +25,51 @@ struct GlassIconButton: View {
     private func label() -> some View {
         if let title {
             Text(title)
-                .font(.body.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .monospacedDigit()
-                .frame(width: size, height: size)
         } else {
             Image(systemName: systemImage ?? "circle")
                 .font(.body.weight(.semibold))
-                .frame(width: size, height: size)
+                .imageScale(.medium)
         }
+    }
+}
+
+struct PauseSpeedMenu: View {
+    @Bindable var model: ChromePreviewModel
+
+    var body: some View {
+        Menu {
+            Button {
+                model.pauseButtonTapped()
+            } label: {
+                Label(
+                    model.isPaused ? "Resume" : "Pause",
+                    systemImage: model.isPaused ? "play.fill" : "pause.fill")
+            }
+            Divider()
+            Picker("Speed", selection: $model.speed) {
+                ForEach(GameSpeed.allCases, id: \.self) { speed in
+                    Text(speed.multiplierLabel).tag(speed)
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
+                    .font(.body.weight(.semibold))
+                    .imageScale(.medium)
+                Text(model.speed.multiplierLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+            }
+        }
+        .menuStyle(.button)
+        .menuOrder(.fixed)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.capsule)
+        .controlSize(.regular)
+        .accessibilityLabel(model.isPaused ? "Paused, \(model.speed.multiplierLabel)" : "Playing, \(model.speed.multiplierLabel)")
+        .accessibilityHint("Opens pause and game speed")
     }
 }
 
@@ -40,49 +77,51 @@ struct CameraCluster: View {
     @Bindable var model: ChromePreviewModel
 
     var body: some View {
-        GlassEffectContainer(spacing: 12) {
-            HStack(spacing: 12) {
-                GlassIconButton(
-                    systemImage: model.isPaused ? "play.fill" : "pause.fill",
-                    accessibilityLabel: model.isPaused ? "Resume" : "Pause",
-                    action: model.pauseButtonTapped
-                )
-                GlassIconButton(
-                    title: model.speed.multiplierLabel,
-                    accessibilityLabel: "Game speed \(model.speed.multiplierLabel)",
-                    action: model.speedButtonTapped
-                )
-                GlassIconButton(
-                    systemImage: "plus.magnifyingglass",
-                    accessibilityLabel: "Zoom in",
-                    action: { model.toolTapped(.viewOptions) }
-                )
-                GlassIconButton(
-                    systemImage: "minus.magnifyingglass",
-                    accessibilityLabel: "Zoom out",
-                    action: { model.toolTapped(.viewOptions) }
-                )
-                GlassIconButton(
-                    systemImage: "camera.rotate",
-                    accessibilityLabel: "Rotate view",
-                    action: { model.toolTapped(.viewOptions) }
-                )
+        HStack(spacing: 12) {
+            ControlGroup {
+                Button {
+                    model.toolTapped(.viewOptions)
+                } label: {
+                    Image(systemName: "plus.magnifyingglass")
+                        .font(.body.weight(.semibold))
+                        .imageScale(.medium)
+                }
+                .accessibilityLabel("Zoom in")
+
+                Button {
+                    model.toolTapped(.viewOptions)
+                } label: {
+                    Image(systemName: "minus.magnifyingglass")
+                        .font(.body.weight(.semibold))
+                        .imageScale(.medium)
+                }
+                .accessibilityLabel("Zoom out")
             }
+            .controlGroupStyle(.navigation)
+            .buttonStyle(.glass)
+            .controlSize(.regular)
+            .labelStyle(.iconOnly)
+
+            GlassIconButton(
+                systemImage: "camera.rotate",
+                accessibilityLabel: "Rotate view",
+                action: { model.toolTapped(.viewOptions) }
+            )
         }
     }
 }
 
 struct StatusStrip: View {
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
             labeled("banknote", "$12,480")
             labeled("person.3.fill", "248")
             labeled("star.fill", "693")
             labeled("calendar", "Mar 14")
         }
         .font(.caption.weight(.semibold))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
         .glassEffect(in: .capsule)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Cash $12,480, 248 guests, park rating 693, 14 March")
