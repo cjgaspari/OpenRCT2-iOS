@@ -17,7 +17,6 @@
 #include "input/ShortcutManager.h"
 #include "interface/InGameConsole.h"
 #include "interface/Theme.h"
-#include "interface/Viewport.h"
 #include "interface/ViewportInteraction.h"
 #include "scripting/UiExtensions.h"
 #include "title/TitleSequencePlayer.h"
