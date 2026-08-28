@@ -6,56 +6,119 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             ParkCanvas()
-            chrome
+            ParkChromePlayground(model: model)
         }
-        .overlay(alignment: .center) {
-            mockupSwitcher
+        .overlay(alignment: .top) {
+            ChromeMixer(model: model)
+                .padding(.top, 78)
         }
         .overlay(alignment: .center) {
             if let openWindow = model.openWindow {
                 EngineWindowCard(title: openWindow.title, onClose: model.dismissWindowButtonTapped)
-                    .padding(.horizontal, 80)
-                    .offset(y: 72)
+                    .padding(.horizontal, 48)
+                    .offset(y: 128)
             }
         }
-    }
-
-    @ViewBuilder
-    private var chrome: some View {
-        switch model.mockup {
-        case .floatingCluster:
-            MockupA_FloatingCluster(model: model)
-        case .trailingRail:
-            MockupB_TrailingRail(model: model)
-        case .morphingFAB:
-            MockupC_MorphingFAB(model: model)
-        case .findMySheet:
-            MockupD_FindMySheet(model: model)
+        .task {
+            await runStatusTicker()
         }
     }
 
-    private var mockupSwitcher: some View {
-        Menu {
-            ForEach(ChromeMockup.allCases) { mockup in
-                Button(mockup.subtitle) {
-                    mockupSelected(mockup)
-                }
-            }
-        } label: {
-            Label(model.mockup.subtitle, systemImage: "rectangle.on.rectangle.angled")
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+    private func runStatusTicker() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(800))
+            model.tickStatus()
         }
-        .buttonStyle(.glass)
-        .accessibilityLabel("Choose chrome mockup")
-    }
-
-    private func mockupSelected(_ mockup: ChromeMockup) {
-        model.mockupSelected(mockup)
     }
 }
 
-#Preview("Cluster") {
+struct ParkChromePlayground: View {
+    @Bindable var model: ChromePreviewModel
+
+    var body: some View {
+        VStack {
+            TopChromeHost(model: model)
+            Spacer()
+            BottomChromeHost(model: model)
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Always-visible mixers so Top A/B/C and Bottom A/B/C can be paired independently.
+struct ChromeMixer: View {
+    @Bindable var model: ChromePreviewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Chrome mixer")
+                .font(.caption.weight(.semibold))
+            Picker("Top", selection: $model.top) {
+                ForEach(TopChromeKind.allCases) { kind in
+                    Text(kind.title).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("Top bar mockup")
+
+            Picker("Bottom", selection: $model.bottom) {
+                ForEach(BottomChromeKind.allCases) { kind in
+                    Text(kind.title).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("Bottom bar mockup")
+
+            Toggle("Left-handed controls", isOn: $model.leftHandedControls)
+                .font(.caption)
+
+            Text(model.top.subtitle)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(model.bottom.subtitle)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: 340)
+        .glassEffect(in: .rect(cornerRadius: 18))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Chrome mixer")
+    }
+}
+
+#Preview("Mixer") {
     ContentView()
+}
+
+#Preview("Union × Split") {
+    PreviewChrome(top: .united, bottom: .split)
+}
+
+#Preview("HUD × Bar") {
+    PreviewChrome(top: .playHUD, bottom: .toolbar)
+}
+
+#Preview("Island × Labeled") {
+    PreviewChrome(top: .island, bottom: .labeled)
+}
+
+private struct PreviewChrome: View {
+    @State private var model = ChromePreviewModel()
+    let top: TopChromeKind
+    let bottom: BottomChromeKind
+
+    var body: some View {
+        ZStack {
+            ParkCanvas()
+            ParkChromePlayground(model: model)
+        }
+        .onAppear {
+            model.top = top
+            model.bottom = bottom
+        }
+    }
 }

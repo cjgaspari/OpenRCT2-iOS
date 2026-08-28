@@ -21,7 +21,7 @@ touch gestures into those established actions wherever practical.
 | Two-finger hold for 350 ms over a footpath, then drag | Remove footpaths continuously | Immediate movement remains viewport pan; the stationary hold clearly selects erase intent. |
 | Trackpad/mouse input | Existing pointer controls | Touch changes must not regress desktop-style play on an attached keyboard and trackpad. Viewport wheel zoom is throttled to one game zoom step per four wheel units. |
 | Text field with hardware keyboard attached | Hardware keyboard input | iPadOS normally suppresses its software keyboard while hardware input is available. |
-| Native park chrome (park only) | Opens or toggles the matching in-engine windows | SwiftUI Liquid Glass: full-width status+pause union (tap pauses; a speed, Park, or More item resumes). Status opens Park windows; pause opens speed, More, and quit. Leading stacked View-over-rotate union; trailing Build hammer. View sheet includes zoom and visibility toggles. Hidden on title, loading, and editor scenes. |
+| Native park chrome (park only) | Opens or toggles the matching in-engine windows | SwiftUI Liquid Glass: full-width status+pause union (tap pauses; a speed, Park, or More item resumes). Status opens Park windows; pause opens a Game Speed submenu, More, and quit. Leading stacked View-over-rotate union; trailing Build hammer. View sheet toolbar has icon-only zoom; the sheet lists view windows and visibility toggles. Hidden on title, loading, and editor scenes. |
 
 ## Gesture arbitration
 

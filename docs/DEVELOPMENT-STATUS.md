@@ -128,9 +128,10 @@ a park is open: a full-width top bar uniting the status capsule (Park menu)
 and pause/speed. Tapping either side pauses. Choosing a speed or a Park or
 More item resumes. View sits above rotate in a leading glass union; Build is a
 trailing untinted hammer. Build opens a half-height sheet of construction
-tools. View opens a half-height sheet of camera zoom, view windows, and inline
-visibility toggles. Both sheets scroll at medium; drag the sheet up for large.
-Every control queues the same in-engine window intents as the hidden iOS
+tools. View opens a half-height sheet of view windows and inline visibility
+toggles, with icon-only zoom in the toolbar opposite Close. Both sheets scroll
+at medium; drag the sheet up for large. Every control queues the same in-engine
+window intents as the hidden iOS
 top/bottom toolbars. Chrome-opened in-engine windows are centred on the iOS
 canvas and clamped if they are oversized. Oversized in-engine windows
 (scenario select, scenery, load/save) are clamped to the canvas rather than

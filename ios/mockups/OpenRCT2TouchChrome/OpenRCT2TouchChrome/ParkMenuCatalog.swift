@@ -84,10 +84,12 @@ enum ParkMenuCatalog {
         .init(id: "quit", title: "Quit to menu", subtitle: "Return to the title screen", systemImage: "rectangle.portrait.and.arrow.right", window: .quitToMenu),
     ]
 
-    static let alwaysBuild = Array(build.prefix(3))
-    static let cameraSymbols = ["plus.magnifyingglass", "minus.magnifyingglass", "camera.rotate"]
+    static let fileAndSettings = more.filter { $0.window != .quitToMenu }
+    static let overflowBuild = Array(build.dropFirst(3))
     static let viewToggles = [
         "Underground", "See-through rides", "See-through scenery",
         "Guests", "Staff", "Path issues", "Height marks",
     ]
+    static let toolsSheetSymbol = "square.grid.2x2.fill"
+    static let rotateViewSymbol = "arrow.trianglehead.clockwise.rotate.90"
 }

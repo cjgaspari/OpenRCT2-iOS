@@ -85,13 +85,14 @@ struct PauseSpeedMenu: View {
             }
             .accessibilityIdentifier("openrct2.touch.pause")
 
-            Section("Speed") {
-                Picker("Speed", selection: speedBinding) {
+            Menu("Game Speed") {
+                Picker("Game Speed", selection: speedBinding) {
                     Text("1x").tag(UInt8(1))
                     Text("2x").tag(UInt8(2))
                     Text("3x").tag(UInt8(3))
                     Text("4x").tag(UInt8(4))
                 }
+                .pickerStyle(.inline)
                 .accessibilityIdentifier("openrct2.touch.speed")
             }
 

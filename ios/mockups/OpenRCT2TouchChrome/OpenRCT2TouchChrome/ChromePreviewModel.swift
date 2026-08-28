@@ -1,100 +1,93 @@
 import SwiftUI
 
-enum ChromeMockup: String, CaseIterable, Identifiable {
-    case floatingCluster
-    case trailingRail
-    case morphingFAB
-    case findMySheet
+enum TopChromeKind: String, CaseIterable, Identifiable {
+    case united
+    case playHUD
+    case island
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .floatingCluster: "Cluster"
-        case .trailingRail: "Rail"
-        case .morphingFAB: "FAB"
-        case .findMySheet: "Sheet"
+        case .united: "Union"
+        case .playHUD: "HUD"
+        case .island: "Island"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .floatingCluster: "Floating bottom glass cluster"
-        case .trailingRail: "Maps-style trailing tool rail"
-        case .morphingFAB: "Morphing build FAB"
-        case .findMySheet: "Find My sheet + tabs"
+        case .united:
+            "Status and pause share one leading glass capsule. Two menus, one blob."
+        case .playHUD:
+            "One control: pause, speed, and cash. Park and camera live in that menu."
+        case .island:
+            "One centered island: pause plus cash and guests. Two menus, one shape."
         }
     }
 }
 
-enum GameSpeed: String, CaseIterable {
-    case normal = "Normal"
-    case quick = "Quick"
-    case fast = "Fast"
-    case turbo = "Turbo"
+enum BottomChromeKind: String, CaseIterable, Identifiable {
+    case split
+    case toolbar
+    case labeled
 
-    var symbol: String {
-        switch self {
-        case .normal: "play.fill"
-        case .quick: "forward.fill"
-        case .fast: "forward.end.fill"
-        case .turbo: "forward.end.alt.fill"
-        }
-    }
-
-    var multiplierLabel: String {
-        switch self {
-        case .normal: "1x"
-        case .quick: "2x"
-        case .fast: "3x"
-        case .turbo: "4x"
-        }
-    }
-}
-
-enum SheetTab: String, CaseIterable, Identifiable {
-    case build, park, view, more
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .build: "Build"
-        case .park: "Park"
-        case .view: "View"
-        case .more: "More"
+        case .split: "Split"
+        case .toolbar: "Bar"
+        case .labeled: "Labeled"
         }
     }
 
-    var symbol: String {
+    var subtitle: String {
         switch self {
-        case .build: "hammer.fill"
-        case .park: "flag.fill"
-        case .view: "eye.fill"
-        case .more: "ellipsis"
+        case .split:
+            "Live layout: equal Trees / Build / Paths, and a tools+rotate union on the thumb."
+        case .toolbar:
+            "One bottom capsule. Build trio and tools/rotate sit in the same glass bar."
+        case .labeled:
+            "Captioned build tools on the lead corner; vertical tools+rotate on the thumb."
         }
     }
 }
 
 @Observable
 final class ChromePreviewModel {
-    var mockup: ChromeMockup = .floatingCluster
+    var top: TopChromeKind = .united
+    var bottom: BottomChromeKind = .split
     var openWindow: ParkWindow?
     var isPaused = false
     var speed: GameSpeed = .normal
-    var isFABExpanded = false
-    var sheetDetent: PresentationDetent = .height(220)
-    var sheetTab: SheetTab = .build
+    var isShowingParkTools = false
+    var leftHandedControls = false
     var viewFlags: Set<String> = ["Guests", "Rides"]
 
-    static let compactSheetHeight: CGFloat = 220
+    /// Cents so the HUD can tick without resizing.
+    var cashCents = 1_248_010
+    var guests = 248
+    var rating = 693
+    var date = "Mar 14"
 
-    func mockupSelected(_ mockup: ChromeMockup) {
-        self.mockup = mockup
-        isFABExpanded = false
-        if mockup == .findMySheet {
-            sheetDetent = .height(Self.compactSheetHeight)
-        }
+    var cashText: String {
+        Self.currency.string(from: NSNumber(value: Double(cashCents) / 100.0)) ?? "$0.00"
     }
+
+    var guestsText: String { "\(guests)" }
+    var ratingText: String { "\(rating)" }
+
+    var statusValues: ParkStatusValues {
+        ParkStatusValues(
+            cash: cashText,
+            guests: guestsText,
+            rating: ratingText,
+            date: date
+        )
+    }
+
+    var speedLabel: String { speed.multiplierLabel }
 
     func toolTapped(_ window: ParkWindow) {
         openWindow = window
@@ -108,12 +101,22 @@ final class ChromePreviewModel {
         isPaused.toggle()
     }
 
-    func speedButtonTapped() {
-        speed = GameSpeed.allCases[(GameSpeed.allCases.firstIndex(of: speed)! + 1) % GameSpeed.allCases.count]
+    func zoomInButtonTapped() {
+        toolTapped(.viewOptions)
     }
 
-    func fabButtonTapped() {
-        isFABExpanded.toggle()
+    func zoomOutButtonTapped() {
+        toolTapped(.viewOptions)
+    }
+
+    func rotateButtonTapped() {
+        toolTapped(.viewOptions)
+    }
+
+    func tickStatus() {
+        cashCents = max(0, cashCents + Int.random(in: -1_200...2_400))
+        guests = max(0, min(9_999, guests + Int.random(in: -2...3)))
+        rating = max(0, min(999, rating + Int.random(in: -4...4)))
     }
 
     func viewFlagToggled(_ name: String) {
@@ -134,4 +137,36 @@ final class ChromePreviewModel {
             }
         }
     }
+
+    private static let currency: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 2
+        return formatter
+    }()
+}
+
+enum GameSpeed: String, CaseIterable {
+    case normal = "Normal"
+    case quick = "Quick"
+    case fast = "Fast"
+    case turbo = "Turbo"
+
+    var multiplierLabel: String {
+        switch self {
+        case .normal: "1x"
+        case .quick: "2x"
+        case .fast: "3x"
+        case .turbo: "4x"
+        }
+    }
+}
+
+struct ParkStatusValues: Equatable {
+    var cash: String
+    var guests: String
+    var rating: String
+    var date: String
 }

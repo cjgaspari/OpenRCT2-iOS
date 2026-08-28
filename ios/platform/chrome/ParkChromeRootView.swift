@@ -69,24 +69,6 @@ struct ViewToolsSheet: View {
     var body: some View {
         ChromeToolsSheetScaffold(title: "View", onClose: dismissSheet) {
             List {
-                Section("Camera") {
-                    Button {
-                        model.queue(.zoomIn)
-                    } label: {
-                        Label("Zoom in", systemImage: "plus.magnifyingglass")
-                    }
-                    .listRowBackground(Color.clear)
-                    .accessibilityIdentifier("openrct2.touch.zoomIn")
-
-                    Button {
-                        model.queue(.zoomOut)
-                    } label: {
-                        Label("Zoom out", systemImage: "minus.magnifyingglass")
-                    }
-                    .listRowBackground(Color.clear)
-                    .accessibilityIdentifier("openrct2.touch.zoomOut")
-                }
-
                 ParkToolsButtonSection(title: "Windows", items: ParkMenuCatalog.viewWindows, onSelect: select)
 
                 Section("Options") {
@@ -100,6 +82,21 @@ struct ViewToolsSheet: View {
             }
             .listStyle(.plain)
             .modifier(ClearListBackground())
+            .toolbar {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    Button("Zoom in", systemImage: "plus.magnifyingglass") {
+                        model.queue(.zoomIn)
+                    }
+                    .labelStyle(.iconOnly)
+                    .accessibilityIdentifier("openrct2.touch.zoomIn")
+
+                    Button("Zoom out", systemImage: "minus.magnifyingglass") {
+                        model.queue(.zoomOut)
+                    }
+                    .labelStyle(.iconOnly)
+                    .accessibilityIdentifier("openrct2.touch.zoomOut")
+                }
+            }
         }
     }
 

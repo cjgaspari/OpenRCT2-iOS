@@ -2,19 +2,28 @@
 
 A standalone SwiftUI app for iterating native iPhone portrait chrome **without rebuilding the game**.
 
-Open `OpenRCT2TouchChrome.xcodeproj` in Xcode 26+, choose an iPhone Simulator, and Run. Use the top-left glass menu to switch layouts. Tapping a tool shows a stand-in for the existing in-engine window.
+Open `OpenRCT2TouchChrome.xcodeproj` in Xcode 26+, choose an iPhone Simulator, and Run.
 
-The park canvas is a green-to-blue gradient, not RCT2 art.
+The park canvas is a green-to-blue gradient, not RCT2 art. Live cash/guest figures tick so you can judge tabular-digit width.
 
-## Layouts
+## Mixer
 
-1. **Cluster** — Floating bottom glass cluster (Trees / + / Paths / More), leading pause/speed menu, grouped zoom plus rotate, and a Park Tools half-to-full sheet. Closest to the live overlay.
-2. **Rail** — Maps-style trailing vertical tool rail.
-3. **FAB** — One prominent build button that morphs into land, water, trees, paths, and rides.
-4. **Sheet** — Find My pattern: inset sheet with grabber, detents, integrated tab bar (Build / Park / View / More), and corner glass controls. The park stays interactive at the compact detent.
+The center **Chrome mixer** pairs any top bar with any bottom bar (3 × 3). Left-handed controls swap the bottom clusters.
 
-Liquid Glass is applied only to the navigation layer (`.buttonStyle(.glass)` / `.glassProminent`, `GlassEffectContainer`, system `TabView` / sheet). The sheet is **not** wrapped in extra `glassEffect`.
+Chrome is based on the live overlay: tabular status, pause menu with zoom, equal-size Trees / Build / Paths, and a tools+rotate `glassEffectUnion`.
 
-## Mapping
+## Top (info + pause)
 
-Chrome actions correspond to play-mode top/bottom toolbar intents (`constructRide`, scenery, footpath, land, water, park, staff, guests, finances, research, view options, file/options/cheats). The game still owns those windows.
+1. **Union** — Status and pause share one leading Liquid Glass capsule. Two menus, one blob.
+2. **HUD** — One control: pause, speed, and cash. Camera, Park, and More live in that menu.
+3. **Island** — One centered island: pause plus cash and guests. Two menus, one shape.
+
+## Bottom (build + tools)
+
+1. **Split** — Live layout: equal Trees / Build / Paths, tools+rotate union on the thumb.
+2. **Bar** — One bottom toolbar. Build trio and tools/rotate sit in the same glass bar.
+3. **Labeled** — Captioned Trees / Build / Paths; vertical tools+rotate on the thumb.
+
+The grid button still opens the Park Tools half-to-full sheet (list scrolls at medium; drag the sheet up for large).
+
+Liquid Glass is applied only to the navigation layer (`.buttonStyle(.glass)`, `GlassEffectContainer`, `glassEffectUnion`). The sheet is not wrapped in extra `glassEffect`.

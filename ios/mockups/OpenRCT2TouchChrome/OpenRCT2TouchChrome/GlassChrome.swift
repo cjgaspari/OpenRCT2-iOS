@@ -1,160 +1,263 @@
 import SwiftUI
 
+/// Icon-only glass control matching the live overlay: `.glass` only, optional blue tint.
 struct GlassIconButton: View {
-    var systemImage: String?
-    var title: String?
+    var systemImage: String
     let accessibilityLabel: String
     var prominent = false
     var controlSize: ControlSize = .regular
     var action: () -> Void
 
     var body: some View {
-        let button = Button(action: action, label: label)
-            .controlSize(controlSize)
-            .buttonBorderShape(.circle)
-            .accessibilityLabel(accessibilityLabel)
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .imageScale(.medium)
+        }
+        .controlSize(controlSize)
+        .buttonBorderShape(.circle)
+        .buttonStyle(.glass)
+        .modifier(ProminentTint(enabled: prominent))
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
 
-        if prominent {
-            button.buttonStyle(.glassProminent).tint(.blue)
+private struct ProminentTint: ViewModifier {
+    var enabled: Bool
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.tint(.blue)
         } else {
-            button.buttonStyle(.glass)
+            content
+        }
+    }
+}
+
+struct UnionedGlassIcon: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    let unionID: String
+    let namespace: Namespace.ID
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .imageScale(.medium)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+                .glassEffect()
+                .glassEffectUnion(id: unionID, namespace: namespace)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+struct TabularStatusValue: View {
+    let text: String
+    let prototype: String
+
+    var body: some View {
+        Text(prototype)
+            .hidden()
+            .overlay(alignment: .leading) {
+                Text(text)
+                    .contentTransition(.numericText())
+            }
+            .monospacedDigit()
+            .lineLimit(1)
+            .animation(.default, value: text)
+    }
+}
+
+struct StatusMetrics: View {
+    let values: ParkStatusValues
+    var showsRatingAndDate = true
+
+    var body: some View {
+        HStack(spacing: 10) {
+            statusItem("banknote", values.cash, prototype: "$99,999.99", color: .green)
+            statusItem("person.3.fill", values.guests, prototype: "9999", color: .purple)
+            if showsRatingAndDate {
+                statusItem("star.fill", values.rating, prototype: "999", color: .yellow)
+                calendarItem(values.date)
+            }
+        }
+        .font(.caption.weight(.semibold))
+    }
+
+    private func statusItem(_ symbol: String, _ text: String, prototype: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: symbol)
+                .foregroundStyle(color)
+                .symbolRenderingMode(.hierarchical)
+            TabularStatusValue(text: text, prototype: prototype)
         }
     }
 
-    @ViewBuilder
-    private func label() -> some View {
-        if let title {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .monospacedDigit()
-        } else {
-            Image(systemName: systemImage ?? "circle")
-                .font(.body.weight(.semibold))
-                .imageScale(.medium)
+    private func calendarItem(_ text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "calendar")
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.red, .white)
+            TabularStatusValue(text: text, prototype: "May 31")
+        }
+    }
+}
+
+struct PlaybackMenuBody: View {
+    @Bindable var model: ChromePreviewModel
+
+    var body: some View {
+        Button {
+            model.pauseButtonTapped()
+        } label: {
+            Label(
+                model.isPaused ? "Resume" : "Pause",
+                systemImage: model.isPaused ? "play.fill" : "pause.fill")
+        }
+
+        Section("Camera") {
+            Button {
+                model.zoomInButtonTapped()
+            } label: {
+                Label("Zoom in", systemImage: "plus.magnifyingglass")
+            }
+            Button {
+                model.zoomOutButtonTapped()
+            } label: {
+                Label("Zoom out", systemImage: "minus.magnifyingglass")
+            }
+        }
+
+        Section("Speed") {
+            Picker("Speed", selection: $model.speed) {
+                ForEach(GameSpeed.allCases, id: \.self) { speed in
+                    Text(speed.multiplierLabel).tag(speed)
+                }
+            }
+        }
+    }
+}
+
+struct ParkMoreMenuBody: View {
+    @Bindable var model: ChromePreviewModel
+
+    var body: some View {
+        Section("Park") {
+            ForEach(ParkMenuCatalog.park) { item in
+                Button {
+                    model.toolTapped(item.window)
+                } label: {
+                    Label(item.title, systemImage: item.systemImage)
+                }
+            }
+        }
+        Section("More") {
+            ForEach(ParkMenuCatalog.fileAndSettings) { item in
+                Button {
+                    model.toolTapped(item.window)
+                } label: {
+                    Label(item.title, systemImage: item.systemImage)
+                }
+            }
+        }
+        Section {
+            Button(role: .destructive) {
+                model.toolTapped(.quitToMenu)
+            } label: {
+                Label("Quit to menu", systemImage: "rectangle.portrait.and.arrow.right")
+            }
+        }
+        Section {
+            Toggle("Left-handed controls", isOn: $model.leftHandedControls)
         }
     }
 }
 
 struct PauseSpeedMenu: View {
     @Bindable var model: ChromePreviewModel
+    var usesOwnGlass = true
 
     var body: some View {
         Menu {
-            Button {
-                model.pauseButtonTapped()
-            } label: {
-                Label(
-                    model.isPaused ? "Resume" : "Pause",
-                    systemImage: model.isPaused ? "play.fill" : "pause.fill")
-            }
-            Divider()
-            Picker("Speed", selection: $model.speed) {
-                ForEach(GameSpeed.allCases, id: \.self) { speed in
-                    Text(speed.multiplierLabel).tag(speed)
-                }
-            }
+            PlaybackMenuBody(model: model)
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
                     .font(.body.weight(.semibold))
                     .imageScale(.medium)
-                Text(model.speed.multiplierLabel)
+                Text(model.speedLabel)
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
             }
         }
-        .menuStyle(.button)
         .menuOrder(.fixed)
-        .buttonStyle(.glass)
-        .buttonBorderShape(.capsule)
+        .menuStyle(.button)
+        .modifier(OptionalGlassCapsule(enabled: usesOwnGlass))
         .controlSize(.regular)
-        .accessibilityLabel(model.isPaused ? "Paused, \(model.speed.multiplierLabel)" : "Playing, \(model.speed.multiplierLabel)")
-        .accessibilityHint("Opens pause and game speed")
+        .accessibilityLabel(
+            model.isPaused
+                ? "Paused, \(model.speedLabel)"
+                : "Playing, \(model.speedLabel)")
+        .accessibilityHint("Opens pause, zoom, and game speed")
     }
 }
 
-struct CameraCluster: View {
+struct StatusMenu: View {
     @Bindable var model: ChromePreviewModel
+    var usesOwnGlass = true
+    var showsRatingAndDate = true
 
     var body: some View {
-        HStack(spacing: 12) {
-            ControlGroup {
-                Button {
-                    model.toolTapped(.viewOptions)
-                } label: {
-                    Image(systemName: "plus.magnifyingglass")
-                        .font(.body.weight(.semibold))
-                        .imageScale(.medium)
-                }
-                .accessibilityLabel("Zoom in")
+        Menu {
+            ParkMoreMenuBody(model: model)
+        } label: {
+            StatusMetrics(values: model.statusValues, showsRatingAndDate: showsRatingAndDate)
+                .padding(.horizontal, usesOwnGlass ? 12 : 4)
+                .padding(.vertical, usesOwnGlass ? 7 : 4)
+        }
+        .menuOrder(.fixed)
+        .menuStyle(.button)
+        .modifier(OptionalGlassCapsule(enabled: usesOwnGlass))
+        .controlSize(.regular)
+        .accessibilityLabel(
+            "Cash \(model.cashText), \(model.guestsText) guests, park rating \(model.ratingText), \(model.date)")
+        .accessibilityHint("Opens park information and more")
+    }
+}
 
-                Button {
-                    model.toolTapped(.viewOptions)
-                } label: {
-                    Image(systemName: "minus.magnifyingglass")
-                        .font(.body.weight(.semibold))
-                        .imageScale(.medium)
-                }
-                .accessibilityLabel("Zoom out")
-            }
-            .controlGroupStyle(.navigation)
-            .buttonStyle(.glass)
-            .controlSize(.regular)
-            .labelStyle(.iconOnly)
+private struct OptionalGlassCapsule: ViewModifier {
+    var enabled: Bool
 
-            GlassIconButton(
-                systemImage: "camera.rotate",
-                accessibilityLabel: "Rotate view",
-                action: { model.toolTapped(.viewOptions) }
-            )
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .buttonBorderShape(.capsule)
+                .buttonStyle(.glass)
+        } else {
+            content.buttonStyle(.plain)
         }
     }
 }
 
-struct StatusStrip: View {
-    var body: some View {
-        HStack(spacing: 14) {
-            labeled("banknote", "$12,480")
-            labeled("person.3.fill", "248")
-            labeled("star.fill", "693")
-            labeled("calendar", "Mar 14")
-        }
-        .font(.caption.weight(.semibold))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .glassEffect(in: .capsule)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Cash $12,480, 248 guests, park rating 693, 14 March")
-    }
-
-    private func labeled(_ symbol: String, _ text: String) -> some View {
-        Label(text, systemImage: symbol)
-            .labelStyle(.titleAndIcon)
-    }
-}
-
-struct MenuList: View {
-    let items: [ParkMenuItem]
-    var onSelect: (ParkWindow) -> Void
+struct MenuRow: View {
+    let item: ParkMenuItem
 
     var body: some View {
-        List(items) { item in
-            Button {
-                onSelect(item.window)
-            } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.title)
-                            .font(.body.weight(.semibold))
-                        Text(item.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: item.systemImage)
-                }
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.body.weight(.semibold))
+                Text(item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+        } icon: {
+            Image(systemName: item.systemImage)
         }
-        .listStyle(.plain)
     }
 }
