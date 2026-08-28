@@ -731,7 +731,8 @@ static constexpr float kWindowScrollLocations[][2] = {
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
         return 0;
 #else
-        if (gLegacyScene == LegacyScene::titleSequence)
+        auto sceneManager = GetContext()->GetSceneManager();
+        if (sceneManager->getActiveScene() == sceneManager->getTitleScene())
         {
             return 0;
         }
