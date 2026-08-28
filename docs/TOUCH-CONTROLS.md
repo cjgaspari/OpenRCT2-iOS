@@ -21,7 +21,7 @@ touch gestures into those established actions wherever practical.
 | Two-finger hold for 350 ms over a footpath, then drag | Remove footpaths continuously | Immediate movement remains viewport pan; the stationary hold clearly selects erase intent. |
 | Trackpad/mouse input | Existing pointer controls | Touch changes must not regress desktop-style play on an attached keyboard and trackpad. Viewport wheel zoom is throttled to one game zoom step per four wheel units. |
 | Text field with hardware keyboard attached | Hardware keyboard input | iPadOS normally suppresses its software keyboard while hardware input is available. |
-| Native park chrome (park only) | Opens or toggles the matching in-engine windows | SwiftUI Liquid Glass: status (Park) on the leading top edge, pause/speed on the trailing top edge (tap pauses; a speed, Park, or More item resumes). Leading View/rotate union (stacked in portrait, horizontal in compact-height landscape); trailing Build hammer. View sheet toolbar has icon-only zoom; the sheet lists view windows and visibility toggles. Hidden on title, loading, and editor scenes. |
+| Native park chrome (park only) | Opens or toggles the matching in-engine windows | SwiftUI Liquid Glass: status (Park) on the leading top edge, pause/speed on the trailing top edge (tap pauses; a speed, Park, or More item resumes). Leading View/rotate union (stacked in portrait, horizontal in compact-height landscape); trailing Build hammer. View sheet toolbar has uncolored zoom-out then zoom-in icons; the sheet lists view windows and visibility toggles. Hidden on title, loading, and editor scenes. |
 
 ## Gesture arbitration
 
@@ -55,6 +55,12 @@ left-button dragging when the gesture does not start on the park viewport.
   reports should be measured separately before treating them as input debt.
 
 ## Change log
+
+### August 28, 2026
+
+- Park and pause top menus freeze live cash/guest ticks while open so the
+  SwiftUI `Menu` does not rebuild or reset scroll.
+- View-sheet zoom is uncolored and ordered zoom out, then zoom in.
 
 ### August 27, 2026
 

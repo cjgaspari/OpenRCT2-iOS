@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct ParkChromeRootView: View {
-    @ObservedObject var model: ParkChromeModel
+    @Bindable var model: ParkChromeModel
 
     var body: some View {
         VStack {
@@ -33,7 +33,7 @@ struct ParkChromeRootView: View {
 }
 
 struct ParkChromeDockView: View {
-    @ObservedObject var model: ParkChromeModel
+    @Bindable var model: ParkChromeModel
 
     var body: some View {
         ViewRotateCluster(model: model)
@@ -44,7 +44,7 @@ struct ParkChromeDockView: View {
 }
 
 struct BuildToolsSheet: View {
-    @ObservedObject var model: ParkChromeModel
+    var model: ParkChromeModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -69,7 +69,7 @@ struct BuildToolsSheet: View {
 }
 
 struct ViewToolsSheet: View {
-    @ObservedObject var model: ParkChromeModel
+    @Bindable var model: ParkChromeModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -109,21 +109,23 @@ struct ViewToolsSheet: View {
             .modifier(ClearListBackground())
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
-                    Button("Zoom in", systemImage: "plus.magnifyingglass") {
-                        model.queue(.zoomIn)
-                    }
-                    .labelStyle(.iconOnly)
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.green, .mint)
-                    .accessibilityIdentifier("openrct2.touch.zoomIn")
-
                     Button("Zoom out", systemImage: "minus.magnifyingglass") {
                         model.queue(.zoomOut)
                     }
                     .labelStyle(.iconOnly)
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.orange, .yellow)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(.primary)
+                    .tint(.primary)
                     .accessibilityIdentifier("openrct2.touch.zoomOut")
+
+                    Button("Zoom in", systemImage: "plus.magnifyingglass") {
+                        model.queue(.zoomIn)
+                    }
+                    .labelStyle(.iconOnly)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(.primary)
+                    .tint(.primary)
+                    .accessibilityIdentifier("openrct2.touch.zoomIn")
                 }
             }
         }

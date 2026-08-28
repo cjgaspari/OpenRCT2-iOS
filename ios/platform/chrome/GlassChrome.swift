@@ -67,11 +67,58 @@ struct ChromeGlassCluster<Content: View>: View {
 /// Tap-to-open `Menu` (not a long-press `contextMenu`). Label shows play/pause
 /// plus the current speed, matching a compact pull-down control.
 struct PauseSpeedMenu: View {
-    @ObservedObject var model: ParkChromeModel
+    var model: ParkChromeModel
     var usesOwnGlass = true
+    @State private var frozenSpeed: UInt8?
 
     var body: some View {
         Menu {
+            PauseSpeedMenuItems(model: model)
+                .onDisappear { frozenSpeed = nil }
+        } label: {
+            PauseControlLabel(model: model, frozenSpeed: frozenSpeed)
+        }
+        .modifier(PlaybackMenuChrome(usesOwnGlass: usesOwnGlass))
+        .fixedSize()
+        .transaction { $0.animation = nil }
+        .simultaneousGesture(TapGesture().onEnded {
+            frozenSpeed = model.speed
+            model.ensurePaused()
+        })
+        .accessibilityLabel("Pause, speed, and more")
+        .accessibilityHint("Opens pause, speed, and more")
+        .accessibilityIdentifier("openrct2.touch.playbackMenu")
+    }
+}
+
+/// Lives outside the `Menu` container so the menu itself does not observe speed.
+private struct PauseControlLabel: View {
+    var model: ParkChromeModel
+    var frozenSpeed: UInt8?
+
+    var body: some View {
+        let speed = frozenSpeed ?? model.speed
+        Group {
+            if speed > 1 {
+                Text("\(max(1, Int(speed)))x")
+                    .monospacedDigit()
+            } else {
+                Image(systemName: "pause.fill")
+            }
+        }
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .frame(minWidth: 32)
+    }
+}
+
+private struct PauseSpeedMenuItems: View {
+    var model: ParkChromeModel
+    @State private var speedChoice: UInt8 = 1
+
+    var body: some View {
+        Group {
             Button {
                 if model.isPaused {
                     model.ensurePlaying()
@@ -80,17 +127,15 @@ struct PauseSpeedMenu: View {
                 }
             } label: {
                 Label {
-                    Text(model.isPaused ? "Resume" : "Pause")
+                    Text("Pause")
                 } icon: {
-                    ParkChromeSymbol(
-                        systemImage: model.isPaused ? "play.fill" : "pause.fill",
-                        primary: model.isPaused ? .green : .orange)
+                    ParkChromeSymbol(systemImage: "pause.fill", primary: .orange)
                 }
             }
             .accessibilityIdentifier("openrct2.touch.pause")
 
             Menu("Game Speed") {
-                Picker("Game Speed", selection: speedBinding) {
+                Picker("Game Speed", selection: $speedChoice) {
                     Text("1x").tag(UInt8(1))
                     Text("2x").tag(UInt8(2))
                     Text("3x").tag(UInt8(3))
@@ -117,48 +162,18 @@ struct PauseSpeedMenu: View {
                     ParkMenuLabel(item: ParkMenuCatalog.quitToMenu)
                 }
             }
-        } label: {
-            pauseControlLabel
         }
-        .modifier(PlaybackMenuChrome(usesOwnGlass: usesOwnGlass))
-        .fixedSize()
-        .simultaneousGesture(TapGesture().onEnded { model.ensurePaused() })
-        .accessibilityLabel(menuAccessibilityLabel)
-        .accessibilityHint("Opens pause, speed, and more")
-        .accessibilityIdentifier("openrct2.touch.playbackMenu")
-    }
-
-    @ViewBuilder
-    private var pauseControlLabel: some View {
-        Group {
-            if model.isPaused {
-                Image(systemName: "play.fill")
-            } else if model.speed > 1 {
-                Text(model.speedLabel)
-                    .monospacedDigit()
-            } else {
-                Image(systemName: "pause.fill")
-            }
+        .onAppear {
+            speedChoice = max(1, min(4, model.speed))
         }
-        .font(.caption.weight(.semibold))
-        .padding(.horizontal, 8)
-        .padding(.vertical, 7)
-        .frame(minWidth: 32)
-    }
-
-    private var speedBinding: Binding<UInt8> {
-        Binding(
-            get: { max(1, min(4, model.speed)) },
-            set: {
-                model.queue(.gameSpeed, extra: Int32($0))
-                model.ensurePlaying()
+        .onChange(of: speedChoice) { _, newValue in
+            let clamped = max(UInt8(1), min(UInt8(4), newValue))
+            if clamped == model.speed {
+                return
             }
-        )
-    }
-
-    private var menuAccessibilityLabel: String {
-        let motion = model.isPaused ? "Paused" : "Playing"
-        return "\(motion), \(model.speedLabel)"
+            model.queue(.gameSpeed, extra: Int32(clamped))
+            model.ensurePlaying()
+        }
     }
 }
 
@@ -166,7 +181,7 @@ struct PauseSpeedMenu: View {
 /// glass capsule. Used by the SwiftUI preview tree; the live overlay pins the
 /// two controls with Auto Layout so they stay apart across rotations.
 struct TopChromeBar: View {
-    @ObservedObject var model: ParkChromeModel
+    var model: ParkChromeModel
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -184,7 +199,7 @@ struct TopChromeBar: View {
 /// Portrait (regular height) stacks View over rotate; compact-height landscape
 /// lays them out horizontally so both stay reachable on a short screen.
 struct ViewRotateCluster: View {
-    @ObservedObject var model: ParkChromeModel
+    var model: ParkChromeModel
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Namespace private var unionNamespace
 
@@ -240,7 +255,7 @@ struct ViewRotateCluster: View {
 
 /// Build control on the trailing thumb.
 struct BuildCluster: View {
-    @ObservedObject var model: ParkChromeModel
+    @Bindable var model: ParkChromeModel
 
     var body: some View {
         Button {
@@ -265,60 +280,92 @@ struct BuildCluster: View {
 
 /// Tappable park status. Opens a `Menu` (tap, not long-press) with Park windows.
 struct StatusMenu: View {
-    @ObservedObject var model: ParkChromeModel
+    var model: ParkChromeModel
     var usesOwnGlass = true
     var fillsWidth = false
+    @State private var frozenTicker: ParkTickerSnapshot?
 
     var body: some View {
         Menu {
-            Section("Park") {
-                ForEach(ParkMenuCatalog.park) { item in
-                    Button {
-                        model.queueParkMenu(item.action)
-                    } label: {
-                        ParkMenuLabel(item: item)
-                    }
-                }
-            }
+            StatusMenuItems(model: model)
+                .onDisappear { frozenTicker = nil }
         } label: {
-            StatusStripLabel(model: model)
+            StatusStripLabel(model: model, frozen: frozenTicker)
                 .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
         }
         .modifier(PlaybackMenuChrome(usesOwnGlass: usesOwnGlass))
         .fixedSize(horizontal: !fillsWidth, vertical: true)
-        .simultaneousGesture(TapGesture().onEnded { model.ensurePaused() })
-        .controlSize(.regular)
-        .accessibilityLabel(
-            "Cash \(model.cash), \(model.guests) guests, park rating \(model.rating), \(model.date)")
+        .transaction { $0.animation = nil }
+        .simultaneousGesture(TapGesture().onEnded {
+            frozenTicker = ParkTickerSnapshot(model)
+            model.ensurePaused()
+        })
+        .accessibilityLabel("Park information")
         .accessibilityHint("Opens park information")
         .accessibilityIdentifier("openrct2.touch.statusStrip")
     }
 }
 
-struct StatusStripLabel: View {
-    @ObservedObject var model: ParkChromeModel
+private struct StatusMenuItems: View {
+    var model: ParkChromeModel
 
     var body: some View {
+        Section("Park") {
+            ForEach(ParkMenuCatalog.park) { item in
+                Button {
+                    model.queueParkMenu(item.action)
+                } label: {
+                    ParkMenuLabel(item: item)
+                }
+            }
+        }
+    }
+}
+
+private struct ParkTickerSnapshot: Equatable {
+    var cash: String
+    var guests: String
+    var rating: String
+    var date: String
+
+    init(_ model: ParkChromeModel) {
+        cash = model.cash
+        guests = model.guests
+        rating = model.rating
+        date = model.date
+    }
+}
+
+private struct StatusStripLabel: View {
+    var model: ParkChromeModel
+    var frozen: ParkTickerSnapshot?
+
+    var body: some View {
+        let ticker = frozen ?? ParkTickerSnapshot(model)
         ViewThatFits(in: .horizontal) {
-            metrics(includeGuests: true, includeRatingAndDate: true)
-            metrics(includeGuests: true, includeRatingAndDate: false)
-            metrics(includeGuests: false, includeRatingAndDate: false)
+            metrics(ticker, includeGuests: true, includeRatingAndDate: true)
+            metrics(ticker, includeGuests: true, includeRatingAndDate: false)
+            metrics(ticker, includeGuests: false, includeRatingAndDate: false)
         }
         .font(.caption.weight(.semibold))
         .padding(.horizontal, 8)
         .padding(.vertical, 7)
     }
 
-    private func metrics(includeGuests: Bool, includeRatingAndDate: Bool) -> some View {
+    private func metrics(
+        _ ticker: ParkTickerSnapshot,
+        includeGuests: Bool,
+        includeRatingAndDate: Bool
+    ) -> some View {
         HStack(spacing: 6) {
-            statusItem("banknote", model.cash, prototype: "$9,999,999.99", color: .green)
+            statusItem("banknote", ticker.cash, prototype: "$9,999,999.99", color: .green)
                 .layoutPriority(1)
             if includeGuests {
-                statusItem("person.3.fill", model.guests, prototype: "9999", color: .purple)
+                statusItem("person.3.fill", ticker.guests, prototype: "9999", color: .purple)
             }
             if includeRatingAndDate {
-                statusItem("star.fill", model.rating, prototype: "9999", color: .yellow)
-                calendarItem(model.date)
+                statusItem("star.fill", ticker.rating, prototype: "9999", color: .yellow)
+                calendarItem(ticker.date)
             }
         }
     }
@@ -343,8 +390,7 @@ struct StatusStripLabel: View {
 }
 
 /// Tabular figures plus a hidden prototype string keep live values from
-/// resizing the capsule (Apple's `monospacedDigit` / tabular numbers).
-/// `numericText` morphs digits in place when the value ticks.
+/// resizing the capsule.
 private struct TabularStatusValue: View {
     let text: String
     let prototype: String
@@ -354,12 +400,10 @@ private struct TabularStatusValue: View {
             Text(prototype)
                 .hidden()
             Text(text)
-                .contentTransition(.numericText())
         }
         .monospacedDigit()
         .lineLimit(1)
         .fixedSize(horizontal: true, vertical: false)
-        .animation(.default, value: text)
     }
 }
 

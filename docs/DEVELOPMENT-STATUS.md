@@ -1,6 +1,6 @@
 # OpenRCT2 Touch development status
 
-- **Last updated:** August 27, 2026
+- **Last updated:** August 28, 2026
 - **Working branch:** `touch/iphone-vertical`
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
 - **Live slice:** park-only SwiftUI Liquid Glass chrome on a rotatable canvas (status on the leading top edge, pause on the trailing top edge, View/rotate on the leading thumb, trailing Build). Portrait stacks View over rotate; compact-height landscape lays them out horizontally. Goal 6/7 end-to-end device proofs remain.
@@ -129,8 +129,10 @@ speed or a Park or More item resumes.
 View and rotate share a leading glass union (stacked in portrait; horizontal
 in compact-height landscape); Build is a trailing untinted hammer. Build opens
 a half-height sheet of construction tools. View opens a half-height sheet of
-view windows and inline visibility toggles, with icon-only zoom in the toolbar
-opposite Close. Both sheets scroll at medium; drag the sheet up for large.
+view windows and inline visibility toggles, with uncolored icon-only zoom in
+the toolbar (zoom out, then zoom in). Park and pause menus freeze the status
+ticker while open so cash/guest ticks do not rebuild the SwiftUI `Menu` or
+reset its scroll. Both sheets scroll at medium; drag the sheet up for large.
 Every control queues the same in-engine window intents as the hidden iOS
 top/bottom toolbars. Chrome-opened in-engine windows are centred on the iOS
 canvas and clamped if they are oversized. Oversized in-engine windows

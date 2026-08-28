@@ -6,24 +6,30 @@
 
 import SwiftUI
 
-final class ParkChromeModel: ObservableObject {
-    @Published var isParkOpen = false
-    @Published var isPaused = false
-    @Published var speed: UInt8 = 1
-    @Published var viewportFlags: UInt32 = 0
-    @Published var cash = "—"
-    @Published var guests = "—"
-    @Published var rating = "—"
-    @Published var date = "—"
-    @Published var isShowingBuildTools = false
-    @Published var isShowingViewTools = false
-    @Published var swapBottomControls: Bool {
+@Observable
+final class ParkChromeModel {
+    var isParkOpen = false
+    var isPaused = false
+    var speed: UInt8 = 1
+    var viewportFlags: UInt32 = 0
+    var cash = "—"
+    var guests = "—"
+    var rating = "—"
+    var date = "—"
+    var isShowingBuildTools = false
+    var isShowingViewTools = false
+    var swapBottomControls: Bool {
         didSet {
             UserDefaults.standard.set(swapBottomControls, forKey: Self.swapBottomControlsKey)
+            onSwapBottomControlsChanged?()
         }
     }
 
+    @ObservationIgnored
     var onAction: ((Int32, Int32) -> Void)?
+
+    @ObservationIgnored
+    var onSwapBottomControlsChanged: (() -> Void)?
 
     private static let swapBottomControlsKey = "openrct2.touch.swapBottomControls"
 

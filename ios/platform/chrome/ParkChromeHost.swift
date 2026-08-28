@@ -6,7 +6,6 @@
 
 import SwiftUI
 import UIKit
-import Combine
 
 final class ParkChromePassThroughView: UIView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
@@ -75,7 +74,6 @@ final class ParkChromeSession: NSObject {
     private var container: ParkChromePassThroughView?
     private var topConstraints: [NSLayoutConstraint] = []
     private var bottomConstraints: [NSLayoutConstraint] = []
-    private var layoutCancellable: AnyCancellable?
 
     init(onAction: @escaping @convention(c) (Int32, Int32) -> Void) {
         self.onAction = onAction
@@ -83,12 +81,11 @@ final class ParkChromeSession: NSObject {
         model.onAction = { [weak self] code, extra in
             self?.onAction(code, extra)
         }
-        layoutCancellable = model.$swapBottomControls
-            .dropFirst()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
+        model.onSwapBottomControlsChanged = { [weak self] in
+            DispatchQueue.main.async {
                 self?.applyBottomLayout()
             }
+        }
     }
 
     func attach(to parent: UIView) {
@@ -158,9 +155,15 @@ final class ParkChromeSession: NSObject {
     }
 
     func setState(paused: Bool, speed: UInt8, flags: UInt32) {
-        model.isPaused = paused
-        model.speed = speed
-        model.viewportFlags = flags
+        if model.isPaused != paused {
+            model.isPaused = paused
+        }
+        if model.speed != speed {
+            model.speed = speed
+        }
+        if model.viewportFlags != flags {
+            model.viewportFlags = flags
+        }
     }
 
     func setStatus(cash: String, guests: String, rating: String, date: String) {
