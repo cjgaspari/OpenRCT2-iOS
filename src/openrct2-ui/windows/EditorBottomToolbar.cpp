@@ -30,12 +30,14 @@
 #include <openrct2/windows/Intent.h>
 #include <string>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 using namespace OpenRCT2::Drawing;
 
 namespace OpenRCT2::Ui::Windows
 {
-    static constexpr int32_t kToolbarHeight = 32;
-
     enum WindowEditorBottomToolbarWidgetIdx : WidgetIndex
     {
         WIDX_PREVIOUS_IMAGE,       // 1
@@ -455,6 +457,10 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* EditorBottomToolbarOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        return nullptr;
+#else
+        static constexpr int32_t kToolbarHeight = 32;
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->Create<EditorBottomToolbarWindow>(
             WindowClass::bottomToolbar, ScreenCoordsXY(0, ContextGetHeight() - kToolbarHeight),
@@ -462,5 +468,6 @@ namespace OpenRCT2::Ui::Windows
             { WindowFlag::stickToFront, WindowFlag::transparent, WindowFlag::noBackground, WindowFlag::noTitleBar });
 
         return window;
+#endif
     }
 } // namespace OpenRCT2::Ui::Windows

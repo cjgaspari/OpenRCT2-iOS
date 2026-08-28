@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../Identifiers.h"
+#include "ScreenCoords.hpp"
 
 #include <functional>
 #include <memory>
@@ -87,6 +88,8 @@ namespace OpenRCT2
     Viewport* WindowGetViewport(WindowBase* window);
 
     void WindowResizeGui(int32_t width, int32_t height);
+    int32_t WindowGetTopToolbarOffset();
+    ScreenSize WindowFitToScreen(ScreenSize size);
 
     void TextinputCancel();
 

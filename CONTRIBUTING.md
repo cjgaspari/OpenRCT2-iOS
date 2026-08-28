@@ -1,4 +1,46 @@
-# Contributing to OpenRCT2
+# Contributing to OpenRCT2 Touch
+
+OpenRCT2 Touch is an independent iPadOS fork. Issues and patches that are
+specific to the iPad port belong in
+[`chrissotraidis/OpenRCT2Touch`](https://github.com/chrissotraidis/OpenRCT2Touch),
+not in the upstream OpenRCT2 issue tracker.
+
+## Report an iPad-port issue
+
+Search this fork's issue tracker before filing a report. Include:
+
+- the iPad model and iPadOS version;
+- the OpenRCT2 Touch commit or build number;
+- whether input used fingers, a mouse/trackpad, or a hardware keyboard;
+- exact reproduction steps and the expected and actual behavior;
+- a screenshot, screen recording, or crash log when useful; and
+- whether the same behavior occurs in desktop upstream OpenRCT2.
+
+Do not upload proprietary RCT/RCT2 assets, installation folders, or saves that
+you do not have permission to redistribute. A minimal description or a park
+made entirely from redistributable project fixtures is preferred.
+
+## Contribute code to the port
+
+Base port work on `ipad` or a short-lived branch intended for `ipad`. Keep
+changes focused, preserve upstream file headers and attribution, prefix port
+commits with `[touch]`, and run the relevant build loop plus
+`./scripts/check-repo-safety.sh` before submitting a pull request to this fork.
+Never submit OpenRCT2 Touch changes directly to upstream without first
+coordinating with the upstream maintainers.
+
+Changes that are general OpenRCT2 fixes rather than iPad-specific work should
+follow the upstream contribution process below and be proposed to upstream
+independently from the Touch port.
+
+---
+
+# Upstream OpenRCT2 contribution guidance
+
+The original upstream guidance is preserved below for contributors working on
+general OpenRCT2 rather than this iPad fork.
+
+## Contributing to OpenRCT2
 Any contribution to OpenRCT2 is welcome and valued. Contributions can be in the form of bug reports, translation or code
 additions / changes. Please read this document to learn how to contribute as effectively as possible. If you have any
 questions or concerns, please ask in the [Discord chat](https://discordapp.com/invite/fsEwSWs).

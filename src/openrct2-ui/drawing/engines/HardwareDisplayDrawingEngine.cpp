@@ -13,6 +13,7 @@
 #include <SDL_render.h>
 #include <SDL_version.h>
 #include <cmath>
+#include <cstring>
 #include <memory>
 #include <openrct2/Diagnostic.h>
 #include <openrct2/Game.h>
@@ -25,6 +26,14 @@
 #include <openrct2/paint/Paint.h>
 #include <openrct2/ui/UiContext.h>
 #include <vector>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+    #if TARGET_OS_IOS
+        #include "../../IosSafeArea.h"
+        #include <os/log.h>
+    #endif
+#endif
 
 using namespace OpenRCT2;
 using namespace OpenRCT2::Drawing;
@@ -75,7 +84,24 @@ public:
 
     void Initialise() override
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
+#endif
         _sdlRenderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | (_useVsync ? SDL_RENDERER_PRESENTVSYNC : 0));
+        Guard::Assert(_sdlRenderer != nullptr, "Failed to create accelerated SDL renderer: %s", SDL_GetError());
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        SDL_RendererInfo rendererInfo = {};
+        Guard::Assert(
+            SDL_GetRendererInfo(_sdlRenderer, &rendererInfo) == 0, "Failed to inspect SDL renderer: %s", SDL_GetError());
+        Guard::Assert(
+            rendererInfo.name != nullptr && std::strcmp(rendererInfo.name, "metal") == 0,
+            "OpenRCT2 Touch requires SDL's Metal renderer, got: %s",
+            rendererInfo.name == nullptr ? "unknown" : rendererInfo.name);
+        LOG_INFO("[OpenRCT2Touch] renderer: driver=%s flags=0x%x", rendererInfo.name, rendererInfo.flags);
+        os_log_info(
+            OS_LOG_DEFAULT, "[OpenRCT2Touch] renderer: driver=%{public}s flags=0x%x", rendererInfo.name, rendererInfo.flags);
+#endif
     }
 
     void SetVSync(bool vsync) override
@@ -105,8 +131,15 @@ public:
         if (_screenTexture != nullptr)
         {
             SDL_DestroyTexture(_screenTexture);
+            _screenTexture = nullptr;
+        }
+        if (_scaledScreenTexture != nullptr)
+        {
+            SDL_DestroyTexture(_scaledScreenTexture);
+            _scaledScreenTexture = nullptr;
         }
         SDL_FreeFormat(_screenTextureFormat);
+        _screenTextureFormat = nullptr;
 
         SDL_RendererInfo rendererInfo = {};
         int32_t result = SDL_GetRendererInfo(_sdlRenderer, &rendererInfo);
@@ -177,6 +210,30 @@ public:
         _screenTextureFormat = SDL_AllocFormat(format);
 
         X8DrawingEngine::Resize(width, height);
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        SDL_RenderSetViewport(_sdlRenderer, nullptr);
+        SDL_RenderSetClipRect(_sdlRenderer, nullptr);
+        int32_t windowWidth = 0;
+        int32_t windowHeight = 0;
+        int32_t drawableWidth = 0;
+        int32_t drawableHeight = 0;
+        SDL_GetWindowSize(_window, &windowWidth, &windowHeight);
+        SDL_GetRendererOutputSize(_sdlRenderer, &drawableWidth, &drawableHeight);
+        LOG_INFO(
+            "[OpenRCT2Touch] presentation: window_points=%dx%d drawable_pixels=%dx%d canvas=%ux%u ui_scale=%.2f "
+            "safe_area_points=top:%.0f,left:%.0f,bottom:%.0f,right:%.0f texture=%s",
+            windowWidth, windowHeight, drawableWidth, drawableHeight, width, height, Config::Get().general.windowScale,
+            GetIosSafeArea().top, GetIosSafeArea().left, GetIosSafeArea().bottom, GetIosSafeArea().right,
+            SDL_GetPixelFormatName(format));
+        os_log_info(
+            OS_LOG_DEFAULT,
+            "[OpenRCT2Touch] presentation: window_points=%dx%d drawable_pixels=%dx%d canvas=%ux%u ui_scale=%.2f "
+            "safe_area_points=top:%.0f,left:%.0f,bottom:%.0f,right:%.0f texture=%{public}s",
+            windowWidth, windowHeight, drawableWidth, drawableHeight, width, height, Config::Get().general.windowScale,
+            GetIosSafeArea().top, GetIosSafeArea().left, GetIosSafeArea().bottom, GetIosSafeArea().right,
+            SDL_GetPixelFormatName(format));
+#endif
     }
 
     void SetPalette(const GamePalette& palette) override
@@ -202,6 +259,29 @@ public:
 
     void BeginDraw() override
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        RestoreIosCanvasFrame();
+        int32_t windowWidth = 0;
+        int32_t windowHeight = 0;
+        const IosSafeArea canvas = GetIosSafeArea();
+        if (canvas.windowWidth > 0 && canvas.windowHeight > 0)
+        {
+            windowWidth = canvas.windowWidth;
+            windowHeight = canvas.windowHeight;
+        }
+        else
+        {
+            SDL_GetWindowSize(_window, &windowWidth, &windowHeight);
+        }
+        if (windowWidth > 0 && windowHeight > 0
+            && (windowWidth != static_cast<int32_t>(_width) || windowHeight != static_cast<int32_t>(_height)
+                || windowWidth != _uiContext.GetWidth() || windowHeight != _uiContext.GetHeight()))
+        {
+            // Recover before drawing so this frame is not a stretched portrait
+            // canvas in a landscape drawable (or the reverse).
+            _uiContext.TriggerResize();
+        }
+#endif
         X8DrawingEngine::BeginDraw();
     }
 
@@ -233,9 +313,40 @@ protected:
     }
 
 private:
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+    void PresentIosTexture(SDL_Texture* texture)
+    {
+        // iOS Metal keeps the previous drawable viewport across rotation.
+        // Without a reset, a portrait clip is applied to a landscape drawable
+        // and the right side of the frame stays uncleared (grey void / seam).
+        SDL_RenderSetViewport(_sdlRenderer, nullptr);
+        SDL_RenderSetClipRect(_sdlRenderer, nullptr);
+        RestoreIosCanvasFrame();
+        SDL_SetRenderDrawColor(_sdlRenderer, 0, 0, 0, 255);
+        SDL_RenderClear(_sdlRenderer);
+        int32_t drawableWidth = 0;
+        int32_t drawableHeight = 0;
+        const IosSafeArea canvas = GetIosSafeArea();
+        if (canvas.windowWidth > 0 && canvas.windowHeight > 0 && canvas.scale > 0)
+        {
+            drawableWidth = static_cast<int32_t>(std::lround(static_cast<double>(canvas.windowWidth) * canvas.scale));
+            drawableHeight = static_cast<int32_t>(std::lround(static_cast<double>(canvas.windowHeight) * canvas.scale));
+        }
+        else
+        {
+            SDL_GetRendererOutputSize(_sdlRenderer, &drawableWidth, &drawableHeight);
+        }
+        SDL_Rect dest{ 0, 0, drawableWidth, drawableHeight };
+        SDL_RenderCopy(_sdlRenderer, texture, nullptr, &dest);
+    }
+#endif
+
     void Display()
     {
         auto* viewport = WindowGetViewport(WindowGetMain());
+#if !(defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS)
+        const SDL_Rect* presentDestPtr = nullptr;
+#endif
 
         if (Config::Get().general.enableLightFx && viewport != nullptr)
         {
@@ -259,11 +370,19 @@ private:
             SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, nullptr);
 
             SDL_SetRenderTarget(_sdlRenderer, nullptr);
-            SDL_RenderCopy(_sdlRenderer, _scaledScreenTexture, nullptr, nullptr);
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+            PresentIosTexture(_scaledScreenTexture);
+#else
+            SDL_RenderCopy(_sdlRenderer, _scaledScreenTexture, nullptr, presentDestPtr);
+#endif
         }
         else
         {
-            SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, nullptr);
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+            PresentIosTexture(_screenTexture);
+#else
+            SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, presentDestPtr);
+#endif
         }
 
         if (gShowDirtyVisuals)

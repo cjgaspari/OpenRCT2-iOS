@@ -37,6 +37,10 @@
 #include "IniReader.hpp"
 #include "IniWriter.hpp"
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 using namespace OpenRCT2;
 using namespace OpenRCT2::Ui;
 
@@ -45,11 +49,11 @@ static constexpr bool kWindowButtonsOnTheLeftDefault = true;
 #else
 static constexpr bool kWindowButtonsOnTheLeftDefault = false;
 #endif
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || (defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS)
 static constexpr bool kEnlargedUiDefault = true;
-// Android phones can come with rounded screen corners, making corner buttons harder to access.
+// Touchscreen devices need larger controls. Android phones can also have rounded screen corners.
 static constexpr bool kToolbarButtonsCentredDefault = true;
-// Android platform code returns a more appropiate default than SDL.
+// Mobile platform code returns a more appropriate default than SDL.
 static constexpr bool kInferDisplayDPIDefault = false;
 #else
 static constexpr bool kEnlargedUiDefault = false;
@@ -886,7 +890,7 @@ namespace OpenRCT2::Config
     u8string GetDefaultPath()
     {
         auto& env = GetContext()->GetPlatformEnvironment();
-        return Path::Combine(env.GetDirectoryPath(DirBase::user), u8"config.ini");
+        return env.GetFilePath(PathId::config);
     }
 
     bool SaveToPath(u8string_view path)

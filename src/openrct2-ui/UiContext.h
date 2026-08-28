@@ -14,6 +14,7 @@
 #include <vector>
 
 struct SDL_Window;
+union SDL_Event;
 
 namespace OpenRCT2
 {
@@ -47,6 +48,27 @@ namespace OpenRCT2::Ui
         virtual std::string ShowDirectoryDialog(SDL_Window* window, const std::string& title) = 0;
 
         virtual bool HasFilePicker() const = 0;
+
+        virtual void BeginTextInput()
+        {
+        }
+
+        virtual void EndTextInput()
+        {
+        }
+
+        virtual void AttachNativeOverlay([[maybe_unused]] SDL_Window* window)
+        {
+        }
+
+        virtual bool HandleSdlEvent([[maybe_unused]] const SDL_Event& event)
+        {
+            return false;
+        }
+
+        virtual void TickNativeOverlay()
+        {
+        }
     };
 
     [[nodiscard]] std::unique_ptr<IUiContext> CreateUiContext(IPlatformEnvironment& env);

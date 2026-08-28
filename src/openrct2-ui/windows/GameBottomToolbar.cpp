@@ -29,6 +29,10 @@
 #include <openrct2/peep/PeepSpriteIds.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 using namespace OpenRCT2::Drawing;
 
 namespace OpenRCT2::Ui::Windows
@@ -359,6 +363,9 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* GameBottomToolbarOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        return nullptr;
+#else
         // TODO: query ParkInfoPanel, DateInfoPanel
         constexpr auto kPanelWidth = 142;
 
@@ -377,6 +384,7 @@ namespace OpenRCT2::Ui::Windows
             { WindowFlag::stickToFront, WindowFlag::transparent, WindowFlag::noBackground, WindowFlag::noTitleBar });
 
         return window;
+#endif
     }
 
     void WindowGameBottomToolbarInvalidateNewsItem()

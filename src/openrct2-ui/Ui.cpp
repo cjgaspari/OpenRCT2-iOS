@@ -14,6 +14,7 @@
 #include "audio/AudioContext.h"
 #include "drawing/BitmapReader.h"
 
+#include <SDL.h>
 #include <memory>
 #include <openrct2/Context.h>
 #include <openrct2/Diagnostic.h>
@@ -22,6 +23,11 @@
 #include <openrct2/audio/AudioContext.h>
 #include <openrct2/command_line/ExitCode.h>
 #include <openrct2/ui/UiContext.h>
+#include <vector>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -37,15 +43,12 @@ static std::shared_ptr<T> ToShared(std::unique_ptr<T>&& src)
     return std::shared_ptr<T>(std::move(src));
 }
 
-/**
- * Main entry point for non-Windows systems. Windows instead uses its own DLL proxy.
- */
-#if defined(_MSC_VER) && !defined(__DISABLE_DLL_PROXY__)
-int NormalisedMain(int argc, const char** argv)
-#else
-int main(int argc, const char** argv)
-#endif
+static int RunOpenRCT2(int argc, const char** argv)
 {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_SIMULATOR
+    SDL_SetHint(SDL_HINT_AUDIODRIVER, "dummy");
+#endif
+
 #ifdef __EMSCRIPTEN__
     MAIN_THREAD_EM_ASM({
         specialHTMLTargets["!canvas"] = Module.canvas;
@@ -89,11 +92,30 @@ int main(int argc, const char** argv)
     return rc;
 }
 
-#ifdef __ANDROID__
-extern "C" {
-int SDL_main(int argc, const char* argv[])
+#if defined(_MSC_VER) && !defined(__DISABLE_DLL_PROXY__)
+
+int NormalisedMain(int argc, const char** argv)
 {
-    return main(argc, argv);
+    return RunOpenRCT2(argc, argv);
+}
+
+#elif defined(__ANDROID__) || defined(__MINGW32__) || (defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS)
+
+extern "C" {
+int SDL_main(int argc, char* argv[]);
+
+int SDL_main(int argc, char* argv[])
+{
+    std::vector<const char*> normalisedArgv(argv, argv + argc);
+    return RunOpenRCT2(argc, normalisedArgv.data());
 }
 }
+
+#else
+
+int main(int argc, const char** argv)
+{
+    return RunOpenRCT2(argc, argv);
+}
+
 #endif

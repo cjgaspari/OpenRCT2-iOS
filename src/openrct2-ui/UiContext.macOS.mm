@@ -8,6 +8,10 @@
  *****************************************************************************/
 
 #if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
 
     #include "UiContext.h"
 
@@ -250,4 +254,4 @@ namespace OpenRCT2::Ui
     }
 } // namespace OpenRCT2::Ui
 
-#endif // __APPLE__ && __MACH__
+#endif // __APPLE__ && __MACH__ && TARGET_OS_OSX

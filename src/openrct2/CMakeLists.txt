@@ -4,6 +4,9 @@ file(GLOB_RECURSE OPENRCT2_CORE_HEADERS "${CMAKE_CURRENT_LIST_DIR}/*.h"
 
 if (APPLE)
     file(GLOB_RECURSE OPENRCT2_CORE_MM_SOURCES "${CMAKE_CURRENT_LIST_DIR}/*.mm")
+    if (OPENRCT2_IOS)
+        list(APPEND OPENRCT2_CORE_MM_SOURCES "${ROOT_DIR}/ios/platform/Platform.iOS.mm")
+    endif ()
     set_source_files_properties(${OPENRCT2_CORE_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules")
 endif ()
 
@@ -48,7 +51,7 @@ if (NOT DISABLE_NETWORK OR NOT DISABLE_HTTP)
     if (WIN32)
         target_link_libraries(libopenrct2 bcrypt)
     else ()
-        if (APPLE AND NOT MACOS_USE_DEPENDENCIES)
+        if (OPENRCT2_MACOS AND NOT MACOS_USE_DEPENDENCIES)
             # note - we are not yet compatible with openssl3, which is now default brew version
             execute_process(COMMAND brew --prefix openssl@1.1 OUTPUT_VARIABLE HOMEBREW_PREFIX_OPENSSL OUTPUT_STRIP_TRAILING_WHITESPACE)
             # Needed for linking with non-broken OpenSSL on Apple platforms
@@ -91,7 +94,9 @@ if (NOT DISABLE_TTF)
         PKG_CHECK_MODULES(FONTCONFIG REQUIRED fontconfig)
     endif ()
 
-    if (MSVC)
+    if (OPENRCT2_IOS)
+        find_package(Freetype REQUIRED)
+    elseif (MSVC)
         find_package(freetype REQUIRED)
     else ()
         PKG_CHECK_MODULES(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
@@ -126,6 +131,12 @@ if (EMSCRIPTEN)
     set(SHARED_FLAGS "-fexceptions")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USE_FLAGS} ${SHARED_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EMSCRIPTEN_LDFLAGS} --bind ${SHARED_FLAGS}")
+elseif (OPENRCT2_IOS)
+    find_package(PNG 1.6 REQUIRED)
+    find_package(ZLIB REQUIRED)
+    find_package(zstd CONFIG REQUIRED)
+    find_package(libzip CONFIG REQUIRED)
+    find_package(nlohmann_json CONFIG REQUIRED)
 elseif (MSVC)
     find_package(png 1.6 REQUIRED)
     find_package(zlib REQUIRED)
@@ -150,7 +161,14 @@ else ()
     endif ()
 endif ()
 
-if (STATIC)
+if (OPENRCT2_IOS)
+    target_link_libraries(libopenrct2
+        PNG::PNG
+        ZLIB::ZLIB
+        zstd::libzstd
+        libzip::zip
+        nlohmann_json::nlohmann_json)
+elseif (STATIC)
     target_link_libraries(libopenrct2
             ${PNG_STATIC_LIBRARIES}
             ${ZLIB_STATIC_LIBRARIES}
@@ -179,7 +197,7 @@ if (MINGW)
     target_link_libraries(libopenrct2 -fstack-protector-strong)
 endif()
 
-if (UNIX AND NOT HAIKU AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
+if (UNIX AND NOT HAIKU AND NOT OPENRCT2_IOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
     # Include libdl for dlopen
     target_link_libraries(libopenrct2 dl)
 endif ()
@@ -194,7 +212,7 @@ if (EMSCRIPTEN)
 endif()
 
 if (NOT MINGW AND NOT MSVC AND NOT EMSCRIPTEN)
-    if (APPLE AND NOT MACOS_USE_DEPENDENCIES)
+    if (OPENRCT2_MACOS AND NOT MACOS_USE_DEPENDENCIES)
         execute_process(COMMAND brew --prefix icu4c OUTPUT_VARIABLE HOMEBREW_PREFIX_ICU OUTPUT_STRIP_TRAILING_WHITESPACE)
         # Needed for linking with non-broken icu on Apple platforms
         list(APPEND CMAKE_PREFIX_PATH "${HOMEBREW_PREFIX_ICU}")
@@ -204,7 +222,9 @@ if (NOT MINGW AND NOT MSVC AND NOT EMSCRIPTEN)
 
     target_include_directories(libopenrct2 SYSTEM PRIVATE ${ICU_INCLUDE_DIRS})
 
-    if (STATIC)
+    if (OPENRCT2_IOS)
+        target_link_libraries(libopenrct2 ICU::uc)
+    elseif (STATIC)
         target_link_libraries(libopenrct2 ${ICU_STATIC_LIBRARIES})
     else ()
         target_link_libraries(libopenrct2 ${ICU_LIBRARIES})
@@ -212,7 +232,9 @@ if (NOT MINGW AND NOT MSVC AND NOT EMSCRIPTEN)
 endif ()
 
 if (NOT DISABLE_TTF)
-    if (STATIC)
+    if (OPENRCT2_IOS)
+        target_link_libraries(libopenrct2 Freetype::Freetype)
+    elseif (STATIC)
         target_link_libraries(libopenrct2 ${FREETYPE_STATIC_LIBRARIES})
 
         if (UNIX AND NOT APPLE)

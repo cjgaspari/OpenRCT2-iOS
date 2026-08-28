@@ -22,6 +22,10 @@
 #include <openrct2/localisation/Localisation.Date.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 using namespace OpenRCT2::Drawing;
 
 namespace OpenRCT2::Ui::Windows
@@ -177,6 +181,9 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* dateInfoPanelOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        return nullptr;
+#else
         // Figure out how much line height we have to work with.
         uint32_t lineHeight = FontGetLineHeight(FontStyle::medium);
         int32_t panelHeight = lineHeight * 2 + 12;
@@ -188,5 +195,6 @@ namespace OpenRCT2::Ui::Windows
             { WindowFlag::stickToFront, WindowFlag::transparent, WindowFlag::noBackground, WindowFlag::noTitleBar });
 
         return window;
+#endif
     }
 } // namespace OpenRCT2::Ui::Windows

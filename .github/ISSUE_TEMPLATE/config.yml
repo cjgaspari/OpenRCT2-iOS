@@ -1,11 +1,8 @@
 blank_issues_enabled: true
 contact_links:
-- name: Feature request
-  url: https://github.com/OpenRCT2/OpenRCT2/discussions/categories/feature-requests
-  about: Request a new feature to be added to OpenRCT2.
-- name: Translation / Localisation
-  url: https://github.com/OpenRCT2/Localisation
-  about: For localisation issues, go to the localisation repository.
-- name: OpenRCT2 Discord Server
-  url: https://discord.gg/ZXZd8D8
-  about: For help with running or playing the game, join our Discord server.
+- name: General OpenRCT2 bug
+  url: https://github.com/OpenRCT2/OpenRCT2/issues
+  about: Report issues that also affect upstream desktop OpenRCT2 here.
+- name: OpenRCT2 Touch installation guide
+  url: https://github.com/chrissotraidis/OpenRCT2Touch#install-on-an-ipad
+  about: Read the physical-iPad build, signing, import, and troubleshooting guide.

@@ -34,6 +34,10 @@
 #include <openrct2/ui/UiContext.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 using namespace OpenRCT2;
 using namespace OpenRCT2::Ui;
 using namespace OpenRCT2::Ui::Windows;
@@ -692,7 +696,7 @@ public:
     {
         if (loc.x < 0)
             return false;
-        if (loc.y <= kTopToolbarHeight && gLegacyScene != LegacyScene::titleSequence)
+        if (loc.y < WindowGetTopToolbarOffset())
             return false;
         if (loc.x + windowSize.width > ContextGetWidth())
             return false;
@@ -713,7 +717,7 @@ public:
         unk = screenWidth + (unk * 2);
         if (loc.x > unk)
             return false;
-        if (loc.y <= kTopToolbarHeight && gLegacyScene != LegacyScene::titleSequence)
+        if (loc.y < WindowGetTopToolbarOffset())
             return false;
         unk = screenHeight - (windowSize.height / 4);
         if (loc.y > unk)
@@ -730,7 +734,7 @@ public:
         else if (screenPos.x + windowSize.width > screenSize.width)
             screenPos.x = screenSize.width - windowSize.width;
 
-        auto toolbarAllowance = gLegacyScene == LegacyScene::titleSequence ? 0 : (kTopToolbarHeight + 1);
+        auto toolbarAllowance = WindowGetTopToolbarOffset();
         if (windowSize.height - toolbarAllowance > screenSize.height || screenPos.y < toolbarAllowance)
             screenPos.y = toolbarAllowance;
         else if (screenPos.y + windowSize.height - toolbarAllowance > screenSize.height)
@@ -744,6 +748,14 @@ public:
         auto& uiContext = GetContext()->GetUiContext();
         ScreenSize screenSize = { uiContext.GetWidth(), uiContext.GetHeight() };
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        // iPhone/iPad: centre auto-positioned windows instead of the desktop
+        // top-left cascade. Oversized windows stay clamped to the canvas.
+        auto centred = ScreenCoordsXY{
+            (screenSize.width - windowSize.width) / 2,
+            std::max(0, (screenSize.height - windowSize.height) / 2) };
+        return ClampWindowToScreen(centred, screenSize, windowSize);
+#else
         // Place window in an empty corner of the screen
         const ScreenCoordsXY cornerPositions[] = {
             { 0, 30 },                                                                           // topLeft
@@ -826,6 +838,7 @@ public:
         }
 
         return ClampWindowToScreen(screenPos, screenSize, windowSize);
+#endif
     }
 
     static ScreenCoordsXY GetCentrePositionForNewWindow(ScreenSize size)
@@ -834,7 +847,7 @@ public:
         auto screenWidth = uiContext.GetWidth();
         auto screenHeight = uiContext.GetHeight();
         return ScreenCoordsXY{ (screenWidth - size.width) / 2,
-                               std::max(kTopToolbarHeight + 1, (screenHeight - size.height) / 2) };
+                               std::max(WindowGetTopToolbarOffset(), (screenHeight - size.height) / 2) };
     }
 
     WindowBase* Create(
@@ -842,6 +855,7 @@ public:
         WindowFlags flags) override
     {
         windowSize.height += wp->getTitleBarDiffTarget();
+        windowSize = WindowFitToScreen(windowSize);
 
         if (flags.has(WindowFlag::autoPosition))
         {

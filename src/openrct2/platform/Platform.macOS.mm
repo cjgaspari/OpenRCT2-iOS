@@ -8,14 +8,17 @@
  *****************************************************************************/
 
 #if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
 
-    #include "Platform.h"
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
 
     #include "../OpenRCT2.h"
     #include "../core/Path.hpp"
     #include "../core/String.hpp"
     #include "../drawing/Font.h"
     #include "../localisation/Language.h"
+    #include "Platform.h"
 
     #include <CoreText/CoreText.h>
     #include <Foundation/Foundation.h>

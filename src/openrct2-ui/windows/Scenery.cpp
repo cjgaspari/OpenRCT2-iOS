@@ -7,6 +7,7 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 
+#include <algorithm>
 #include <deque>
 #include <openrct2-ui/UiContext.h>
 #include <openrct2-ui/input/InputManager.h>
@@ -17,6 +18,7 @@
 #include <openrct2-ui/windows/Windows.h>
 #include <openrct2/Context.h>
 #include <openrct2/GameState.h>
+#include <openrct2/interface/Window.h>
 #include <openrct2/Input.h>
 #include <openrct2/OpenRCT2.h>
 #include <openrct2/SpriteIds.h>
@@ -261,10 +263,11 @@ namespace OpenRCT2::Ui::Windows
 
             _actualMinHeight = GetMinimumHeight();
 
-            width = GetRequiredWidth();
+            const auto fitted = OpenRCT2::WindowFitToScreen({ GetRequiredWidth(), _actualMinHeight });
+            width = fitted.width;
             minWidth = width;
             maxWidth = width;
-            height = _actualMinHeight;
+            height = fitted.height;
             minHeight = height;
             maxHeight = height;
             if (_activeTabIndex > _tabSelections.size())
@@ -273,7 +276,7 @@ namespace OpenRCT2::Ui::Windows
             }
             updatePressedTab();
 
-            WindowMovePosition(*this, { ContextGetWidth() - GetRequiredWidth(), 0x1D });
+            WindowMovePosition(*this, { ContextGetWidth() - width, OpenRCT2::WindowGetTopToolbarOffset() });
             WindowPushOthersBelow(*this);
         }
 
@@ -1099,7 +1102,8 @@ namespace OpenRCT2::Ui::Windows
 
         int32_t GetRequiredWidth() const
         {
-            return std::max(_requiredWidth, kMinimumWindowSize.width);
+            const int32_t desired = std::max(_requiredWidth, kMinimumWindowSize.width);
+            return OpenRCT2::WindowFitToScreen({ desired, 1 }).width;
         }
 
     private:

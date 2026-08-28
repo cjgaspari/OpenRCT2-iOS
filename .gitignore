@@ -239,6 +239,22 @@ DerivedData
 !default.perspectivev3
 xcuserdata
 
+# OpenRCT2 Touch additions
+# Copyrighted RCT/RCT2 data must never be tracked or packaged.
+/ref/*
+!/ref/README.md
+
+# Rebuildable port outputs and local runtime state.
+/vendor/*
+!/vendor/MANIFEST.md
+/runtime/
+/assets/engine/
+*.ipa
+*.mobileprovision
+*.p12
+**/DerivedData/
+.DS_Store
+
 # Other
 *.xccheckout
 *.moved-aside
