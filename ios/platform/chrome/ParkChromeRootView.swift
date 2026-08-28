@@ -14,9 +14,15 @@ struct ParkChromeRootView: View {
             TopChromeBar(model: model)
             Spacer()
             HStack(alignment: .bottom) {
-                ParkChromeDockView(model: model)
-                Spacer()
-                BuildCluster(model: model)
+                if model.swapBottomControls {
+                    BuildCluster(model: model)
+                    Spacer()
+                    ParkChromeDockView(model: model)
+                } else {
+                    ParkChromeDockView(model: model)
+                    Spacer()
+                    BuildCluster(model: model)
+                }
             }
         }
         .padding(.bottom, 8)
@@ -72,6 +78,25 @@ struct ViewToolsSheet: View {
                 ParkToolsButtonSection(title: "Windows", items: ParkMenuCatalog.viewWindows, onSelect: select)
 
                 Section("Options") {
+                    Toggle(isOn: $model.swapBottomControls) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Swap bottom controls")
+                                    .font(.body.weight(.semibold))
+                                Text("View and Build trade edges")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            ParkChromeSymbol(
+                                systemImage: "arrow.left.arrow.right",
+                                primary: .blue,
+                                secondary: .cyan)
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                    .accessibilityIdentifier("openrct2.touch.swapBottomControls")
+
                     ForEach(ParkMenuCatalog.viewToggles) { item in
                         Toggle(isOn: model.toggleBinding(for: item.action)) {
                             MenuRow(item: item)
@@ -88,12 +113,16 @@ struct ViewToolsSheet: View {
                         model.queue(.zoomIn)
                     }
                     .labelStyle(.iconOnly)
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.green, .mint)
                     .accessibilityIdentifier("openrct2.touch.zoomIn")
 
                     Button("Zoom out", systemImage: "minus.magnifyingglass") {
                         model.queue(.zoomOut)
                     }
                     .labelStyle(.iconOnly)
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.orange, .yellow)
                     .accessibilityIdentifier("openrct2.touch.zoomOut")
                 }
             }

@@ -79,9 +79,13 @@ struct PauseSpeedMenu: View {
                     model.ensurePaused()
                 }
             } label: {
-                Label(
-                    model.isPaused ? "Resume" : "Pause",
-                    systemImage: model.isPaused ? "play.fill" : "pause.fill")
+                Label {
+                    Text(model.isPaused ? "Resume" : "Pause")
+                } icon: {
+                    ParkChromeSymbol(
+                        systemImage: model.isPaused ? "play.fill" : "pause.fill",
+                        primary: model.isPaused ? .green : .orange)
+                }
             }
             .accessibilityIdentifier("openrct2.touch.pause")
 
@@ -101,7 +105,7 @@ struct PauseSpeedMenu: View {
                     Button {
                         model.queueParkMenu(item.action)
                     } label: {
-                        Label(item.title, systemImage: item.systemImage)
+                        ParkMenuLabel(item: item)
                     }
                 }
             }
@@ -110,26 +114,36 @@ struct PauseSpeedMenu: View {
                 Button(role: .destructive) {
                     model.queue(.quitToMenu)
                 } label: {
-                    Label("Quit to menu", systemImage: "rectangle.portrait.and.arrow.right")
+                    ParkMenuLabel(item: ParkMenuCatalog.quitToMenu)
                 }
             }
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
-                    .font(.body.weight(.semibold))
-                    .imageScale(.medium)
-                Text(model.speedLabel)
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-            }
+            pauseControlLabel
         }
         .modifier(PlaybackMenuChrome(usesOwnGlass: usesOwnGlass))
         .fixedSize()
         .simultaneousGesture(TapGesture().onEnded { model.ensurePaused() })
-        .controlSize(.regular)
         .accessibilityLabel(menuAccessibilityLabel)
         .accessibilityHint("Opens pause, speed, and more")
         .accessibilityIdentifier("openrct2.touch.playbackMenu")
+    }
+
+    @ViewBuilder
+    private var pauseControlLabel: some View {
+        Group {
+            if model.isPaused {
+                Image(systemName: "play.fill")
+            } else if model.speed > 1 {
+                Text(model.speedLabel)
+                    .monospacedDigit()
+            } else {
+                Image(systemName: "pause.fill")
+            }
+        }
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .frame(minWidth: 32)
     }
 
     private var speedBinding: Binding<UInt8> {
@@ -262,7 +276,7 @@ struct StatusMenu: View {
                     Button {
                         model.queueParkMenu(item.action)
                     } label: {
-                        Label(item.title, systemImage: item.systemImage)
+                        ParkMenuLabel(item: item)
                     }
                 }
             }
@@ -403,7 +417,116 @@ struct MenuRow: View {
                     .foregroundStyle(.secondary)
             }
         } icon: {
-            Image(systemName: item.systemImage)
+            ParkChromeSymbol(item: item)
+        }
+    }
+}
+
+struct ParkMenuLabel: View {
+    let item: ParkMenuItem
+
+    var body: some View {
+        Label {
+            Text(item.title)
+        } icon: {
+            ParkChromeSymbol(item: item)
+        }
+    }
+}
+
+/// Palette when the symbol has two layers (snow cap, canopy/trunk, water highlight);
+/// hierarchical otherwise so a single tint still has depth.
+struct ParkChromeSymbol: View {
+    let systemImage: String
+    var primary: Color
+    var secondary: Color?
+
+    init(systemImage: String, primary: Color, secondary: Color? = nil) {
+        self.systemImage = systemImage
+        self.primary = primary
+        self.secondary = secondary
+    }
+
+    init(item: ParkMenuItem) {
+        let style = ParkChromeSymbolStyle.colors(for: item.id)
+        self.systemImage = item.systemImage
+        self.primary = style.primary
+        self.secondary = style.secondary
+    }
+
+    var body: some View {
+        let image = Image(systemName: systemImage)
+        if let secondary {
+            image
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(primary, secondary)
+        } else {
+            image
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(primary)
+        }
+    }
+}
+
+private enum ParkChromeSymbolStyle {
+    static func colors(for id: String) -> (primary: Color, secondary: Color?) {
+        switch id {
+        case "ride":
+            return (.blue, .cyan)
+        case "scenery", "seeThroughScenery":
+            return (.green, .mint)
+        case "paths":
+            return (.brown, .gray)
+        case "land":
+            return (.white, Color(red: 0.45, green: 0.28, blue: 0.14))
+        case "water":
+            return (.blue, .teal)
+        case "clear":
+            return (.orange, .yellow)
+        case "rides", "seeThroughRides":
+            return (.indigo, .purple)
+        case "park":
+            return (.green, .yellow)
+        case "staff", "showStaff":
+            return (.blue, .indigo)
+        case "guests", "showGuests":
+            return (.purple, .pink)
+        case "finances":
+            return (.green, .mint)
+        case "research":
+            return (.teal, .purple)
+        case "news":
+            return (.blue, .gray)
+        case "map":
+            return (.green, .brown)
+        case "viewOptions":
+            return (.blue, .cyan)
+        case "viewport":
+            return (.indigo, .blue)
+        case "clip":
+            return (.gray, nil)
+        case "transparency":
+            return (.purple, .blue)
+        case "underground":
+            return (.brown, .gray)
+        case "pathIssues":
+            return (.orange, .red)
+        case "heightMarks":
+            return (.yellow, .brown)
+        case "save":
+            return (.blue, .cyan)
+        case "options":
+            return (.gray, .blue)
+        case "cheats":
+            return (.purple, .pink)
+        case "inspector":
+            return (.orange, .yellow)
+        case "about":
+            return (.blue, .cyan)
+        case "quit":
+            return (.red, nil)
+        default:
+            return (.accentColor, nil)
         }
     }
 }

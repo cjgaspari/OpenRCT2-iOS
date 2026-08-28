@@ -108,6 +108,8 @@ enum ParkMenuCatalog {
 
     static let viewWindows: [ParkMenuItem] = view.filter { $0.id != "viewOptions" }
     static let fileAndSettings: [ParkMenuItem] = more.filter { $0.action != .quitToMenu }
+    static let quitToMenu: ParkMenuItem = more.first { $0.action == .quitToMenu }
+        ?? more[more.count - 1]
 
     static let viewToggles: [ParkMenuItem] = [
         .init(

@@ -17,8 +17,19 @@ final class ParkChromeModel: ObservableObject {
     @Published var date = "—"
     @Published var isShowingBuildTools = false
     @Published var isShowingViewTools = false
+    @Published var swapBottomControls: Bool {
+        didSet {
+            UserDefaults.standard.set(swapBottomControls, forKey: Self.swapBottomControlsKey)
+        }
+    }
 
     var onAction: ((Int32, Int32) -> Void)?
+
+    private static let swapBottomControlsKey = "openrct2.touch.swapBottomControls"
+
+    init() {
+        swapBottomControls = UserDefaults.standard.bool(forKey: Self.swapBottomControlsKey)
+    }
 
     var speedLabel: String {
         "\(max(1, Int(speed)))x"

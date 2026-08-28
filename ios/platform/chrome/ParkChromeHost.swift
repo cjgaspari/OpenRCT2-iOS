@@ -6,6 +6,7 @@
 
 import SwiftUI
 import UIKit
+import Combine
 
 final class ParkChromePassThroughView: UIView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
@@ -74,6 +75,7 @@ final class ParkChromeSession: NSObject {
     private var container: ParkChromePassThroughView?
     private var topConstraints: [NSLayoutConstraint] = []
     private var bottomConstraints: [NSLayoutConstraint] = []
+    private var layoutCancellable: AnyCancellable?
 
     init(onAction: @escaping @convention(c) (Int32, Int32) -> Void) {
         self.onAction = onAction
@@ -81,6 +83,12 @@ final class ParkChromeSession: NSObject {
         model.onAction = { [weak self] code, extra in
             self?.onAction(code, extra)
         }
+        layoutCancellable = model.$swapBottomControls
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.applyBottomLayout()
+            }
     }
 
     func attach(to parent: UIView) {
@@ -197,13 +205,23 @@ final class ParkChromeSession: NSObject {
 
         NSLayoutConstraint.deactivate(bottomConstraints)
         let safe = container.safeAreaLayoutGuide
-        bottomConstraints = [
-            dock.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
-            dock.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
-            camera.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
-            camera.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
-            dock.trailingAnchor.constraint(lessThanOrEqualTo: camera.leadingAnchor, constant: -12),
-        ]
+        if model.swapBottomControls {
+            bottomConstraints = [
+                camera.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
+                camera.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+                dock.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+                dock.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+                camera.trailingAnchor.constraint(lessThanOrEqualTo: dock.leadingAnchor, constant: -12),
+            ]
+        } else {
+            bottomConstraints = [
+                dock.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
+                dock.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+                camera.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+                camera.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+                dock.trailingAnchor.constraint(lessThanOrEqualTo: camera.leadingAnchor, constant: -12),
+            ]
+        }
         NSLayoutConstraint.activate(bottomConstraints)
     }
 
