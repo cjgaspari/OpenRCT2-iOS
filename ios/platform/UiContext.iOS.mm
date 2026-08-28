@@ -18,8 +18,10 @@
     #include <openrct2-ui/UiContext.h>
 
     #include <SDL.h>
+    #include <QuartzCore/CAMetalLayer.h>
     #include <UIKit/UIKit.h>
     #include <algorithm>
+    #include <cmath>
     #include <cstring>
     #include <openrct2/Diagnostic.h>
     #include <openrct2/ui/UiContext.h>
@@ -55,54 +57,187 @@ namespace OpenRCT2::Ui
         SDL_PushEvent(&event);
     }
 
+    static UIWindowScene* GetForegroundWindowScene()
+    {
+        UIWindowScene* scene = nil;
+        for (UIScene* candidate in UIApplication.sharedApplication.connectedScenes)
+        {
+            if (![candidate isKindOfClass:UIWindowScene.class])
+            {
+                continue;
+            }
+            UIWindowScene* windowScene = static_cast<UIWindowScene*>(candidate);
+            if (windowScene.activationState == UISceneActivationStateForegroundActive)
+            {
+                return windowScene;
+            }
+            if (scene == nil)
+            {
+                scene = windowScene;
+            }
+        }
+        return scene;
+    }
+
+    static BOOL ViewTreeHasMetalLayer(UIView* view)
+    {
+        if ([view.layer isKindOfClass:CAMetalLayer.class])
+        {
+            return YES;
+        }
+        for (UIView* child in view.subviews)
+        {
+            if (ViewTreeHasMetalLayer(child))
+            {
+                return YES;
+            }
+        }
+        return NO;
+    }
+
+    static void PinMetalDrawable(UIView* view, CGSize points, CGFloat scale)
+    {
+        if ([view.layer isKindOfClass:CAMetalLayer.class])
+        {
+            CAMetalLayer* metal = static_cast<CAMetalLayer*>(view.layer);
+            const CGSize pixels = CGSizeMake(points.width * scale, points.height * scale);
+            if (fabs(metal.drawableSize.width - pixels.width) > 0.5
+                || fabs(metal.drawableSize.height - pixels.height) > 0.5)
+            {
+                metal.drawableSize = pixels;
+            }
+        }
+        for (UIView* child in view.subviews)
+        {
+            PinMetalDrawable(child, points, scale);
+        }
+    }
+
+    static void PinViewToSize(UIView* view, CGSize size, CGFloat scale)
+    {
+        if (!CGAffineTransformIsIdentity(view.transform))
+        {
+            view.transform = CGAffineTransformIdentity;
+        }
+        const CGRect frame = CGRectMake(0, 0, size.width, size.height);
+        if (fabs(CGRectGetWidth(view.bounds) - size.width) > 0.5 || fabs(CGRectGetHeight(view.bounds) - size.height) > 0.5
+            || fabs(view.frame.origin.x) > 0.5 || fabs(view.frame.origin.y) > 0.5)
+        {
+            view.frame = frame;
+        }
+        for (UIView* child in view.subviews)
+        {
+            if (!child.translatesAutoresizingMaskIntoConstraints)
+            {
+                continue;
+            }
+            if (fabs(CGRectGetWidth(child.bounds) - size.width) > 0.5
+                || fabs(CGRectGetHeight(child.bounds) - size.height) > 0.5)
+            {
+                child.frame = view.bounds;
+            }
+        }
+        PinMetalDrawable(view, size, scale);
+    }
+
+    void RestoreIosCanvasFrame()
+    {
+        @autoreleasepool
+        {
+            UIWindowScene* scene = GetForegroundWindowScene();
+            if (scene == nil)
+            {
+                return;
+            }
+
+            const CGRect bounds = scene.effectiveGeometry.coordinateSpace.bounds;
+            if (bounds.size.width < 1 || bounds.size.height < 1)
+            {
+                return;
+            }
+
+            const CGFloat scale = scene.traitCollection.displayScale;
+            for (UIWindow* window in scene.windows)
+            {
+                if (window.hidden || window.rootViewController == nil)
+                {
+                    continue;
+                }
+                UIView* root = window.rootViewController.view;
+                if (root == nil || !ViewTreeHasMetalLayer(root))
+                {
+                    continue;
+                }
+                PinViewToSize(root, bounds.size, scale);
+                [root layoutIfNeeded];
+            }
+        }
+    }
+
     IosSafeArea GetIosSafeArea()
     {
         IosSafeArea result{};
         @autoreleasepool
         {
-            UIWindow* activeWindow = nil;
-            UIWindow* fallbackWindow = nil;
-            for (UIScene* scene in UIApplication.sharedApplication.connectedScenes)
-            {
-                if (![scene isKindOfClass:UIWindowScene.class])
-                {
-                    continue;
-                }
-
-                for (UIWindow* window in static_cast<UIWindowScene*>(scene).windows)
-                {
-                    if (window.hidden || window.rootViewController == nil)
-                    {
-                        continue;
-                    }
-
-                    fallbackWindow = window;
-                    if (window.isKeyWindow)
-                    {
-                        activeWindow = window;
-                        break;
-                    }
-                }
-                if (activeWindow != nil)
-                {
-                    break;
-                }
-            }
-
-            UIWindow* window = activeWindow != nil ? activeWindow : fallbackWindow;
-            if (window == nil)
+            UIWindowScene* scene = GetForegroundWindowScene();
+            if (scene == nil)
             {
                 return result;
             }
 
-            const CGRect bounds = window.bounds;
-            const UIEdgeInsets insets = window.safeAreaInsets;
-            result.top = static_cast<float>(insets.top);
-            result.left = static_cast<float>(insets.left);
-            result.bottom = static_cast<float>(insets.bottom);
-            result.right = static_cast<float>(insets.right);
-            result.windowWidth = static_cast<int32_t>(CGRectGetWidth(bounds));
-            result.windowHeight = static_cast<int32_t>(CGRectGetHeight(bounds));
+            // Scene geometry stays landscape when a SwiftUI Menu becomes the
+            // key window. SDL_GetWindowSize and keyWindow.bounds follow the menu.
+            const CGSize sceneSize = scene.effectiveGeometry.coordinateSpace.bounds.size;
+            result.windowWidth = static_cast<int32_t>(std::lround(sceneSize.width));
+            result.windowHeight = static_cast<int32_t>(std::lround(sceneSize.height));
+            result.scale = static_cast<float>(scene.traitCollection.displayScale);
+
+            const BOOL landscape = sceneSize.width >= sceneSize.height;
+            UIWindow* window = nil;
+            CGFloat bestArea = 0;
+            auto considerWindow = [&](UIWindow* candidate, BOOL requireOrientationMatch) {
+                if (candidate.hidden || candidate.rootViewController == nil)
+                {
+                    return;
+                }
+                if (!ViewTreeHasMetalLayer(candidate.rootViewController.view))
+                {
+                    return;
+                }
+                const CGFloat width = CGRectGetWidth(candidate.bounds);
+                const CGFloat height = CGRectGetHeight(candidate.bounds);
+                const BOOL matches = landscape ? (width >= height) : (height >= width);
+                if (requireOrientationMatch && !matches)
+                {
+                    return;
+                }
+                const CGFloat area = width * height;
+                if (area > bestArea)
+                {
+                    bestArea = area;
+                    window = candidate;
+                }
+            };
+            for (UIWindow* candidate in scene.windows)
+            {
+                considerWindow(candidate, YES);
+            }
+            if (window == nil)
+            {
+                bestArea = 0;
+                for (UIWindow* candidate in scene.windows)
+                {
+                    considerWindow(candidate, NO);
+                }
+            }
+            if (window != nil)
+            {
+                const UIEdgeInsets insets = window.safeAreaInsets;
+                result.top = static_cast<float>(insets.top);
+                result.left = static_cast<float>(insets.left);
+                result.bottom = static_cast<float>(insets.bottom);
+                result.right = static_cast<float>(insets.right);
+            }
         }
         return result;
     }
@@ -110,6 +245,7 @@ namespace OpenRCT2::Ui
     static UIViewController* GetHostViewController()
     {
         UIViewController* fallback = nil;
+        CGFloat bestArea = 0;
         for (UIScene* scene in UIApplication.sharedApplication.connectedScenes)
         {
             if (![scene isKindOfClass:UIWindowScene.class])
@@ -119,15 +255,16 @@ namespace OpenRCT2::Ui
 
             for (UIWindow* window in static_cast<UIWindowScene*>(scene).windows)
             {
-                if (window.rootViewController == nil)
+                if (window.hidden || window.rootViewController == nil)
                 {
                     continue;
                 }
 
-                fallback = window.rootViewController;
-                if (window.isKeyWindow)
+                const CGFloat area = CGRectGetWidth(window.bounds) * CGRectGetHeight(window.bounds);
+                if (area > bestArea)
                 {
-                    return window.rootViewController;
+                    bestArea = area;
+                    fallback = window.rootViewController;
                 }
             }
         }
@@ -212,7 +349,8 @@ namespace OpenRCT2::Ui
     public:
         iOSContext()
         {
-            SDL_SetHint(SDL_HINT_ORIENTATIONS, "Portrait PortraitUpsideDown");
+            // Intersection with Info.plist: iPhone drops upside-down; iPad keeps all four.
+            SDL_SetHint(SDL_HINT_ORIENTATIONS, "Portrait LandscapeLeft LandscapeRight PortraitUpsideDown");
             SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "2");
             SDL_SetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD, "1");
         }

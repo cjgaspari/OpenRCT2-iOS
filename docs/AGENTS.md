@@ -7,7 +7,7 @@
 
 ## Mission
 
-Port **OpenRCT2** to run **natively on iPhone and iPad** with finger and hardware-pointer controls. This repo is the fork **`chrissotraidis/OpenRCT2Touch`** (forked from `OpenRCT2/OpenRCT2`, GPLv3). Apple Pencil and multiplayer are outside the current release scope. The live presentation contract is portrait on both device families.
+Port **OpenRCT2** to run **natively on iPhone and iPad** with finger and hardware-pointer controls. This repo is the fork **`chrissotraidis/OpenRCT2Touch`** (forked from `OpenRCT2/OpenRCT2`, GPLv3). Apple Pencil and multiplayer are outside the current release scope. The live presentation contract is portrait and landscape on both device families.
 
 **Success = the MVP demo:** on a physical iPad, the app launches natively, loads user-imported RCT2 data, and lets you build a coaster + place scenery with fingers or an attached pointer at a playable frame rate — plus one community plugin or custom scenario loading on-device.
 
@@ -47,7 +47,7 @@ Use this for anything that isn't iOS-specific. If it's red, fix before moving on
 **Middle loop — iOS Simulator (mostly unattended):**
 ```bash
 ./scripts/build-ios.sh sim
-./scripts/run-ios-sim.sh verify all   # iPhone and iPad portrait lifecycle + screenshot
+./scripts/run-ios-sim.sh verify all   # iPhone and iPad lifecycle + screenshot (portrait or landscape)
 ```
 UI rendering, asset-import plumbing, input wiring. Use `iphone` or `ipad` instead of `all` for a single family.
 

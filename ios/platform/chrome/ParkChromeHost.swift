@@ -26,6 +26,41 @@ private final class ParkChromeHostingController<Content: View>: UIHostingControl
         view.isOpaque = false
         sizingOptions = [.intrinsicContentSize]
         safeAreaRegions = []
+        registerForTraitChanges(
+            [UITraitVerticalSizeClass.self, UITraitHorizontalSizeClass.self]
+        ) { (host: Self, _) in
+            host.view.invalidateIntrinsicContentSize()
+        }
+    }
+
+    // Menu morph reports a compact preferred size; do not let that resize SDL.
+    override var preferredContentSize: CGSize {
+        get { CGSize(width: 1, height: 1) }
+        set {}
+    }
+
+    override func viewWillTransition(
+        to size: CGSize,
+        with coordinator: UIViewControllerTransitionCoordinator
+    ) {
+        super.viewWillTransition(to: size, with: coordinator)
+        if let canvas = sceneCanvasSize() {
+            let matchesScene =
+                abs(size.width - canvas.width) < 1 && abs(size.height - canvas.height) < 1
+            if !matchesScene {
+                return
+            }
+        }
+        coordinator.animate { _ in
+            self.view.invalidateIntrinsicContentSize()
+        }
+    }
+
+    private func sceneCanvasSize() -> CGSize? {
+        guard let scene = view.window?.windowScene else {
+            return nil
+        }
+        return scene.effectiveGeometry.coordinateSpace.bounds.size
     }
 }
 
@@ -33,9 +68,11 @@ final class ParkChromeSession: NSObject {
     let model = ParkChromeModel()
     private let onAction: @convention(c) (Int32, Int32) -> Void
     private var cameraHost: ParkChromeHostingController<BuildCluster>?
-    private var topHost: ParkChromeHostingController<UnitedTopBar>?
+    private var statusHost: ParkChromeHostingController<StatusMenu>?
+    private var pauseHost: ParkChromeHostingController<PauseSpeedMenu>?
     private var dockHost: ParkChromeHostingController<ParkChromeDockView>?
     private var container: ParkChromePassThroughView?
+    private var topConstraints: [NSLayoutConstraint] = []
     private var bottomConstraints: [NSLayoutConstraint] = []
 
     init(onAction: @escaping @convention(c) (Int32, Int32) -> Void) {
@@ -63,40 +100,38 @@ final class ParkChromeSession: NSObject {
         ])
 
         let parentController = parent.owningViewController
-        let topHost = ParkChromeHostingController(rootView: UnitedTopBar(model: model))
+        let statusHost = ParkChromeHostingController(rootView: StatusMenu(model: model))
+        let pauseHost = ParkChromeHostingController(rootView: PauseSpeedMenu(model: model))
         let cameraHost = ParkChromeHostingController(rootView: BuildCluster(model: model))
         let dockHost = ParkChromeHostingController(rootView: ParkChromeDockView(model: model))
-        install(topHost, in: container, parent: parentController)
+        install(statusHost, in: container, parent: parentController)
+        install(pauseHost, in: container, parent: parentController)
         install(cameraHost, in: container, parent: parentController)
         install(dockHost, in: container, parent: parentController)
 
-        let topView = topHost.view!
-        let safe = container.safeAreaLayoutGuide
-        topView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        NSLayoutConstraint.activate([
-            topView.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
-            topView.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
-            topView.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
-            topView.widthAnchor.constraint(lessThanOrEqualTo: safe.widthAnchor, constant: -32),
-        ])
-
-        self.topHost = topHost
+        self.statusHost = statusHost
+        self.pauseHost = pauseHost
         self.cameraHost = cameraHost
         self.dockHost = dockHost
         self.container = container
+        applyTopLayout()
         applyBottomLayout()
         applyParkOpen()
         bringToFront()
     }
 
     func detach() {
+        NSLayoutConstraint.deactivate(topConstraints)
         NSLayoutConstraint.deactivate(bottomConstraints)
+        topConstraints = []
         bottomConstraints = []
-        detachHost(topHost)
+        detachHost(statusHost)
+        detachHost(pauseHost)
         detachHost(cameraHost)
         detachHost(dockHost)
         container?.removeFromSuperview()
-        topHost = nil
+        statusHost = nil
+        pauseHost = nil
         cameraHost = nil
         dockHost = nil
         container = nil
@@ -132,6 +167,27 @@ final class ParkChromeSession: NSObject {
             return
         }
         container.superview?.bringSubviewToFront(container)
+    }
+
+    private func applyTopLayout() {
+        guard let status = statusHost?.view, let pause = pauseHost?.view, let container else {
+            return
+        }
+
+        NSLayoutConstraint.deactivate(topConstraints)
+        let safe = container.safeAreaLayoutGuide
+        status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        pause.setContentCompressionResistancePriority(.required, for: .horizontal)
+        pause.setContentHuggingPriority(.required, for: .horizontal)
+        topConstraints = [
+            status.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
+            status.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
+            pause.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
+            pause.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+            pause.centerYAnchor.constraint(equalTo: status.centerYAnchor),
+            status.trailingAnchor.constraint(lessThanOrEqualTo: pause.leadingAnchor, constant: -12),
+        ]
+        NSLayoutConstraint.activate(topConstraints)
     }
 
     private func applyBottomLayout() {

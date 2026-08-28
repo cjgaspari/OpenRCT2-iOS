@@ -122,33 +122,36 @@ boot_device() {
     open -a Simulator --args -CurrentDeviceUDID "$udid" >/dev/null 2>&1 || true
 }
 
+# DeviceHub (Xcode 27) replaced Simulator.app. There is no reliable simctl or
+# AppleScript path that rotates the LCD; requestGeometryUpdate from Darwin
+# notify was tried and killed the game when backgrounded. Portrait screenshots
+# remain the automated proof. Landscape is allowed by Info.plist + SDL and
+# proven on a physical rotate, or with verify-ios-screenshot.swift landscape
+# when a host can actually rotate the Simulator display.
 ensure_portrait() {
-    # Best-effort: the Simulator framebuffer follows Device/I/O orientation.
-    osascript >/dev/null 2>&1 <<'APPLESCRIPT' || true
-tell application "Simulator" to activate
-delay 0.4
-tell application "System Events"
-    tell process "Simulator"
-        set frontmost to true
-        try
-            click menu item "Portrait" of menu "Set Orientation" of menu item "Set Orientation" of menu "I/O" of menu bar item "I/O" of menu bar 1
-        end try
-        try
-            click menu item "Portrait" of menu "Orientation" of menu item "Orientation" of menu "I/O" of menu bar item "I/O" of menu bar 1
-        end try
-        try
-            click menu item "Portrait" of menu "Orientation" of menu item "Orientation" of menu "Device" of menu bar item "Device" of menu bar 1
-        end try
-    end tell
-end tell
-APPLESCRIPT
+    :
 }
 
 launch_app() {
     local udid="$1"
-    local output
+    local output pid attempt
     output="$(xcrun simctl launch "$udid" "$BUNDLE_ID")"
-    printf '%s\n' "${output##*: }"
+    pid="${output##*: }"
+    pid="${pid//$'\n'/}"
+    pid="${pid// /}"
+    # Swift stub `main` returns 0 immediately; require a real UIKit active event
+    # from this PID before treating the launch as successful.
+    for attempt in $(seq 1 20); do
+        if xcrun simctl spawn "$udid" log show --style compact --last 30s --info \
+            --predicate "processIdentifier == $pid AND eventMessage CONTAINS \"lifecycle: UIApplicationDidBecomeActiveNotification\"" \
+            2>/dev/null | grep -F "lifecycle: UIApplicationDidBecomeActiveNotification" >/dev/null; then
+            printf '%s\n' "$pid"
+            return 0
+        fi
+        sleep 1
+    done
+    echo "OpenRCT2 Touch pid $pid never became active (process likely exited at main)." >&2
+    return 1
 }
 
 capture_frame() {
@@ -156,7 +159,6 @@ capture_frame() {
     local raw_path="$2"
     local output_path="$3"
 
-    ensure_portrait
     xcrun simctl io "$udid" screenshot "$raw_path"
     ditto "$raw_path" "$output_path"
 }
@@ -166,19 +168,21 @@ wait_for_verified_frame() {
     local raw_path="$2"
     local output_path="$3"
     local verification_log="$4"
-    local attempt
+    local attempt orientation
 
-    for attempt in {1..12}; do
+    for attempt in $(seq 1 12); do
         capture_frame "$udid" "$raw_path" "$output_path"
-        if xcrun --sdk macosx swift "$ROOT/scripts/verify-ios-screenshot.swift" "$raw_path" > "$verification_log" 2>&1; then
-            cat "$verification_log"
-            return 0
-        fi
+        for orientation in portrait landscape; do
+            if xcrun --sdk macosx swift "$ROOT/scripts/verify-ios-screenshot.swift" "$raw_path" "$orientation" > "$verification_log" 2>&1; then
+                cat "$verification_log"
+                return 0
+            fi
+        done
         sleep 2
     done
 
     cat "$verification_log" >&2
-    echo "No verified portrait game frame appeared within the Simulator timeout." >&2
+    echo "No verified portrait or landscape game frame appeared within the Simulator timeout." >&2
     return 1
 }
 
@@ -200,7 +204,7 @@ verify_family() {
 
     udid="$(resolve_udid "$family")"
     boot_device "$udid"
-    ensure_portrait
+    ensure_portrait "$udid"
 
     artifact_dir="$ARTIFACT_ROOT/$family"
     log_path="$artifact_dir/OpenRCT2Touch-lifecycle.log"
@@ -215,7 +219,9 @@ verify_family() {
     xcrun simctl terminate "$udid" "$BUNDLE_ID" >/dev/null 2>&1 || true
     first_pid="$(launch_app "$udid")"
     sleep 3
-    wait_for_verified_frame "$udid" "$raw_screenshot" "$screenshot" "$artifact_dir/OpenRCT2Touch-frame-check.log"
+    wait_for_verified_frame \
+        "$udid" "$raw_screenshot" "$screenshot" \
+        "$artifact_dir/OpenRCT2Touch-frame-check.log"
 
     xcrun simctl launch "$udid" com.apple.Preferences >/dev/null
     sleep 2
@@ -246,7 +252,7 @@ verify_family() {
     done
 
     for required_event in \
-        'native chrome: attached park overlay' \
+        'native chrome: attached SwiftUI park overlay' \
         'renderer: driver=metal' \
         'presentation: window_points=' \
         'safe_area_points=' \
@@ -266,6 +272,22 @@ verify_family() {
         echo "Canvas does not fill the window (expected no safe-area letterbox)." >&2
         echo "  $presentation_line" >&2
         exit 1
+    fi
+
+    found_landscape_canvas=0
+    while IFS= read -r line; do
+        points="$(sed -n 's/.*window_points=\([0-9]*x[0-9]*\).*/\1/p' <<<"$line")"
+        canvas="$(sed -n 's/.*canvas=\([0-9]*x[0-9]*\).*/\1/p' <<<"$line")"
+        width="${points%x*}"
+        height="${points#*x}"
+        if [[ -n "$width" && -n "$height" && "$width" -gt "$height" && "$points" == "$canvas" ]]; then
+            found_landscape_canvas=1
+            echo "Landscape full-window canvas observed in presentation logs: $points"
+            break
+        fi
+    done < <(grep -F 'presentation: window_points=' "$log_path" || true)
+    if [[ "$found_landscape_canvas" != 1 ]]; then
+        echo "No landscape canvas in presentation logs (Simulator LCD rotation is not automated)."
     fi
 
     active_count="$(grep -c 'lifecycle: UIApplicationDidBecomeActiveNotification' "$log_path" || true)"
@@ -322,7 +344,7 @@ if [[ "$MODE" == "launch" ]]; then
     fi
     UDID="$(resolve_udid "$FAMILY")"
     boot_device "$UDID"
-    ensure_portrait
+    ensure_portrait "$UDID"
     xcrun simctl install "$UDID" "$APP"
     mkdir -p "$ARTIFACT_ROOT/$FAMILY"
     PID="$(launch_app "$UDID")"

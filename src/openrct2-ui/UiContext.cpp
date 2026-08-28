@@ -55,6 +55,9 @@
 
 #if defined(__APPLE__) && defined(__MACH__)
     #include <TargetConditionals.h>
+    #if TARGET_OS_IOS
+        #include "IosSafeArea.h"
+    #endif
 #endif
 
 #ifdef __EMSCRIPTEN__
@@ -1081,10 +1084,20 @@ public:
                     ContextQuit();
                     break;
                 case SDL_WINDOWEVENT:
-                    if (e.window.event == SDL_WINDOWEVENT_RESIZED)
+                    if (e.window.event == SDL_WINDOWEVENT_RESIZED
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                        || e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED
+#endif
+                    )
                     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+                        // Event data1/data2 can be 0x0 or a stale orientation during
+                        // rotation. TriggerResize reads SDL_GetWindowSize.
+                        TriggerResize();
+#else
                         LOG_VERBOSE("New Window size: %ux%u\n", e.window.data1, e.window.data2);
                         OnResize(e.window.data1, e.window.data2);
+#endif
                     }
 
                     switch (e.window.event)
@@ -1621,9 +1634,44 @@ private:
 
     void OnResize(int32_t width, int32_t height)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        // Config, SDL_CreateWindow, and SIZE_CHANGED can disagree with UIKit
+        // during rotation. Prefer the window scene size, not SDL_GetWindowSize:
+        // a SwiftUI Menu becomes the key window and reports a portrait frame.
+        if (_window != nullptr)
+        {
+            RestoreIosCanvasFrame();
+            const IosSafeArea canvas = GetIosSafeArea();
+            if (canvas.windowWidth > 0 && canvas.windowHeight > 0)
+            {
+                width = canvas.windowWidth;
+                height = canvas.windowHeight;
+            }
+            else
+            {
+                int32_t liveWidth = 0;
+                int32_t liveHeight = 0;
+                SDL_GetWindowSize(_window, &liveWidth, &liveHeight);
+                if (liveWidth > 0 && liveHeight > 0)
+                {
+                    width = liveWidth;
+                    height = liveHeight;
+                }
+            }
+        }
+#endif
         // Scale the native window size to the game's canvas size
-        _width = static_cast<int32_t>(width / Config::Get().general.windowScale);
-        _height = static_cast<int32_t>(height / Config::Get().general.windowScale);
+        const int32_t newWidth = static_cast<int32_t>(width / Config::Get().general.windowScale);
+        const int32_t newHeight = static_cast<int32_t>(height / Config::Get().general.windowScale);
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        // SIZE_CHANGED can arrive at 0x0 during rotation; skip that and duplicates.
+        if (newWidth <= 0 || newHeight <= 0 || (newWidth == _width && newHeight == _height))
+        {
+            return;
+        }
+#endif
+        _width = newWidth;
+        _height = newHeight;
 
         DrawingEngineResize();
 
@@ -1636,6 +1684,10 @@ private:
 
         GfxInvalidateScreen();
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        // UIKit owns the window size; persisting it made the next launch create
+        // a canvas in the previous orientation before the first SIZE_CHANGED.
+#else
         // Check if the window has been resized in windowed mode and update the config file accordingly
         int32_t nonWindowFlags =
 #ifndef __MACOSX__
@@ -1652,6 +1704,7 @@ private:
                 Config::Save();
             }
         }
+#endif
     }
 
     void UpdateFullscreenResolutions()

@@ -71,6 +71,11 @@ if (OPENRCT2_IOS)
     add_library(OpenRCT2::openrct2-ui ALIAS ${OPENRCT2_UI_TARGET})
     set_target_properties(${OPENRCT2_UI_TARGET} PROPERTIES
         Swift_MODULE_NAME OpenRCT2TouchChrome)
+    # Chrome Swift lives in this static library. Without -parse-as-library,
+    # swiftc emits a stub `main` that returns 0; linking it replaces SDL2main
+    # and the process exits after +load, before UIKit/SDL start.
+    set_source_files_properties(${OPENRCT2_UI_SWIFT_SOURCES} PROPERTIES
+        COMPILE_OPTIONS "-parse-as-library")
     target_include_directories(${OPENRCT2_UI_TARGET} PRIVATE "${ROOT_DIR}/ios/platform")
 else ()
     set(OPENRCT2_UI_TARGET openrct2)

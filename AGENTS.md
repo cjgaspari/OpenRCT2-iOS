@@ -13,7 +13,7 @@ If the documents disagree with the repository, preserve the non-negotiable safet
 
 ## Mission
 
-Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a scenario, supports playable pointer and finger controls, sustains at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are outside the current release scope. The live device contract is a universal iPhone and iPad build locked to portrait.
+Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a scenario, supports playable pointer and finger controls, sustains at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are outside the current release scope. The live device contract is a universal iPhone and iPad build that supports portrait and landscape.
 
 ## Non-negotiable rules
 
@@ -37,6 +37,6 @@ Team and UDID live in gitignored `runtime/device.env` (copy `scripts/device.env.
 
 ## Current goal
 
-**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is the **native SwiftUI park chrome**: full-width united status+pause bar, stacked View-over-rotate union, and a trailing Build hammer. Portrait full-screen canvas and hidden in-engine toolbars are already Simulator screenshot-green. Goal 6/7 landscape device proofs stay paused until portrait play is re-checked on hardware.
+**Goal 6 — Pointer, keyboard, and mouse play** remains the formal ladder goal. The live engineering slice is the **native SwiftUI park chrome** on a rotatable canvas: status (Park) on the leading top edge, pause/speed on the trailing top edge, View/rotate on the leading thumb (stacked in portrait, side-by-side in compact-height landscape), and a trailing Build hammer. Portrait is iPhone Simulator screenshot-green; landscape is allowed and resize-handled. Goal 6/7 end-to-end device proofs remain.
 
 Update this section only when every exit check for the next goal in `GOAL-LOOP.md` is satisfied.

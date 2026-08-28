@@ -11,7 +11,7 @@ struct ParkChromeRootView: View {
 
     var body: some View {
         VStack {
-            UnitedTopBar(model: model)
+            TopChromeBar(model: model)
             Spacer()
             HStack(alignment: .bottom) {
                 ParkChromeDockView(model: model)

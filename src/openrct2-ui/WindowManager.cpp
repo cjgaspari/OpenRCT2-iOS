@@ -749,8 +749,8 @@ public:
         ScreenSize screenSize = { uiContext.GetWidth(), uiContext.GetHeight() };
 
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        // Portrait iPhone/iPad: centre auto-positioned windows instead of the
-        // desktop top-left cascade. Oversized windows stay clamped to the canvas.
+        // iPhone/iPad: centre auto-positioned windows instead of the desktop
+        // top-left cascade. Oversized windows stay clamped to the canvas.
         auto centred = ScreenCoordsXY{
             (screenSize.width - windowSize.width) / 2,
             std::max(0, (screenSize.height - windowSize.height) / 2) };

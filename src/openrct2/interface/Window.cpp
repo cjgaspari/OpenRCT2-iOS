@@ -770,17 +770,29 @@ static constexpr float kWindowScrollLocations[][2] = {
         {
             titleWind->windowPos.x = (width - titleWind->width) / 2;
             titleWind->windowPos.y = height - 182;
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+            titleWind->windowPos.y = std::max(0, std::min(titleWind->windowPos.y, std::max(0, height - titleWind->height)));
+#endif
         }
 
         WindowBase* versionWind = windowMgr->FindByClass(WindowClass::titleVersion);
         if (versionWind != nullptr)
+        {
             versionWind->windowPos.y = height - 30;
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+            versionWind->windowPos.y = std::max(0, versionWind->windowPos.y);
+#endif
+        }
 
         WindowBase* exitWind = windowMgr->FindByClass(WindowClass::titleExit);
         if (exitWind != nullptr)
         {
             exitWind->windowPos.x = width - 40;
             exitWind->windowPos.y = height - 64;
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+            exitWind->windowPos.x = std::max(0, exitWind->windowPos.x);
+            exitWind->windowPos.y = std::max(0, exitWind->windowPos.y);
+#endif
         }
 
         WindowBase* optionsWind = windowMgr->FindByClass(WindowClass::titleOptions);

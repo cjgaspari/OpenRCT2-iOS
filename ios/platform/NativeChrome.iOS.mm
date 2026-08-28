@@ -340,26 +340,45 @@ namespace OpenRCT2::Ui
             }
 
             UIWindow* fallback = nil;
-            for (UIScene* scene in UIApplication.sharedApplication.connectedScenes)
-            {
-                if (![scene isKindOfClass:UIWindowScene.class])
+            CGFloat bestArea = 0;
+            auto consider = [&](BOOL requireOrientationMatch) {
+                for (UIScene* scene in UIApplication.sharedApplication.connectedScenes)
                 {
-                    continue;
-                }
-
-                for (UIWindow* candidate in static_cast<UIWindowScene*>(scene).windows)
-                {
-                    if (candidate.hidden || candidate.rootViewController == nil)
+                    if (![scene isKindOfClass:UIWindowScene.class])
                     {
                         continue;
                     }
 
-                    fallback = candidate;
-                    if (candidate.isKeyWindow)
+                    UIWindowScene* windowScene = static_cast<UIWindowScene*>(scene);
+                    const CGSize sceneSize = windowScene.effectiveGeometry.coordinateSpace.bounds.size;
+                    const BOOL landscape = sceneSize.width >= sceneSize.height;
+                    for (UIWindow* candidate in windowScene.windows)
                     {
-                        return candidate;
+                        if (candidate.hidden || candidate.rootViewController == nil)
+                        {
+                            continue;
+                        }
+
+                        const CGFloat width = CGRectGetWidth(candidate.bounds);
+                        const CGFloat height = CGRectGetHeight(candidate.bounds);
+                        const BOOL matches = landscape ? (width >= height) : (height >= width);
+                        if (requireOrientationMatch && !matches)
+                        {
+                            continue;
+                        }
+                        const CGFloat area = width * height;
+                        if (area > bestArea)
+                        {
+                            bestArea = area;
+                            fallback = candidate;
+                        }
                     }
                 }
+            };
+            consider(YES);
+            if (fallback == nil)
+            {
+                consider(NO);
             }
             return fallback;
         }

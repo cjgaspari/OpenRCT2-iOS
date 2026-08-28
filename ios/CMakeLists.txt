@@ -8,8 +8,7 @@ set(OPENRCT2_TOUCH_ASSET_CATALOG "${CMAKE_CURRENT_LIST_DIR}/App/Assets.xcassets"
 
 set(_openrct2_touch_sources
     "${CMAKE_CURRENT_LIST_DIR}/App/AppLifecycle.iOS.mm"
-    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm"
-    "${CMAKE_CURRENT_LIST_DIR}/platform/chrome/OpenRCT2TouchSwiftRuntime.swift")
+    "${CMAKE_CURRENT_LIST_DIR}/platform/RCT2Importer.iOS.mm")
 if (CMAKE_GENERATOR STREQUAL "Xcode")
     list(APPEND _openrct2_touch_sources "${OPENRCT2_TOUCH_ASSET_CATALOG}")
 endif ()
@@ -47,8 +46,11 @@ target_link_libraries(openrct2-touch PRIVATE
     OpenRCT2::openrct2-ui
     "-framework SwiftUI"
     "-framework Combine")
+# Park chrome Swift lives in openrct2-ui. Putting even a dummy .swift file on
+# this executable makes CMake/Ninja drive the link with swiftc, which emits a
+# stub `main` that returns 0 and kills the process before SDL_UIKitRunApp.
 set_target_properties(openrct2-touch PROPERTIES
-    Swift_MODULE_NAME OpenRCT2Touch)
+    LINKER_LANGUAGE CXX)
 target_link_options(openrct2-touch PRIVATE
     "LINKER:-ObjC"
     "LINKER:-no_warn_duplicate_libraries")
@@ -65,6 +67,8 @@ else ()
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "${CMAKE_CURRENT_LIST_DIR}/App/Info.plist"
             "$<TARGET_BUNDLE_DIR:openrct2-touch>/Info.plist"
+        COMMAND "${CMAKE_COMMAND}" -E rm -f
+            "$<TARGET_BUNDLE_DIR:openrct2-touch>/OpenRCT2Touch.d"
         COMMAND "${ROOT_DIR}/scripts/compile-ios-assets.sh"
             "$<TARGET_BUNDLE_DIR:openrct2-touch>"
             "${OPENRCT2_IOS_PLATFORM}"

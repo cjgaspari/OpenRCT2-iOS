@@ -20,11 +20,13 @@ namespace OpenRCT2::Ui
         float left = 0;
         float bottom = 0;
         float right = 0;
+        float scale = 1;
         int32_t windowWidth = 0;
         int32_t windowHeight = 0;
     };
 
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
     IosSafeArea GetIosSafeArea();
+    void RestoreIosCanvasFrame();
 #endif
 }

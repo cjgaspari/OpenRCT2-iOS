@@ -4,7 +4,7 @@
 
 Build the OpenRCT2 Touch MVP described in `docs/openrct2-ipados-BUILD-PLAN.md` on the `ipad` branch. Continue autonomously through the smallest verifiable engineering slice until the current goal's exit criteria are green. Preserve user-owned game data, upstream provenance, and a green macOS-first build. Stop only at an explicit human gate or when three materially different attempts have demonstrated the same external blocker.
 
-The terminal outcome is a signed native iPhone and iPadOS build that imports the user's own RCT2 data, loads a scenario, can build a coaster and place scenery with pointer and finger controls at at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are explicitly outside this release scope. The live presentation contract is portrait on both device families.
+The terminal outcome is a signed native iPhone and iPadOS build that imports the user's own RCT2 data, loads a scenario, can build a coaster and place scenery with pointer and finger controls at at least 30 fps on a mid-size park, and loads one plugin or custom scenario. Apple Pencil and multiplayer are explicitly outside this release scope. The live presentation contract is portrait and landscape on both device families.
 
 ## The loop
 
@@ -57,10 +57,10 @@ Each iteration reports: current goal, slice, changed files, proof commands and o
 ### Goal 4 — Correct software-framebuffer presentation
 
 - The engine software framebuffer is presented through SDL's iOS Metal renderer.
-- Portrait, Retina drawable, full-screen canvas (no safe-area letterbox), palette, aspect ratio, and resize/lifecycle behavior are correct.
-- A repeatable Simulator screenshot check is green.
+- Portrait and landscape, Retina drawable, full-screen canvas (no safe-area letterbox), palette, aspect ratio, and resize/lifecycle behavior are correct.
+- A repeatable Simulator screenshot check is green (iPhone portrait; iPad landscape on this host). The canvas resizes with the window; iPhone Simulator LCD often stays portrait while presentation logs still show a landscape framebuffer.
 
-**Scope change (after the original landscape iPad checkpoint):** the live contract is a universal portrait canvas on iPhone and iPad. `window_scale` stays 1 (points). The park fills the window. Re-prove with taller-than-wide Simulator frames before resuming Goal 6/7 device scripts.
+**Scope change:** the live contract is a universal canvas on iPhone and iPad in portrait and landscape. `window_scale` stays 1 (points). The park fills the window. iPhone does not use upside-down; iPad allows all four orientations.
 
 ### Goal 5 — Sandbox paths and user-owned data import
 

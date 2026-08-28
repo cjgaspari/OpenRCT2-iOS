@@ -28,7 +28,7 @@ Structure:
 
 ## 1. What we're building
 
-A **native iOS port of OpenRCT2** — the open-source RollerCoaster Tycoon 2 engine — with touch-first and hardware-pointer controls on iPhone and iPad. Not RCT Classic. Not streaming. Not a VM. A real ARM64 app that runs on the device's own silicon. Apple Pencil and multiplayer are outside the current release scope. The live presentation contract is portrait on both device families.
+A **native iOS port of OpenRCT2** — the open-source RollerCoaster Tycoon 2 engine — with touch-first and hardware-pointer controls on iPhone and iPad. Not RCT Classic. Not streaming. Not a VM. A real ARM64 app that runs on the device's own silicon. Apple Pencil and multiplayer are outside the current release scope. The live presentation contract is portrait and landscape on both device families.
 
 ### 1.1 Definition of done (the MVP demo)
 The project is "done enough to show" when, on a physical iPad:
@@ -369,9 +369,9 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 **Files:** CMake flags (`DISABLE_OPENGL=ON`), possibly small edits in `openrct2-ui/drawing/` and `UiContext.iOS.mm`.
 **Tasks:**
 1. Force the software drawing engine on iOS. Ensure the engine's framebuffer is uploaded to an `SDL_Texture` backed by Metal and presented (SDL's iOS renderer uses Metal by default).
-2. Handle Retina scale (points vs. pixels) and orientation. Present the canvas full-screen; log safe-area insets but do not letterbox. The original v1 lock was landscape; the live contract is portrait on iPhone and iPad.
+2. Handle Retina scale (points vs. pixels) and orientation. Present the canvas full-screen; log safe-area insets but do not letterbox. iPhone and iPad support portrait and landscape (`window_scale` 1, points).
 3. Verify colors/palette and no tearing.
-**Exit criteria:** title screen + an in-engine window render pixel-correct in the Simulator at Retina scale with a portrait canvas (taller-than-wide), correct aspect. Frame presented through Metal. The original landscape iPad proof remains historically true.
+**Exit criteria:** title screen + an in-engine window render pixel-correct in the Simulator at Retina scale with a full-screen canvas, correct aspect. Frame presented through Metal. Portrait and landscape are both allowed; screenshot orientation follows the Simulator LCD. Physical landscape feel remains a device gate.
 
 ---
 

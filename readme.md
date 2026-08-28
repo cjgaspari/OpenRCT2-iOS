@@ -60,7 +60,7 @@ and merge the result into `ipad`; do not develop Touch changes on the mirror.
 
 | Area | State | Current evidence |
 | --- | :---: | --- |
-| Native iOS runtime | ✅ | Signed ARM64 iPadOS app with SDL Metal presentation; universal portrait canvas is the live contract |
+| Native iOS runtime | ✅ | Signed ARM64 iPadOS app with SDL Metal presentation; universal portrait and landscape canvas is the live contract |
 | User data and persistence | ✅ | User-owned RCT2 data in the app sandbox survives build replacement and relaunch; scenarios load on device |
 | Files folder import | ✅ | Standard RCT2 data imports through Files on a physical iPad, persists after relaunch, and loads scenarios; RCT Classic is also validated in Simulator |
 | Keyboard and trackpad | ✅ | Pointer controls, shortcuts, text entry, scrolling, and tuned viewport zoom work on device |

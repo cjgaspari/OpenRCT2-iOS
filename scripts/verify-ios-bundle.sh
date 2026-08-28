@@ -66,18 +66,24 @@ if [[ "$(plutil -extract UIDeviceFamily.0 raw "$APP/Info.plist")" != "1"
     echo "App bundle is not a universal iPhone and iPad binary." >&2
     exit 1
 fi
-if [[ "$(plutil -extract UISupportedInterfaceOrientations.0 raw "$APP/Info.plist")" != "UIInterfaceOrientationPortrait" ]]; then
-    echo "App bundle does not lock iPhone to portrait." >&2
-    exit 1
-fi
-if [[ "$(plutil -extract 'UISupportedInterfaceOrientations~ipad.0' raw "$APP/Info.plist")" != "UIInterfaceOrientationPortrait" ]]; then
-    echo "App bundle does not lock iPad to portrait." >&2
-    exit 1
-fi
-if plutil -p "$APP/Info.plist" | grep -Fq 'UIInterfaceOrientationLandscape'; then
-    echo "App bundle still declares a landscape orientation." >&2
-    exit 1
-fi
+
+plist_json="$(plutil -convert json -o - "$APP/Info.plist")"
+python3 - "$plist_json" <<'PY'
+import json, sys
+data = json.loads(sys.argv[1])
+iphone = set(data.get("UISupportedInterfaceOrientations", []))
+ipad = set(data.get("UISupportedInterfaceOrientations~ipad", []))
+want_shared = {
+    "UIInterfaceOrientationPortrait",
+    "UIInterfaceOrientationLandscapeLeft",
+    "UIInterfaceOrientationLandscapeRight",
+}
+want_ipad = want_shared | {"UIInterfaceOrientationPortraitUpsideDown"}
+if iphone != want_shared:
+    sys.exit(f"iPhone orientations mismatch: {sorted(iphone)}")
+if ipad != want_ipad:
+    sys.exit(f"iPad orientations mismatch: {sorted(ipad)}")
+PY
 
 for icon_spec in "AppIcon60x60@2x.png:120" "AppIcon76x76@2x~ipad.png:152"; do
     IFS=: read -r icon_name expected_size <<< "$icon_spec"
@@ -201,6 +207,14 @@ done < <(find "$APP" -type f -print0)
 file "$BINARY"
 if ! nm "$BINARY" | "$GREP" -F '_OBJC_CLASS_$_SDLUIKitSceneDelegate' >/dev/null; then
     echo "App binary is missing the SDL UIKit scene delegate required by iPadOS 27." >&2
+    exit 1
+fi
+if ! nm -U "$BINARY" | "$GREP" ' T _SDL_UIKitRunApp$' >/dev/null; then
+    echo "App binary is missing SDL_UIKitRunApp." >&2
+    exit 1
+fi
+if ! otool -tv -p _main "$BINARY" | "$GREP" -F SDL_UIKitRunApp >/dev/null; then
+    echo "App binary _main does not call SDL_UIKitRunApp; Swift is overriding SDL2main." >&2
     exit 1
 fi
 if ! BUILD_VERSION="$(xcrun vtool -show-build "$BINARY")"; then

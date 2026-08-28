@@ -10,12 +10,32 @@ func fail(_ message: String) -> Never
     exit(1)
 }
 
-guard CommandLine.arguments.count == 2 else
+enum ExpectedOrientation: String
 {
-    fail("usage: verify-ios-screenshot.swift <screenshot.png>")
+    case portrait
+    case landscape
+}
+
+guard CommandLine.arguments.count == 2 || CommandLine.arguments.count == 3 else
+{
+    fail("usage: verify-ios-screenshot.swift <screenshot.png> [portrait|landscape]")
 }
 
 let screenshotPath = CommandLine.arguments[1]
+let expectedOrientation: ExpectedOrientation
+if CommandLine.arguments.count == 3
+{
+    guard let parsed = ExpectedOrientation(rawValue: CommandLine.arguments[2]) else
+    {
+        fail("orientation must be portrait or landscape")
+    }
+    expectedOrientation = parsed
+}
+else
+{
+    expectedOrientation = .portrait
+}
+
 let screenshotURL = URL(fileURLWithPath: screenshotPath)
 guard let source = CGImageSourceCreateWithURL(screenshotURL as CFURL, nil),
       let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else
@@ -52,8 +72,8 @@ guard drewImage else
     fail("could not create an RGBA bitmap")
 }
 
-// simctl captures the device framebuffer. Portrait iPhone and iPad frames are
-// taller than they are wide; do not rotate them back to landscape.
+// simctl captures the device framebuffer. Do not rotate the PNG; the expected
+// orientation is the physical Simulator frame.
 let aspectRatio = Double(width) / Double(height)
 
 let sampleStep = max(1, min(width, height) / 512)
@@ -92,22 +112,36 @@ let activeFraction = Double(active) / Double(sampled)
 let vividFraction = Double(vivid) / Double(sampled)
 print(
     String(
-        format: "iOS frame: raw=%dx%d aspect=%.4f active=%.3f vivid=%.3f colours=%d",
-        width, height, aspectRatio, activeFraction, vividFraction, colourBuckets.count))
+        format: "iOS frame: raw=%dx%d aspect=%.4f active=%.3f vivid=%.3f colours=%d orientation=%@",
+        width, height, aspectRatio, activeFraction, vividFraction, colourBuckets.count,
+        expectedOrientation.rawValue))
 
-guard height > width else
+switch expectedOrientation
 {
-    fail("expected a portrait frame, got \(width)x\(height)")
-}
-guard aspectRatio >= 0.40 && aspectRatio <= 0.82 else
-{
-    fail("expected a portrait phone or iPad aspect, got \(aspectRatio)")
+case .portrait:
+    guard height > width else
+    {
+        fail("expected a portrait frame, got \(width)x\(height)")
+    }
+    guard aspectRatio >= 0.40 && aspectRatio <= 0.82 else
+    {
+        fail("expected a portrait phone or iPad aspect, got \(aspectRatio)")
+    }
+case .landscape:
+    guard width > height else
+    {
+        fail("expected a landscape frame, got \(width)x\(height)")
+    }
+    guard aspectRatio >= 1.22 && aspectRatio <= 2.50 else
+    {
+        fail("expected a landscape phone or iPad aspect, got \(aspectRatio)")
+    }
 }
 guard activeFraction >= 0.55 else
 {
     fail(
         String(
-            format: "only %.1f%% of the frame is active; expected a portrait game canvas",
+            format: "only %.1f%% of the frame is active; expected a full-screen game canvas",
             activeFraction * 100.0))
 }
 guard vividFraction >= 0.25 else
@@ -119,4 +153,5 @@ guard colourBuckets.count >= 48 else
     fail("palette output has only \(colourBuckets.count) sampled colour buckets")
 }
 
-print("iOS screenshot verification passed: portrait, full-frame, and palette checks are green.")
+print(
+    "iOS screenshot verification passed: \(expectedOrientation.rawValue), full-frame, and palette checks are green.")

@@ -124,6 +124,7 @@ struct PauseSpeedMenu: View {
             }
         }
         .modifier(PlaybackMenuChrome(usesOwnGlass: usesOwnGlass))
+        .fixedSize()
         .simultaneousGesture(TapGesture().onEnded { model.ensurePaused() })
         .controlSize(.regular)
         .accessibilityLabel(menuAccessibilityLabel)
@@ -147,41 +148,35 @@ struct PauseSpeedMenu: View {
     }
 }
 
-/// Status and pause share one full-width Liquid Glass capsule.
-struct UnitedTopBar: View {
+/// Status on the leading edge and pause on the trailing edge, each in its own
+/// glass capsule. Used by the SwiftUI preview tree; the live overlay pins the
+/// two controls with Auto Layout so they stay apart across rotations.
+struct TopChromeBar: View {
     @ObservedObject var model: ParkChromeModel
-    @Namespace private var topUnion
 
     var body: some View {
-        GlassEffectContainer(spacing: 4) {
-            HStack(spacing: 4) {
-                StatusMenu(model: model, usesOwnGlass: false, fillsWidth: true)
-                    .frame(maxWidth: .infinity)
-                    .glassEffect()
-                    .glassEffectUnion(id: "topBar", namespace: topUnion)
-
-                PauseSpeedMenu(model: model, usesOwnGlass: false)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .glassEffect()
-                    .glassEffectUnion(id: "topBar", namespace: topUnion)
-            }
+        HStack(alignment: .center, spacing: 12) {
+            StatusMenu(model: model)
+            Spacer(minLength: 8)
+            PauseSpeedMenu(model: model)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Park status and playback")
-        .accessibilityIdentifier("openrct2.touch.unitedTopBar")
+        .accessibilityIdentifier("openrct2.touch.topChrome")
     }
 }
 
-/// View above rotate, sharing one Liquid Glass capsule on the lead thumb.
+/// View and rotate share one Liquid Glass capsule on the lead thumb.
+/// Portrait (regular height) stacks View over rotate; compact-height landscape
+/// lays them out horizontally so both stay reachable on a short screen.
 struct ViewRotateCluster: View {
     @ObservedObject var model: ParkChromeModel
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Namespace private var unionNamespace
 
     var body: some View {
         GlassEffectContainer(spacing: 8) {
-            VStack(spacing: 8) {
+            clusterLayout {
                 unionedIcon(
                     systemImage: ParkMenuCatalog.viewSheetSymbol,
                     label: "View",
@@ -200,6 +195,12 @@ struct ViewRotateCluster: View {
         }
         .fixedSize()
         .accessibilityIdentifier("openrct2.touch.viewRotate")
+    }
+
+    private var clusterLayout: AnyLayout {
+        verticalSizeClass == .compact
+            ? AnyLayout(HStackLayout(spacing: 8))
+            : AnyLayout(VStackLayout(spacing: 8))
     }
 
     private func unionedIcon(
@@ -270,6 +271,7 @@ struct StatusMenu: View {
                 .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
         }
         .modifier(PlaybackMenuChrome(usesOwnGlass: usesOwnGlass))
+        .fixedSize(horizontal: !fillsWidth, vertical: true)
         .simultaneousGesture(TapGesture().onEnded { model.ensurePaused() })
         .controlSize(.regular)
         .accessibilityLabel(
@@ -283,16 +285,28 @@ struct StatusStripLabel: View {
     @ObservedObject var model: ParkChromeModel
 
     var body: some View {
-        HStack(spacing: 6) {
-            statusItem("banknote", model.cash, prototype: "$9,999,999.99", color: .green)
-                .layoutPriority(1)
-            statusItem("person.3.fill", model.guests, prototype: "9999", color: .purple)
-            statusItem("star.fill", model.rating, prototype: "9999", color: .yellow)
-            calendarItem(model.date)
+        ViewThatFits(in: .horizontal) {
+            metrics(includeGuests: true, includeRatingAndDate: true)
+            metrics(includeGuests: true, includeRatingAndDate: false)
+            metrics(includeGuests: false, includeRatingAndDate: false)
         }
         .font(.caption.weight(.semibold))
         .padding(.horizontal, 8)
         .padding(.vertical, 7)
+    }
+
+    private func metrics(includeGuests: Bool, includeRatingAndDate: Bool) -> some View {
+        HStack(spacing: 6) {
+            statusItem("banknote", model.cash, prototype: "$9,999,999.99", color: .green)
+                .layoutPriority(1)
+            if includeGuests {
+                statusItem("person.3.fill", model.guests, prototype: "9999", color: .purple)
+            }
+            if includeRatingAndDate {
+                statusItem("star.fill", model.rating, prototype: "9999", color: .yellow)
+                calendarItem(model.date)
+            }
+        }
     }
 
     private func statusItem(_ symbol: String, _ text: String, prototype: String, color: Color) -> some View {
