@@ -5,8 +5,8 @@
  *****************************************************************************/
 
 #include "NativeChrome.iOS.h"
+#include "NativeLoadSave.iOS.h"
 #include "NativeScenarioPicker.iOS.h"
-
 #include <TargetConditionals.h>
 
 #if TARGET_OS_IOS
@@ -33,11 +33,13 @@
     #include <openrct2/Date.h>
     #include <openrct2/interface/Viewport.h>
     #include <openrct2/interface/Window.h>
+    #include <openrct2/interface/WindowTypes.h>
     #include <openrct2/config/Config.h>
     #include <openrct2/localisation/Currency.h>
     #include <openrct2/network/Network.h>
     #include <openrct2/scenes/SceneManager.h>
     #include <openrct2/ui/WindowManager.h>
+    #include <openrct2/windows/Intent.h>
     #include <os/log.h>
 
 @class OpenRCT2TouchNativeChrome;
@@ -205,6 +207,7 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
     UIView* _hostView;
     BOOL _parkOpen;
     NSString* _scenarioSnapshotJSON;
+    NSString* _loadSaveSnapshotJSON;
 }
 
 - (void)attachToView:(UIView*)parent;
@@ -216,6 +219,9 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
 - (void)dismissScenarioPicker;
 - (void)setScenarioPreviewLoading:(BOOL)loading scenarioID:(int32_t)scenarioID;
 - (void)setScenarioPreview:(NSData*)rgba scenarioID:(int32_t)scenarioID width:(int32_t)width height:(int32_t)height;
+- (void)presentLoadSave:(NSString*)snapshotJSON;
+- (void)dismissLoadSave;
+- (BOOL)copyPendingSaveName:(char*)buffer length:(size_t)length;
 
 @end
 
@@ -240,6 +246,8 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
     [self detach];
     [_scenarioSnapshotJSON release];
     _scenarioSnapshotJSON = nil;
+    [_loadSaveSnapshotJSON release];
+    _loadSaveSnapshotJSON = nil;
     [super dealloc];
 }
 
@@ -272,6 +280,10 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
     if (_scenarioSnapshotJSON != nil)
     {
         OpenRCT2TouchChromePresentScenarioPicker(_session, _scenarioSnapshotJSON.UTF8String);
+    }
+    if (_loadSaveSnapshotJSON != nil)
+    {
+        OpenRCT2TouchChromePresentLoadSave(_session, _loadSaveSnapshotJSON.UTF8String);
     }
 }
 
@@ -355,6 +367,39 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
         OpenRCT2TouchChromeSetScenarioPreview(
             _session, scenarioID, static_cast<const uint8_t*>(rgba.bytes), width, height);
     }
+}
+
+- (void)presentLoadSave:(NSString*)snapshotJSON
+{
+    if (snapshotJSON == nil)
+    {
+        return;
+    }
+    [_loadSaveSnapshotJSON release];
+    _loadSaveSnapshotJSON = [snapshotJSON copy];
+    if (_session != nullptr)
+    {
+        OpenRCT2TouchChromePresentLoadSave(_session, _loadSaveSnapshotJSON.UTF8String);
+    }
+}
+
+- (void)dismissLoadSave
+{
+    [_loadSaveSnapshotJSON release];
+    _loadSaveSnapshotJSON = nil;
+    if (_session != nullptr)
+    {
+        OpenRCT2TouchChromeDismissLoadSave(_session);
+    }
+}
+
+- (BOOL)copyPendingSaveName:(char*)buffer length:(size_t)length
+{
+    if (_session == nullptr || buffer == nullptr || length == 0)
+    {
+        return NO;
+    }
+    return OpenRCT2TouchChromeCopyPendingSaveName(_session, buffer, static_cast<int32_t>(length));
 }
 
 - (void)applicationDidBecomeActive:(NSNotification*)notification
@@ -743,6 +788,51 @@ namespace OpenRCT2::Ui
         }
     }
 
+    void NativeChromeLoadSavePresent(std::string_view snapshotJSON)
+    {
+        NSString* snapshot = [[NSString alloc] initWithBytes:snapshotJSON.data()
+                                                      length:snapshotJSON.size()
+                                                    encoding:NSUTF8StringEncoding];
+        auto present = ^{
+            [gNativeChrome presentLoadSave:snapshot];
+            [snapshot release];
+        };
+        if ([NSThread isMainThread])
+        {
+            present();
+        }
+        else
+        {
+            dispatch_async(dispatch_get_main_queue(), present);
+        }
+    }
+
+    void NativeChromeLoadSaveDismiss()
+    {
+        auto dismiss = ^{
+            [gNativeChrome dismissLoadSave];
+        };
+        if ([NSThread isMainThread])
+        {
+            dismiss();
+        }
+        else
+        {
+            dispatch_async(dispatch_get_main_queue(), dismiss);
+        }
+    }
+
+    // Called on the main thread while handling a queued action, so reading the
+    // SwiftUI model's pending filename does not race with the UI.
+    bool NativeChromeLoadSaveCopyPendingName(char* buffer, size_t length)
+    {
+        if (gNativeChrome == nil || buffer == nullptr || length == 0)
+        {
+            return false;
+        }
+        return [gNativeChrome copyPendingSaveName:buffer length:length] == YES;
+    }
+
     void NativeChromeTick()
     {
         if (gNativeChrome == nil)
@@ -863,6 +953,12 @@ namespace OpenRCT2::Ui
             return true;
         }
 
+        if (NativeLoadSaveHandleAction(event.user.code, extra))
+        {
+            os_log_info(OS_LOG_DEFAULT, "[OpenRCT2Touch] native load/save: invoked action %d", event.user.code);
+            return true;
+        }
+
         if (!ParkIsOpen())
         {
             return true;
@@ -932,6 +1028,14 @@ namespace OpenRCT2::Ui
                 SaveGameAs();
                 CentreWindowClass(WindowClass::loadsave);
                 break;
+            case kNativeChromeLoadGame:
+            {
+                auto intent = Intent(WindowClass::loadsave);
+                intent.PutEnumExtra<LoadSaveAction>(INTENT_EXTRA_LOADSAVE_ACTION, LoadSaveAction::load);
+                intent.PutEnumExtra<LoadSaveType>(INTENT_EXTRA_LOADSAVE_TYPE, LoadSaveType::park);
+                ContextOpenIntent(&intent);
+                break;
+            }
             case kNativeChromeOptions:
                 CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::options));
                 break;

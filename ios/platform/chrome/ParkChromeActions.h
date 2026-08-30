@@ -54,6 +54,10 @@ enum
     kNativeChromeScenarioCancel = 37,
     kNativeChromeScenarioSource = 38,
     kNativeChromeScenarioPreview = 39,
+    kNativeChromeLoadSaveSelect = 40,
+    kNativeChromeLoadSaveCancel = 41,
+    kNativeChromeLoadSaveCommit = 42,
+    kNativeChromeLoadGame = 43,
     kNativeChromeExtraXor = -1,
 };
 
@@ -68,6 +72,9 @@ void OpenRCT2TouchChromeDismissScenarioPicker(void* session);
 void OpenRCT2TouchChromeSetScenarioPreviewLoading(void* session, int32_t scenarioID, bool loading);
 void OpenRCT2TouchChromeSetScenarioPreview(
     void* session, int32_t scenarioID, const uint8_t* rgba, int32_t width, int32_t height);
+void OpenRCT2TouchChromePresentLoadSave(void* session, const char* snapshotJSON);
+void OpenRCT2TouchChromeDismissLoadSave(void* session);
+bool OpenRCT2TouchChromeCopyPendingSaveName(void* session, char* buffer, int32_t length);
 void OpenRCT2TouchChromeBringToFront(void* session);
 void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra);
 

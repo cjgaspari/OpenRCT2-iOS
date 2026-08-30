@@ -24,4 +24,7 @@ namespace OpenRCT2::Ui
     void NativeChromeScenarioPickerSetPreviewLoading(int32_t scenarioID, bool loading);
     void NativeChromeScenarioPickerSetPreview(
         int32_t scenarioID, const uint8_t* rgba, size_t byteCount, int32_t width, int32_t height);
+    void NativeChromeLoadSavePresent(std::string_view snapshotJSON);
+    void NativeChromeLoadSaveDismiss();
+    bool NativeChromeLoadSaveCopyPendingName(char* buffer, size_t length);
 } // namespace OpenRCT2::Ui

@@ -84,9 +84,13 @@ enum ParkMenuCatalog {
 
     static let more: [ParkMenuItem] = [
         .init(
-            id: "save", title: "Save / Load", subtitle: "File menu from the disc button",
+            id: "save", title: "Save game", subtitle: "Write the park to a file",
             systemImage: "square.and.arrow.down", fallbackImage: "square.and.arrow.up",
             action: .loadSave),
+        .init(
+            id: "load", title: "Load game", subtitle: "Open a saved park",
+            systemImage: "square.and.arrow.up", fallbackImage: "tray.and.arrow.up",
+            action: .loadGame),
         .init(
             id: "options", title: "Options", subtitle: "Audio, display, and controls",
             systemImage: "gearshape.fill", fallbackImage: "gear", action: .options),

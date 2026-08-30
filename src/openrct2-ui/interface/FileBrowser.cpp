@@ -33,6 +33,13 @@
 #include <openrct2/ui/WindowManager.h>
 #include <openrct2/windows/Intent.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+    #if TARGET_OS_IOS
+        #include "NativeLoadSave.iOS.h"
+    #endif
+#endif
+
 #ifdef __EMSCRIPTEN__
 extern "C" {
 extern void EmscriptenLoadGame(OpenRCT2::LoadSaveType type);
@@ -49,6 +56,12 @@ namespace OpenRCT2::Ui::FileBrowser
         LoadSaveAction action, LoadSaveType type, u8string defaultPath, LoadSaveCallback callback, bool isJsCallback,
         TrackDesign* trackDesign)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        if (OpenRCT2::Ui::NativeLoadSaveOpen(action, type, defaultPath, callback, isJsCallback, trackDesign))
+        {
+            return nullptr;
+        }
+#endif
 #ifdef __EMSCRIPTEN__
         if (action == LoadSaveAction::save)
         {

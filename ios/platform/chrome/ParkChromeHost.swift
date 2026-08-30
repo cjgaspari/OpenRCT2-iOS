@@ -75,16 +75,19 @@ private final class ScenarioPickerHostingController<Content: View>: UIHostingCon
 final class ParkChromeSession: NSObject {
     let model = ParkChromeModel()
     let scenarioModel = ScenarioPickerModel()
+    let loadSaveModel = LoadSaveModel()
     private let onAction: @convention(c) (Int32, Int32) -> Void
     private var cameraHost: ParkChromeHostingController<BuildCluster>?
     private var statusHost: ParkChromeHostingController<StatusMenu>?
     private var pauseHost: ParkChromeHostingController<PauseSpeedMenu>?
     private var dockHost: ParkChromeHostingController<ParkChromeDockView>?
     private var scenarioHost: ScenarioPickerHostingController<ScenarioPickerRootView>?
+    private var loadSaveHost: ScenarioPickerHostingController<LoadSaveRootView>?
     private var container: ParkChromePassThroughView?
     private var topConstraints: [NSLayoutConstraint] = []
     private var bottomConstraints: [NSLayoutConstraint] = []
     private var scenarioConstraints: [NSLayoutConstraint] = []
+    private var loadSaveConstraints: [NSLayoutConstraint] = []
 
     init(onAction: @escaping @convention(c) (Int32, Int32) -> Void) {
         self.onAction = onAction
@@ -101,6 +104,15 @@ final class ParkChromeSession: NSObject {
             }
         }
         scenarioModel.onPresentationChanged = { [weak self] in
+            DispatchQueue.main.async {
+                self?.applyVisibility()
+                self?.bringToFront()
+            }
+        }
+        loadSaveModel.onAction = { [weak self] code, extra in
+            self?.onAction(code, extra)
+        }
+        loadSaveModel.onPresentationChanged = { [weak self] in
             DispatchQueue.main.async {
                 self?.applyVisibility()
                 self?.bringToFront()
@@ -130,11 +142,13 @@ final class ParkChromeSession: NSObject {
         let cameraHost = ParkChromeHostingController(rootView: BuildCluster(model: model))
         let dockHost = ParkChromeHostingController(rootView: ParkChromeDockView(model: model))
         let scenarioHost = ScenarioPickerHostingController(rootView: ScenarioPickerRootView(model: scenarioModel))
+        let loadSaveHost = ScenarioPickerHostingController(rootView: LoadSaveRootView(model: loadSaveModel))
         install(statusHost, in: container, parent: parentController)
         install(pauseHost, in: container, parent: parentController)
         install(cameraHost, in: container, parent: parentController)
         install(dockHost, in: container, parent: parentController)
         install(scenarioHost, in: container, parent: parentController)
+        install(loadSaveHost, in: container, parent: parentController)
 
         scenarioConstraints = [
             scenarioHost.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
@@ -144,11 +158,20 @@ final class ParkChromeSession: NSObject {
         ]
         NSLayoutConstraint.activate(scenarioConstraints)
 
+        loadSaveConstraints = [
+            loadSaveHost.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            loadSaveHost.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            loadSaveHost.view.topAnchor.constraint(equalTo: container.topAnchor),
+            loadSaveHost.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ]
+        NSLayoutConstraint.activate(loadSaveConstraints)
+
         self.statusHost = statusHost
         self.pauseHost = pauseHost
         self.cameraHost = cameraHost
         self.dockHost = dockHost
         self.scenarioHost = scenarioHost
+        self.loadSaveHost = loadSaveHost
         self.container = container
         applyTopLayout()
         applyBottomLayout()
@@ -160,20 +183,24 @@ final class ParkChromeSession: NSObject {
         NSLayoutConstraint.deactivate(topConstraints)
         NSLayoutConstraint.deactivate(bottomConstraints)
         NSLayoutConstraint.deactivate(scenarioConstraints)
+        NSLayoutConstraint.deactivate(loadSaveConstraints)
         topConstraints = []
         bottomConstraints = []
         scenarioConstraints = []
+        loadSaveConstraints = []
         detachHost(statusHost)
         detachHost(pauseHost)
         detachHost(cameraHost)
         detachHost(dockHost)
         detachHost(scenarioHost)
+        detachHost(loadSaveHost)
         container?.removeFromSuperview()
         statusHost = nil
         pauseHost = nil
         cameraHost = nil
         dockHost = nil
         scenarioHost = nil
+        loadSaveHost = nil
         container = nil
     }
 
@@ -212,6 +239,34 @@ final class ParkChromeSession: NSObject {
         scenarioModel.present(snapshotJSON: snapshotJSON)
         applyVisibility()
         bringToFront()
+    }
+
+    func presentLoadSave(snapshotJSON: String) {
+        loadSaveModel.present(snapshotJSON: snapshotJSON)
+        applyVisibility()
+        bringToFront()
+    }
+
+    func dismissLoadSave() {
+        loadSaveModel.dismissFromEngine()
+        applyVisibility()
+    }
+
+    // Copies the SwiftUI model's pending save name into a C buffer for the
+    // engine to read while it handles the queued save action.
+    func copyPendingSaveName(into buffer: UnsafeMutablePointer<CChar>?, length: Int32) -> Bool {
+        guard let buffer, length > 0 else {
+            return false
+        }
+        return loadSaveModel.saveName.withCString { source -> Bool in
+            let capacity = Int(length) - 1
+            let count = min(strlen(source), capacity)
+            if count > 0 {
+                memcpy(buffer, source, count)
+            }
+            buffer[count] = 0
+            return true
+        }
     }
 
     func dismissScenarioPicker() {
@@ -299,8 +354,9 @@ final class ParkChromeSession: NSObject {
         // overlays and blocks the park chrome. present/dismiss both call
         // applyVisibility() synchronously, so the sheet still animates.
         scenarioHost?.view.isHidden = !scenarioModel.isPresented
+        loadSaveHost?.view.isHidden = !loadSaveModel.isPresented
 
-        let visible = model.isParkOpen || scenarioModel.isPresented
+        let visible = model.isParkOpen || scenarioModel.isPresented || loadSaveModel.isPresented
         container?.isHidden = !visible
         container?.isUserInteractionEnabled = visible
     }
@@ -462,4 +518,41 @@ func OpenRCT2TouchChromeBringToFront(_ sessionPtr: UnsafeMutableRawPointer?) {
         return
     }
     Unmanaged<ParkChromeSession>.fromOpaque(sessionPtr).takeUnretainedValue().bringToFront()
+}
+
+@_cdecl("OpenRCT2TouchChromePresentLoadSave")
+func OpenRCT2TouchChromePresentLoadSave(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ snapshotJSON: UnsafePointer<CChar>?
+) {
+    guard let sessionPtr, let snapshotJSON else {
+        return
+    }
+    Unmanaged<ParkChromeSession>.fromOpaque(sessionPtr)
+        .takeUnretainedValue()
+        .presentLoadSave(snapshotJSON: String(cString: snapshotJSON))
+}
+
+@_cdecl("OpenRCT2TouchChromeDismissLoadSave")
+func OpenRCT2TouchChromeDismissLoadSave(_ sessionPtr: UnsafeMutableRawPointer?) {
+    guard let sessionPtr else {
+        return
+    }
+    Unmanaged<ParkChromeSession>.fromOpaque(sessionPtr)
+        .takeUnretainedValue()
+        .dismissLoadSave()
+}
+
+@_cdecl("OpenRCT2TouchChromeCopyPendingSaveName")
+func OpenRCT2TouchChromeCopyPendingSaveName(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ buffer: UnsafeMutablePointer<CChar>?,
+    _ length: Int32
+) -> Bool {
+    guard let sessionPtr else {
+        return false
+    }
+    return Unmanaged<ParkChromeSession>.fromOpaque(sessionPtr)
+        .takeUnretainedValue()
+        .copyPendingSaveName(into: buffer, length: length)
 }
