@@ -7,7 +7,10 @@ changes.
 Recent `touch/ios27-windowing` changes strengthen the adaptive-windowing
 assessment, but expand the native presentation surface area. This checklist now
 treats native load/save and the shared modal host/bridge layer as first-class
-audit targets alongside the scenario picker.
+audit targets alongside the scenario picker. Where a checklist entry names a
+file from recent `touch/ios27-windowing` work that is not present in the
+current tree, treat it as a delta audit target for any retained, restored, or
+reintroduced version of that file.
 
 ## Build system and platform split
 
@@ -264,6 +267,8 @@ audit targets alongside the scenario picker.
 
 ### `ios/platform/NativeLoadSave.iOS.h`
 
+- Recent `touch/ios27-windowing` addition; audit if this native load/save header
+  is retained, restored, or reintroduced.
 - Confirm the public native load/save API is minimal and does not leak
   unnecessary UI assumptions.
 - Check whether it matches the same abstraction style as the native scenario
@@ -271,6 +276,8 @@ audit targets alongside the scenario picker.
 
 ### `ios/platform/NativeLoadSave.iOS.mm`
 
+- Recent `touch/ios27-windowing` addition; audit if this native load/save
+  bridge is retained, restored, or reintroduced.
 - Identify duplicated logic already present in
   `src/openrct2-ui/interface/FileBrowser.cpp`.
 - Confirm callback lifetime and path ownership are safe.
@@ -299,6 +306,8 @@ audit targets alongside the scenario picker.
 
 ### `ios/platform/chrome/LoadSaveModel.swift`
 
+- Recent `touch/ios27-windowing` addition; audit if this SwiftUI load/save
+  model is retained, restored, or reintroduced.
 - Confirm the model is pure view state.
 - Audit whether overwrite and save-name matching logic belongs in shared domain
   logic instead of the view model.
@@ -309,6 +318,8 @@ audit targets alongside the scenario picker.
 
 ### `ios/platform/chrome/LoadSaveView.swift`
 
+- Recent `touch/ios27-windowing` addition; audit if this SwiftUI load/save view
+  is retained, restored, or reintroduced.
 - Confirm this is a reusable native modal view pattern, not a one-off
   implementation.
 - Check whether the sheet presentation, list structure, and confirmation flow
