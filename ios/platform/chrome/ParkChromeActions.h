@@ -50,6 +50,10 @@ enum
     kNativeChromeViewPathIssues = 33,
     kNativeChromeViewHeightMarks = 34,
     kNativeChromeQuitToMenu = 35,
+    kNativeChromeScenarioStart = 36,
+    kNativeChromeScenarioCancel = 37,
+    kNativeChromeScenarioSource = 38,
+    kNativeChromeScenarioPreview = 39,
     kNativeChromeExtraXor = -1,
 };
 
@@ -59,6 +63,11 @@ void OpenRCT2TouchChromeSetParkOpen(void* session, bool open);
 void OpenRCT2TouchChromeSetState(void* session, bool paused, uint8_t speed, uint32_t flags);
 void OpenRCT2TouchChromeSetStatus(
     void* session, const char* cash, const char* guests, const char* rating, const char* date);
+void OpenRCT2TouchChromePresentScenarioPicker(void* session, const char* snapshotJSON);
+void OpenRCT2TouchChromeDismissScenarioPicker(void* session);
+void OpenRCT2TouchChromeSetScenarioPreviewLoading(void* session, int32_t scenarioID, bool loading);
+void OpenRCT2TouchChromeSetScenarioPreview(
+    void* session, int32_t scenarioID, const uint8_t* rgba, int32_t width, int32_t height);
 void OpenRCT2TouchChromeBringToFront(void* session);
 void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra);
 

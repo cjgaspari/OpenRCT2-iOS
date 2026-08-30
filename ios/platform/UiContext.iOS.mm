@@ -351,7 +351,9 @@ namespace OpenRCT2::Ui
         {
             // Intersection with Info.plist: iPhone drops upside-down; iPad keeps all four.
             SDL_SetHint(SDL_HINT_ORIENTATIONS, "Portrait LandscapeLeft LandscapeRight PortraitUpsideDown");
-            SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "2");
+            // Behave like a regular app: keep the Home indicator visible and let
+            // system edge gestures win on their first swipe.
+            SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "0");
             SDL_SetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD, "1");
         }
 

@@ -44,6 +44,13 @@
 #include <openrct2/ui/WindowManager.h>
 #include <vector>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+    #if TARGET_OS_IOS
+        #include "NativeScenarioPicker.iOS.h"
+    #endif
+#endif
+
 using namespace OpenRCT2::Drawing;
 
 namespace OpenRCT2::Ui::Windows
@@ -874,6 +881,9 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* ScenarioselectOpen(std::function<void(std::string_view)> callback)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+        return OpenRCT2::Ui::NativeScenarioPickerOpen(std::move(callback));
+#else
         auto* windowMgr = GetWindowManager();
         auto* window = static_cast<ScenarioSelectWindow*>(windowMgr->BringToFrontByClass(WindowClass::scenarioSelect));
         if (window != nullptr)
@@ -884,5 +894,6 @@ namespace OpenRCT2::Ui::Windows
         window = windowMgr->Create<ScenarioSelectWindow>(
             WindowClass::scenarioSelect, {}, kWindowSize, { WindowFlag::autoPosition, WindowFlag::centreScreen }, callback);
         return window;
+#endif
     }
 } // namespace OpenRCT2::Ui::Windows

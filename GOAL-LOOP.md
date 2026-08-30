@@ -57,10 +57,10 @@ Each iteration reports: current goal, slice, changed files, proof commands and o
 ### Goal 4 — Correct software-framebuffer presentation
 
 - The engine software framebuffer is presented through SDL's iOS Metal renderer.
-- Portrait and landscape, Retina drawable, full-screen canvas (no safe-area letterbox), palette, aspect ratio, and resize/lifecycle behavior are correct.
+- Portrait and landscape, Retina drawable, scene-filling canvas (no safe-area letterbox), palette, aspect ratio, and resize/lifecycle behavior are correct. On iOS/iPadOS 27 the scene resizes fluidly, standard status and Home UI remain visible, and system edge gestures are not deferred.
 - A repeatable Simulator screenshot check is green (iPhone portrait; iPad landscape on this host). The canvas resizes with the window; iPhone Simulator LCD often stays portrait while presentation logs still show a landscape framebuffer.
 
-**Scope change:** the live contract is a universal canvas on iPhone and iPad in portrait and landscape. `window_scale` stays 1 (points). The park fills the window. iPhone does not use upside-down; iPad allows all four orientations.
+**Scope change:** the live contract is a universal canvas on iPhone and iPad in portrait and landscape. `window_scale` stays 1 (points). The park fills its current scene; interactive native chrome uses safe, corner-adapted margins. iPhone does not use upside-down; iPad allows all four orientations and fluid system window resizing.
 
 ### Goal 5 — Sandbox paths and user-owned data import
 

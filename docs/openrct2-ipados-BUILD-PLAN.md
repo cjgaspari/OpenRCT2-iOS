@@ -369,9 +369,9 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 **Files:** CMake flags (`DISABLE_OPENGL=ON`), possibly small edits in `openrct2-ui/drawing/` and `UiContext.iOS.mm`.
 **Tasks:**
 1. Force the software drawing engine on iOS. Ensure the engine's framebuffer is uploaded to an `SDL_Texture` backed by Metal and presented (SDL's iOS renderer uses Metal by default).
-2. Handle Retina scale (points vs. pixels) and orientation. Present the canvas full-screen; log safe-area insets but do not letterbox. iPhone and iPad support portrait and landscape (`window_scale` 1, points).
+2. Handle Retina scale (points vs. pixels), orientation, and arbitrary scene sizes. Present the canvas to the full current scene without safe-area letterboxing. Keep standard status and Home UI visible, give system edge gestures precedence, and place native interactive chrome in safe, corner-adapted margins. iPhone and iPad support portrait and landscape (`window_scale` 1, points); iPadOS owns fluid window resizing and controls.
 3. Verify colors/palette and no tearing.
-**Exit criteria:** title screen + an in-engine window render pixel-correct in the Simulator at Retina scale with a full-screen canvas, correct aspect. Frame presented through Metal. Portrait and landscape are both allowed; screenshot orientation follows the Simulator LCD. Physical landscape feel remains a device gate.
+**Exit criteria:** title screen + an in-engine window render pixel-correct in the Simulator at Retina scale with a scene-filling canvas and correct aspect. Frame presented through Metal. Portrait and landscape are both allowed; iPadOS 27 window resizing remains live across intermediate sizes; standard status/Home UI is present and native controls avoid system chrome. Screenshot orientation follows the Simulator LCD. Physical landscape, resizing, and Home-gesture feel remain device gates.
 
 ---
 

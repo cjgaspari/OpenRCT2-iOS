@@ -46,6 +46,27 @@ if [[ "$(plutil -extract CFBundleIdentifier raw "$ROOT/ios/App/Info.plist")" != 
     exit 1
 fi
 
+if plutil -extract UIRequiresFullScreen raw "$ROOT/ios/App/Info.plist" >/dev/null 2>&1; then
+    echo "Info.plist must not opt out of fluid iOS/iPadOS window resizing." >&2
+    exit 1
+fi
+status_bar_hidden="$(plutil -extract UIStatusBarHidden raw "$ROOT/ios/App/Info.plist" 2>/dev/null || true)"
+controller_status_bar="$(plutil -extract UIViewControllerBasedStatusBarAppearance raw "$ROOT/ios/App/Info.plist" 2>/dev/null || true)"
+if [[ "$status_bar_hidden" == "true" || "$controller_status_bar" == "false" ]]; then
+    echo "Info.plist must leave the standard status bar visible and view-controller-managed." >&2
+    exit 1
+fi
+if ! search_fixed 'SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "0")' \
+    "$ROOT/ios/platform/UiContext.iOS.mm" >/dev/null; then
+    echo "The iOS host must keep the Home indicator visible and avoid deferring system gestures." >&2
+    exit 1
+fi
+if search_fixed 'flags |= SDL_WINDOW_BORDERLESS;' \
+    "$ROOT/src/openrct2-ui/UiContext.cpp" >/dev/null; then
+    echo "The iOS SDL window must not be borderless; SDL uses that flag to hide system UI." >&2
+    exit 1
+fi
+
 if search_regex 'org\.openrct2\.touch' "$ROOT/ios" "$ROOT/scripts" >/dev/null; then
     echo "The deprecated OpenRCT2-owned bundle namespace remains in build code." >&2
     exit 1

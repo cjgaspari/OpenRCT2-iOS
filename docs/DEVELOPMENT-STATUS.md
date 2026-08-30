@@ -1,9 +1,9 @@
 # OpenRCT2 Touch development status
 
-- **Last updated:** August 28, 2026
+- **Last updated:** August 30, 2026
 - **Working branch:** `touch/iphone-vertical`
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
-- **Live slice:** park-only SwiftUI Liquid Glass chrome on a rotatable canvas (status on the leading top edge, pause on the trailing top edge, View/rotate on the leading thumb, trailing Build). Portrait stacks View over rotate; compact-height landscape lays them out horizontally. Goal 6/7 end-to-end device proofs remain.
+- **Live slice:** park-only SwiftUI Liquid Glass chrome on a fluidly resizable, rotatable canvas (status on the leading top edge, pause on the trailing top edge, View/rotate on the leading thumb, trailing Build). Standard status/Home UI is restored and system edge gestures take precedence. Portrait stacks View over rotate; compact-height landscape lays them out horizontally. Goal 6/7 end-to-end device proofs remain.
 - **Accepted checkpoint:** physical Files import, persistence, and scenario load on July 16
 
 The implementation has completed Goals 0–5 and Goal 8. A signed build runs on
@@ -22,7 +22,7 @@ end-to-end exit scripts are still pending.
 | [1 — macOS keystone](../GOAL-LOOP.md#goal-1--macos-keystone) | Complete | Native arm64 build and deterministic headless simulation pass with repo-local paths. |
 | [2 — iOS build contract](../GOAL-LOOP.md#goal-2--ios-build-contract-and-dependency-closure) | Complete | Device and Simulator dependency slices link; versions, hashes, flags, and licences are recorded in [`vendor/MANIFEST.md`](../vendor/MANIFEST.md). |
 | [3 — Simulator app boot](../GOAL-LOOP.md#goal-3--simulator-app-boot) | Complete | The UIKit/SDL application launches, streams logs, and reaches the OpenRCT2 UI in an iPad Simulator. |
-| [4 — Framebuffer presentation](../GOAL-LOOP.md#goal-4--correct-software-framebuffer-presentation) | Complete, contract updating | Software framebuffer through SDL Metal at Retina scale. Live contract: universal full-screen canvas in portrait and landscape. iPhone Simulator: portrait screenshots green; landscape canvas observed in presentation logs (`874x402`). iPad Simulator: landscape screenshot-green (`2752x2064`, canvas `1376x1032`). Physical landscape feel remains a device gate. |
+| [4 — Framebuffer presentation](../GOAL-LOOP.md#goal-4--correct-software-framebuffer-presentation) | Complete, contract updating | Software framebuffer through SDL Metal at Retina scale. Live contract: universal scene-filling canvas in portrait and landscape, fluid iPadOS 27 resizing, standard status/Home UI, and first-swipe system gestures. Earlier fixed-size proofs remain green; the updated window/system-UI physical proof is a device gate. |
 | [5 — Sandbox and import](../GOAL-LOOP.md#goal-5--sandbox-paths-and-user-owned-data-import) | Complete | A clean physical-iPad install selected standard RCT2 data through Files, validated and copied it safely, retained it after forced relaunch, and loaded a scenario. RCT Classic and malformed-folder paths are also covered in Simulator. |
 | [6 — Pointer, keyboard, mouse](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play) | In progress | Pointer movement, clicking, scrolling, trackpad zoom, attached-keyboard text entry, and existing controls work on device. The recorded coaster-and-scenery end-to-end proof remains. |
 | [7 — Finger-first controls](../GOAL-LOOP.md#goal-7--finger-first-controls) | In progress | The current touch mapping is accepted on device: tap/placement, UI dragging, long-press secondary action, inverted half-speed pan, pinch, native text entry, paint/remove dragging, and construction rotation. The full finger-only coaster-and-scenery proof remains. |
@@ -67,6 +67,12 @@ end-to-end exit scripts are still pending.
   copy ignored `ref/rct2` into the local `.app`.
 - August 27 Simulator proofs: iPhone 17 Pro portrait frames are full-screen with `active=1.000` and the engine canvas matching window points (`402x874`); a landscape canvas (`874x402`) appeared in the same process’s presentation logs. iPad Pro 13-inch (M5) Simulator screenshots are landscape-green (`2752x2064`, canvas `1376x1032`). `game_path` is the bundled
   `OpenRCT2Touch.app/rct2` payload.
+- August 30 source contract: the deprecated `UIRequiresFullScreen` opt-out and
+  forced status-bar policy are removed, the SDL window is no longer borderless,
+  the Home-indicator hint uses regular-app behavior, and native chrome uses
+  horizontally corner-adapted margins. See
+  [`IOS-27-WINDOWING.md`](IOS-27-WINDOWING.md) for the Apple-source decision
+  record and validation matrix.
 - The attached Magic Keyboard and trackpad retain their existing behavior.
   Finger controls support placement, long press, responsive inverted
   two-finger panning, and a more deliberate pinch threshold. The app-owned
@@ -115,16 +121,19 @@ end-to-end exit scripts are still pending.
 The full mapping and decision history are maintained in
 [`TOUCH-CONTROLS.md`](TOUCH-CONTROLS.md).
 
-## Scope change — universal rotatable viewport
+## Scope change — universal adaptive viewport
 
 The presentation contract is a universal iPhone and iPad build that supports
 portrait and landscape (iPhone: portrait plus both landscapes; iPad: all four,
 including upside-down). The software canvas matches the window in points
-(`window_scale` 1), presented full-screen through SDL Metal (notch and
-home-indicator overlap is accepted). In-engine top and bottom toolbars are
-skipped on iOS. A native SwiftUI overlay appears only while a park is open:
+(`window_scale` 1) and fills the current scene through SDL Metal without
+safe-area letterboxing. On iPadOS 27 the system owns fluid window resizing and
+window controls. The standard status bar and Home indicator remain visible,
+and the first system-edge swipe is not deferred. In-engine top and bottom
+toolbars are skipped on iOS. A native SwiftUI overlay appears only while a park is open:
 status (Park menu) on the leading top edge and pause/speed on the trailing top
-edge, each in its own glass capsule. Tapping either control pauses. Choosing a
+edge, each in its own glass capsule. Interactive chrome uses safe,
+horizontally corner-adapted margins to avoid system UI. Tapping either control pauses. Choosing a
 speed or a Park or More item resumes.
 View and rotate share a leading glass union (stacked in portrait; horizontal
 in compact-height landscape); Build is a trailing untinted hammer. Build opens
@@ -168,6 +177,12 @@ Files import, forced relaunch persistence check, and scenario load also passed.
 - Confirm landscape chrome reachability and canvas feel on physical iPhone and
   iPad. A signed iPhone Air install/launch succeeded; landscape feel is still
   a human gate. iPad hardware was not used in this slice.
+- On iPadOS 27, drag the Windowed Apps resize handle through narrow, wide, tall,
+  half, third, quadrant, and full-screen sizes; confirm live canvas updates and
+  reachable chrome without window-control or resize-affordance overlap.
+- On physical iPhone and iPad, confirm the standard status bar/Home indicator
+  and regular one-swipe Home behavior. Repeat resizing through iPhone Mirroring
+  on macOS 27 when that host is available.
 
 ## Remaining goal loop
 

@@ -1589,9 +1589,6 @@ private:
 
         // Create window in window first rather than fullscreen so we have the display the window is on first
         uint32_t flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        flags |= SDL_WINDOW_BORDERLESS;
-#endif
         if (Config::Get().general.drawingEngine == DrawingEngine::openGL)
         {
             flags |= SDL_WINDOW_OPENGL;

@@ -4,23 +4,27 @@ struct ContentView: View {
     @State private var model = ChromePreviewModel()
 
     var body: some View {
-        ZStack {
-            ParkCanvas()
-            ParkChromePlayground(model: model)
-        }
-        .overlay(alignment: .top) {
-            ChromeMixer(model: model)
-                .padding(.top, 78)
-        }
-        .overlay(alignment: .center) {
-            if let openWindow = model.openWindow {
-                EngineWindowCard(title: openWindow.title, onClose: model.dismissWindowButtonTapped)
-                    .padding(.horizontal, 48)
-                    .offset(y: 128)
+        if ProcessInfo.processInfo.arguments.contains("--scenario-picker") {
+            ScenarioPickerMockup()
+        } else {
+            ZStack {
+                ParkCanvas()
+                ParkChromePlayground(model: model)
             }
-        }
-        .task {
-            await runStatusTicker()
+            .overlay(alignment: .top) {
+                ChromeMixer(model: model)
+                    .padding(.top, 78)
+            }
+            .overlay(alignment: .center) {
+                if let openWindow = model.openWindow {
+                    EngineWindowCard(title: openWindow.title, onClose: model.dismissWindowButtonTapped)
+                        .padding(.horizontal, 48)
+                        .offset(y: 128)
+                }
+            }
+            .task {
+                await runStatusTicker()
+            }
         }
     }
 

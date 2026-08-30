@@ -5,6 +5,7 @@
  *****************************************************************************/
 
 #include "NativeChrome.iOS.h"
+#include "NativeScenarioPicker.iOS.h"
 
 #include <TargetConditionals.h>
 
@@ -179,6 +180,14 @@ namespace
                 return "view-height-marks";
             case kNativeChromeQuitToMenu:
                 return "quit-to-menu";
+            case kNativeChromeScenarioStart:
+                return "scenario-start";
+            case kNativeChromeScenarioCancel:
+                return "scenario-cancel";
+            case kNativeChromeScenarioSource:
+                return "scenario-source";
+            case kNativeChromeScenarioPreview:
+                return "scenario-preview";
             default:
                 return "view-toggle";
         }
@@ -195,6 +204,7 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
     void* _session;
     UIView* _hostView;
     BOOL _parkOpen;
+    NSString* _scenarioSnapshotJSON;
 }
 
 - (void)attachToView:(UIView*)parent;
@@ -202,6 +212,10 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
 - (void)setParkOpen:(BOOL)open;
 - (void)updateParkChromeStatePaused:(BOOL)paused speed:(uint8_t)speed flags:(uint32_t)flags;
 - (void)updateStatusCash:(NSString*)cash guests:(NSString*)guests rating:(NSString*)rating date:(NSString*)date;
+- (void)presentScenarioPicker:(NSString*)snapshotJSON;
+- (void)dismissScenarioPicker;
+- (void)setScenarioPreviewLoading:(BOOL)loading scenarioID:(int32_t)scenarioID;
+- (void)setScenarioPreview:(NSData*)rgba scenarioID:(int32_t)scenarioID width:(int32_t)width height:(int32_t)height;
 
 @end
 
@@ -224,6 +238,8 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [self detach];
+    [_scenarioSnapshotJSON release];
+    _scenarioSnapshotJSON = nil;
     [super dealloc];
 }
 
@@ -253,6 +269,10 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
 
     NSLog(@"[OpenRCT2Touch] native chrome: attached SwiftUI park overlay");
     os_log_info(OS_LOG_DEFAULT, "[OpenRCT2Touch] native chrome: attached SwiftUI park overlay");
+    if (_scenarioSnapshotJSON != nil)
+    {
+        OpenRCT2TouchChromePresentScenarioPicker(_session, _scenarioSnapshotJSON.UTF8String);
+    }
 }
 
 - (void)detach
@@ -291,6 +311,50 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
     }
     OpenRCT2TouchChromeSetStatus(
         _session, cash.UTF8String, guests.UTF8String, rating.UTF8String, date.UTF8String);
+}
+
+- (void)presentScenarioPicker:(NSString*)snapshotJSON
+{
+    if (snapshotJSON == nil)
+    {
+        return;
+    }
+    [_scenarioSnapshotJSON release];
+    _scenarioSnapshotJSON = [snapshotJSON copy];
+    if (_session != nullptr)
+    {
+        OpenRCT2TouchChromePresentScenarioPicker(_session, _scenarioSnapshotJSON.UTF8String);
+    }
+}
+
+- (void)dismissScenarioPicker
+{
+    [_scenarioSnapshotJSON release];
+    _scenarioSnapshotJSON = nil;
+    if (_session != nullptr)
+    {
+        OpenRCT2TouchChromeDismissScenarioPicker(_session);
+    }
+}
+
+- (void)setScenarioPreviewLoading:(BOOL)loading scenarioID:(int32_t)scenarioID
+{
+    if (_session != nullptr)
+    {
+        OpenRCT2TouchChromeSetScenarioPreviewLoading(_session, scenarioID, loading);
+    }
+}
+
+- (void)setScenarioPreview:(NSData*)rgba
+                 scenarioID:(int32_t)scenarioID
+                      width:(int32_t)width
+                     height:(int32_t)height
+{
+    if (_session != nullptr)
+    {
+        OpenRCT2TouchChromeSetScenarioPreview(
+            _session, scenarioID, static_cast<const uint8_t*>(rgba.bytes), width, height);
+    }
 }
 
 - (void)applicationDidBecomeActive:(NSNotification*)notification
@@ -433,7 +497,7 @@ namespace OpenRCT2::Ui
                 || windowMgr->FindByClass(WindowClass::titleLogo) != nullptr
                 || windowMgr->FindByClass(WindowClass::titleExit) != nullptr
                 || windowMgr->FindByClass(WindowClass::titleOptions) != nullptr
-                || windowMgr->FindByClass(WindowClass::scenarioSelect) != nullptr)
+                || windowMgr->FindByClass(WindowClass::scenarioSelect) != nullptr || NativeScenarioPickerIsOpen())
             {
                 return false;
             }
@@ -612,12 +676,91 @@ namespace OpenRCT2::Ui
         }
     }
 
+    void NativeChromeScenarioPickerPresent(std::string_view snapshotJSON)
+    {
+        NSString* snapshot = [[NSString alloc] initWithBytes:snapshotJSON.data()
+                                                      length:snapshotJSON.size()
+                                                    encoding:NSUTF8StringEncoding];
+        auto present = ^{
+            [gNativeChrome presentScenarioPicker:snapshot];
+            [snapshot release];
+        };
+        if ([NSThread isMainThread])
+        {
+            present();
+        }
+        else
+        {
+            dispatch_async(dispatch_get_main_queue(), present);
+        }
+    }
+
+    void NativeChromeScenarioPickerDismiss()
+    {
+        auto dismiss = ^{
+            [gNativeChrome dismissScenarioPicker];
+        };
+        if ([NSThread isMainThread])
+        {
+            dismiss();
+        }
+        else
+        {
+            dispatch_async(dispatch_get_main_queue(), dismiss);
+        }
+    }
+
+    void NativeChromeScenarioPickerSetPreviewLoading(int32_t scenarioID, bool loading)
+    {
+        auto update = ^{
+            [gNativeChrome setScenarioPreviewLoading:loading scenarioID:scenarioID];
+        };
+        if ([NSThread isMainThread])
+        {
+            update();
+        }
+        else
+        {
+            dispatch_async(dispatch_get_main_queue(), update);
+        }
+    }
+
+    void NativeChromeScenarioPickerSetPreview(
+        int32_t scenarioID, const uint8_t* rgba, size_t byteCount, int32_t width, int32_t height)
+    {
+        NSData* data = rgba == nullptr || byteCount == 0 ? nil : [[NSData alloc] initWithBytes:rgba length:byteCount];
+        auto update = ^{
+            [gNativeChrome setScenarioPreview:data scenarioID:scenarioID width:width height:height];
+            [data release];
+        };
+        if ([NSThread isMainThread])
+        {
+            update();
+        }
+        else
+        {
+            dispatch_async(dispatch_get_main_queue(), update);
+        }
+    }
+
     void NativeChromeTick()
     {
         if (gNativeChrome == nil)
         {
             return;
         }
+
+#if TARGET_OS_SIMULATOR
+        // Temporary visual-verification hook. Removed after the Xcode MCP
+        // screenshots are captured.
+        static bool didHandleScenarioPickerPreviewArgument = false;
+        if (!didHandleScenarioPickerPreviewArgument
+            && [[[NSProcessInfo processInfo] arguments] containsObject:@"--open-native-scenario-picker"])
+        {
+            didHandleScenarioPickerPreviewArgument = true;
+            NativeScenarioPickerOpen([](std::string_view) {});
+        }
+#endif
 
         const int open = ParkIsOpen() ? 1 : 0;
         int paused = 0;
@@ -713,12 +856,18 @@ namespace OpenRCT2::Ui
             return false;
         }
 
+        const int32_t extra = static_cast<int32_t>(reinterpret_cast<intptr_t>(event.user.data1));
+        if (NativeScenarioPickerHandleAction(event.user.code, extra))
+        {
+            os_log_info(OS_LOG_DEFAULT, "[OpenRCT2Touch] native scenario picker: invoked action %d", event.user.code);
+            return true;
+        }
+
         if (!ParkIsOpen())
         {
             return true;
         }
 
-        const int32_t extra = static_cast<int32_t>(reinterpret_cast<intptr_t>(event.user.data1));
         WindowBase* mainWindow = nullptr;
 
         switch (event.user.code)

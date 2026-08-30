@@ -30,6 +30,16 @@ if [[ "$(plutil -extract 'UIApplicationSceneManifest.UIApplicationSupportsMultip
     echo "App bundle does not declare the required single-window UIScene lifecycle." >&2
     exit 1
 fi
+if plutil -extract UIRequiresFullScreen raw "$APP/Info.plist" >/dev/null 2>&1; then
+    echo "App bundle still requests deprecated full-screen compatibility instead of fluid resizing." >&2
+    exit 1
+fi
+status_bar_hidden="$(plutil -extract UIStatusBarHidden raw "$APP/Info.plist" 2>/dev/null || true)"
+controller_status_bar="$(plutil -extract UIViewControllerBasedStatusBarAppearance raw "$APP/Info.plist" 2>/dev/null || true)"
+if [[ "$status_bar_hidden" == "true" || "$controller_status_bar" == "false" ]]; then
+    echo "App bundle disables the standard view-controller-managed status bar." >&2
+    exit 1
+fi
 
 for required_asset in g2.dat fonts.dat palettes.dat tracks.dat language/en-GB.txt; do
     if [[ ! -f "$APP/$required_asset" ]]; then

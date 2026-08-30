@@ -66,10 +66,11 @@
             {
                 const CGRect bounds = activeWindow.bounds;
                 const UIEdgeInsets insets = activeWindow.safeAreaInsets;
+                const BOOL statusBarHidden = activeWindow.windowScene.statusBarManager.statusBarHidden;
                 NSLog(
-                    @"[OpenRCT2Touch] safe-area: bounds_points=%.0fx%.0f insets_points=top:%.0f,left:%.0f,bottom:%.0f,right:%.0f scale=%.2f",
+                    @"[OpenRCT2Touch] safe-area: bounds_points=%.0fx%.0f insets_points=top:%.0f,left:%.0f,bottom:%.0f,right:%.0f scale=%.2f status_bar_hidden=%d",
                     CGRectGetWidth(bounds), CGRectGetHeight(bounds), insets.top, insets.left, insets.bottom, insets.right,
-                    activeWindow.screen.scale);
+                    activeWindow.traitCollection.displayScale, statusBarHidden);
             }
 
             static dispatch_once_t onceToken;

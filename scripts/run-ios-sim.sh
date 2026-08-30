@@ -257,6 +257,7 @@ verify_family() {
         'presentation: window_points=' \
         'safe_area_points=' \
         'safe-area: bounds_points=' \
+        'status_bar_hidden=0' \
         'sandbox: bundle_role=read_only documents_writable=1 support_writable=1 caches_writable=1' \
         'paths: documents='; do
         if ! grep -F "$required_event" "$log_path" >/dev/null; then

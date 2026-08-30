@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <string_view>
+
 struct SDL_Window;
 union SDL_Event;
 
@@ -15,4 +19,9 @@ namespace OpenRCT2::Ui
     void NativeChromeDetach();
     void NativeChromeTick();
     bool NativeChromeHandleEvent(const SDL_Event& event);
-}
+    void NativeChromeScenarioPickerPresent(std::string_view snapshotJSON);
+    void NativeChromeScenarioPickerDismiss();
+    void NativeChromeScenarioPickerSetPreviewLoading(int32_t scenarioID, bool loading);
+    void NativeChromeScenarioPickerSetPreview(
+        int32_t scenarioID, const uint8_t* rgba, size_t byteCount, int32_t width, int32_t height);
+} // namespace OpenRCT2::Ui

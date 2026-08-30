@@ -64,16 +64,27 @@ private final class ParkChromeHostingController<Content: View>: UIHostingControl
     }
 }
 
+private final class ScenarioPickerHostingController<Content: View>: UIHostingController<Content> {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .clear
+        view.isOpaque = false
+    }
+}
+
 final class ParkChromeSession: NSObject {
     let model = ParkChromeModel()
+    let scenarioModel = ScenarioPickerModel()
     private let onAction: @convention(c) (Int32, Int32) -> Void
     private var cameraHost: ParkChromeHostingController<BuildCluster>?
     private var statusHost: ParkChromeHostingController<StatusMenu>?
     private var pauseHost: ParkChromeHostingController<PauseSpeedMenu>?
     private var dockHost: ParkChromeHostingController<ParkChromeDockView>?
+    private var scenarioHost: ScenarioPickerHostingController<ScenarioPickerRootView>?
     private var container: ParkChromePassThroughView?
     private var topConstraints: [NSLayoutConstraint] = []
     private var bottomConstraints: [NSLayoutConstraint] = []
+    private var scenarioConstraints: [NSLayoutConstraint] = []
 
     init(onAction: @escaping @convention(c) (Int32, Int32) -> Void) {
         self.onAction = onAction
@@ -81,9 +92,18 @@ final class ParkChromeSession: NSObject {
         model.onAction = { [weak self] code, extra in
             self?.onAction(code, extra)
         }
+        scenarioModel.onAction = { [weak self] code, extra in
+            self?.onAction(code, extra)
+        }
         model.onSwapBottomControlsChanged = { [weak self] in
             DispatchQueue.main.async {
                 self?.applyBottomLayout()
+            }
+        }
+        scenarioModel.onPresentationChanged = { [weak self] in
+            DispatchQueue.main.async {
+                self?.applyVisibility()
+                self?.bringToFront()
             }
         }
     }
@@ -109,36 +129,51 @@ final class ParkChromeSession: NSObject {
         let pauseHost = ParkChromeHostingController(rootView: PauseSpeedMenu(model: model))
         let cameraHost = ParkChromeHostingController(rootView: BuildCluster(model: model))
         let dockHost = ParkChromeHostingController(rootView: ParkChromeDockView(model: model))
+        let scenarioHost = ScenarioPickerHostingController(rootView: ScenarioPickerRootView(model: scenarioModel))
         install(statusHost, in: container, parent: parentController)
         install(pauseHost, in: container, parent: parentController)
         install(cameraHost, in: container, parent: parentController)
         install(dockHost, in: container, parent: parentController)
+        install(scenarioHost, in: container, parent: parentController)
+
+        scenarioConstraints = [
+            scenarioHost.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            scenarioHost.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            scenarioHost.view.topAnchor.constraint(equalTo: container.topAnchor),
+            scenarioHost.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ]
+        NSLayoutConstraint.activate(scenarioConstraints)
 
         self.statusHost = statusHost
         self.pauseHost = pauseHost
         self.cameraHost = cameraHost
         self.dockHost = dockHost
+        self.scenarioHost = scenarioHost
         self.container = container
         applyTopLayout()
         applyBottomLayout()
-        applyParkOpen()
+        applyVisibility()
         bringToFront()
     }
 
     func detach() {
         NSLayoutConstraint.deactivate(topConstraints)
         NSLayoutConstraint.deactivate(bottomConstraints)
+        NSLayoutConstraint.deactivate(scenarioConstraints)
         topConstraints = []
         bottomConstraints = []
+        scenarioConstraints = []
         detachHost(statusHost)
         detachHost(pauseHost)
         detachHost(cameraHost)
         detachHost(dockHost)
+        detachHost(scenarioHost)
         container?.removeFromSuperview()
         statusHost = nil
         pauseHost = nil
         cameraHost = nil
         dockHost = nil
+        scenarioHost = nil
         container = nil
     }
 
@@ -148,7 +183,7 @@ final class ParkChromeSession: NSObject {
             model.isShowingViewTools = false
         }
         model.isParkOpen = open
-        applyParkOpen()
+        applyVisibility()
         if open {
             bringToFront()
         }
@@ -173,6 +208,30 @@ final class ParkChromeSession: NSObject {
         model.date = date
     }
 
+    func presentScenarioPicker(snapshotJSON: String) {
+        scenarioModel.present(snapshotJSON: snapshotJSON)
+        applyVisibility()
+        bringToFront()
+    }
+
+    func dismissScenarioPicker() {
+        scenarioModel.dismissFromEngine()
+        applyVisibility()
+    }
+
+    func setScenarioPreviewLoading(scenarioID: Int32, loading: Bool) {
+        scenarioModel.setPreviewLoading(scenarioID: scenarioID, loading: loading)
+    }
+
+    func setScenarioPreview(
+        scenarioID: Int32,
+        rgba: UnsafePointer<UInt8>?,
+        width: Int32,
+        height: Int32
+    ) {
+        scenarioModel.setPreview(scenarioID: scenarioID, rgba: rgba, width: width, height: height)
+    }
+
     func bringToFront() {
         guard let container else {
             return
@@ -186,15 +245,17 @@ final class ParkChromeSession: NSObject {
         }
 
         NSLayoutConstraint.deactivate(topConstraints)
-        let safe = container.safeAreaLayoutGuide
+        // The horizontally corner-adapted margins avoid the iPad window
+        // controls while preserving the usual system spacing on iPhone.
+        let content = container.layoutGuide(for: .margins(cornerAdaptation: .horizontal))
         status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         pause.setContentCompressionResistancePriority(.required, for: .horizontal)
         pause.setContentHuggingPriority(.required, for: .horizontal)
         topConstraints = [
-            status.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
-            status.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
-            pause.topAnchor.constraint(equalTo: safe.topAnchor, constant: 8),
-            pause.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
+            status.topAnchor.constraint(equalTo: content.topAnchor, constant: 8),
+            status.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            pause.topAnchor.constraint(equalTo: content.topAnchor, constant: 8),
+            pause.trailingAnchor.constraint(equalTo: content.trailingAnchor),
             pause.centerYAnchor.constraint(equalTo: status.centerYAnchor),
             status.trailingAnchor.constraint(lessThanOrEqualTo: pause.leadingAnchor, constant: -12),
         ]
@@ -207,30 +268,38 @@ final class ParkChromeSession: NSObject {
         }
 
         NSLayoutConstraint.deactivate(bottomConstraints)
-        let safe = container.safeAreaLayoutGuide
+        let content = container.layoutGuide(for: .margins(cornerAdaptation: .horizontal))
         if model.swapBottomControls {
             bottomConstraints = [
-                camera.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
-                camera.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
-                dock.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
-                dock.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+                camera.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+                camera.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
+                dock.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+                dock.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
                 camera.trailingAnchor.constraint(lessThanOrEqualTo: dock.leadingAnchor, constant: -12),
             ]
         } else {
             bottomConstraints = [
-                dock.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 16),
-                dock.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
-                camera.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -16),
-                camera.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+                dock.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+                dock.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
+                camera.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+                camera.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
                 dock.trailingAnchor.constraint(lessThanOrEqualTo: camera.leadingAnchor, constant: -12),
             ]
         }
         NSLayoutConstraint.activate(bottomConstraints)
     }
 
-    private func applyParkOpen() {
-        container?.isHidden = !model.isParkOpen
-        container?.isUserInteractionEnabled = model.isParkOpen
+    private func applyVisibility() {
+        let parkHidden = !model.isParkOpen
+        statusHost?.view.isHidden = parkHidden
+        pauseHost?.view.isHidden = parkHidden
+        cameraHost?.view.isHidden = parkHidden
+        dockHost?.view.isHidden = parkHidden
+        scenarioHost?.view.isHidden = !scenarioModel.isPresented
+
+        let visible = model.isParkOpen || scenarioModel.isPresented
+        container?.isHidden = !visible
+        container?.isUserInteractionEnabled = visible
     }
 
     private func install(_ host: UIViewController, in container: UIView, parent: UIViewController?) {
@@ -329,6 +398,59 @@ func OpenRCT2TouchChromeSetStatus(
         rating: rating.map { String(cString: $0) } ?? "—",
         date: date.map { String(cString: $0) } ?? "—"
     )
+}
+
+@_cdecl("OpenRCT2TouchChromePresentScenarioPicker")
+func OpenRCT2TouchChromePresentScenarioPicker(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ snapshotJSON: UnsafePointer<CChar>?
+) {
+    guard let sessionPtr, let snapshotJSON else {
+        return
+    }
+    Unmanaged<ParkChromeSession>.fromOpaque(sessionPtr)
+        .takeUnretainedValue()
+        .presentScenarioPicker(snapshotJSON: String(cString: snapshotJSON))
+}
+
+@_cdecl("OpenRCT2TouchChromeDismissScenarioPicker")
+func OpenRCT2TouchChromeDismissScenarioPicker(_ sessionPtr: UnsafeMutableRawPointer?) {
+    guard let sessionPtr else {
+        return
+    }
+    Unmanaged<ParkChromeSession>.fromOpaque(sessionPtr)
+        .takeUnretainedValue()
+        .dismissScenarioPicker()
+}
+
+@_cdecl("OpenRCT2TouchChromeSetScenarioPreviewLoading")
+func OpenRCT2TouchChromeSetScenarioPreviewLoading(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ scenarioID: Int32,
+    _ loading: Bool
+) {
+    guard let sessionPtr else {
+        return
+    }
+    Unmanaged<ParkChromeSession>.fromOpaque(sessionPtr)
+        .takeUnretainedValue()
+        .setScenarioPreviewLoading(scenarioID: scenarioID, loading: loading)
+}
+
+@_cdecl("OpenRCT2TouchChromeSetScenarioPreview")
+func OpenRCT2TouchChromeSetScenarioPreview(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ scenarioID: Int32,
+    _ rgba: UnsafePointer<UInt8>?,
+    _ width: Int32,
+    _ height: Int32
+) {
+    guard let sessionPtr else {
+        return
+    }
+    Unmanaged<ParkChromeSession>.fromOpaque(sessionPtr)
+        .takeUnretainedValue()
+        .setScenarioPreview(scenarioID: scenarioID, rgba: rgba, width: width, height: height)
 }
 
 @_cdecl("OpenRCT2TouchChromeBringToFront")

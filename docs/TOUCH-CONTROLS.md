@@ -56,6 +56,13 @@ left-button dragging when the gesture does not start on the park viewport.
 
 ## Change log
 
+### August 30, 2026
+
+- The app adopts regular iOS/iPadOS 27 system behavior: standard status and
+  Home UI remain visible, the first upward system gesture is not deferred, and
+  iPadOS owns fluid window resizing. Native park controls use corner-adapted
+  margins so the system's window controls and resize affordance stay clear.
+
 ### August 28, 2026
 
 - Park and pause top menus freeze live cash/guest ticks while open so the

@@ -43,6 +43,10 @@ enum ParkChromeAction: Int32 {
     case viewPathIssues = 33
     case viewHeightMarks = 34
     case quitToMenu = 35
+    case scenarioStart = 36
+    case scenarioCancel = 37
+    case scenarioSource = 38
+    case scenarioPreview = 39
 
     static let extraXor: Int32 = -1
 }
