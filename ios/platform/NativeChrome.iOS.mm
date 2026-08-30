@@ -5,7 +5,9 @@
  *****************************************************************************/
 
 #include "NativeChrome.iOS.h"
+#include "NativeChromeActionRouting.iOS.h"
 #include "NativeLoadSave.iOS.h"
+#include "NativeChromeParkState.iOS.h"
 #include "NativeScenarioPicker.iOS.h"
 #include <TargetConditionals.h>
 
@@ -19,36 +21,21 @@
     #include <SDL.h>
     #include <SDL_syswm.h>
     #include <UIKit/UIKit.h>
-    #include <algorithm>
     #include <cstdint>
     #include <openrct2/Context.h>
     #include <openrct2/Diagnostic.h>
     #include <openrct2/Game.h>
     #include <openrct2/GameState.h>
     #include <openrct2/OpenRCT2.h>
-    #include <openrct2/actions/GameActionRunner.h>
-    #include <openrct2/actions/general/GameSetSpeedAction.h>
-    #include <openrct2/actions/general/LoadOrQuitAction.h>
-    #include <openrct2/actions/general/PauseToggleAction.h>
     #include <openrct2/Date.h>
-    #include <openrct2/interface/Viewport.h>
-    #include <openrct2/interface/Window.h>
-    #include <openrct2/interface/WindowTypes.h>
     #include <openrct2/config/Config.h>
     #include <openrct2/localisation/Currency.h>
-    #include <openrct2/network/Network.h>
-    #include <openrct2/scenes/SceneManager.h>
-    #include <openrct2/ui/WindowManager.h>
-    #include <openrct2/windows/Intent.h>
     #include <os/log.h>
 
 @class OpenRCT2TouchNativeChrome;
 
 namespace
 {
-    constexpr uint32_t kHeightMarkFlags = OpenRCT2::VIEWPORT_FLAG_LAND_HEIGHTS | OpenRCT2::VIEWPORT_FLAG_TRACK_HEIGHTS
-        | OpenRCT2::VIEWPORT_FLAG_PATH_HEIGHTS;
-
     Uint32 gNativeChromeEventType = 0;
 
     Uint32 EnsureNativeChromeEventType()
@@ -96,7 +83,7 @@ namespace
         return [NSString stringWithFormat:@"%s%s", amount, currency.symbol_unicode];
     }
 
-    NSString* FormatParkDate(const OpenRCT2::Date& date)
+    NSString* FormatParkDate(int32_t month, int32_t day)
     {
         static NSString* const kMonthNames[] = {
             @"Mar",
@@ -108,7 +95,6 @@ namespace
             @"Sep",
             @"Oct",
         };
-        int32_t month = date.GetMonth();
         if (month < 0)
         {
             month = 0;
@@ -117,88 +103,14 @@ namespace
         {
             month = MONTH_COUNT - 1;
         }
-        return [NSString stringWithFormat:@"%@ %d", kMonthNames[month], date.GetDay() + 1];
+        return [NSString stringWithFormat:@"%@ %d", kMonthNames[month], day + 1];
     }
 
-    const char* ActionLogName(int32_t code)
-    {
-        switch (code)
-        {
-            case kNativeChromeBuildNewRide:
-                return "build-ride";
-            case kNativeChromeTrees:
-                return "trees";
-            case kNativeChromePaths:
-                return "paths";
-            case kNativeChromeLand:
-                return "land";
-            case kNativeChromeWater:
-                return "water";
-            case kNativeChromeClearScenery:
-                return "clear-scenery";
-            case kNativeChromeRideList:
-                return "ride-list";
-            case kNativeChromeParkInformation:
-                return "park-information";
-            case kNativeChromeStaffList:
-                return "staff-list";
-            case kNativeChromeGuestList:
-                return "guest-list";
-            case kNativeChromeFinances:
-                return "finances";
-            case kNativeChromeResearch:
-                return "research";
-            case kNativeChromeRecentNews:
-                return "recent-news";
-            case kNativeChromeMap:
-                return "map";
-            case kNativeChromeExtraViewport:
-                return "extra-viewport";
-            case kNativeChromeViewClipping:
-                return "view-clipping";
-            case kNativeChromeTransparency:
-                return "transparency";
-            case kNativeChromeLoadSave:
-                return "loadsave";
-            case kNativeChromeOptions:
-                return "options";
-            case kNativeChromeAbout:
-                return "about";
-            case kNativeChromeCheats:
-                return "cheats";
-            case kNativeChromeTileInspector:
-                return "tile-inspector";
-            case kNativeChromePause:
-                return "pause";
-            case kNativeChromeGameSpeed:
-                return "game-speed";
-            case kNativeChromeZoomIn:
-                return "zoom-in";
-            case kNativeChromeZoomOut:
-                return "zoom-out";
-            case kNativeChromeRotateCW:
-                return "rotate";
-            case kNativeChromeViewHeightMarks:
-                return "view-height-marks";
-            case kNativeChromeQuitToMenu:
-                return "quit-to-menu";
-            case kNativeChromeScenarioStart:
-                return "scenario-start";
-            case kNativeChromeScenarioCancel:
-                return "scenario-cancel";
-            case kNativeChromeScenarioSource:
-                return "scenario-source";
-            case kNativeChromeScenarioPreview:
-                return "scenario-preview";
-            default:
-                return "view-toggle";
-        }
-    }
 } // namespace
 
 extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
 {
-    QueueChromeAction(code, ActionLogName(code), extra);
+    QueueChromeAction(code, OpenRCT2::Ui::NativeChromeActionLogName(code), extra);
 }
 
 @interface OpenRCT2TouchNativeChrome : NSObject
@@ -422,15 +334,8 @@ namespace OpenRCT2::Ui
     namespace
     {
         OpenRCT2TouchNativeChrome* gNativeChrome = nil;
-        int gChromeLastParkOpen = -1;
-        int gChromeLastPaused = -1;
-        int gChromeLastSpeed = -1;
-        uint32_t gChromeLastFlags = 0xFFFFFFFFu;
-        money64 gChromeLastCash = kMoney64Undefined;
-        uint32_t gChromeLastGuests = 0xFFFFFFFFu;
-        uint16_t gChromeLastRating = 0xFFFFu;
-        int32_t gChromeLastMonth = -1;
-        int32_t gChromeLastDay = -1;
+        bool gChromeHasLastState = false;
+        NativeChromeParkStateSnapshot gChromeLastState{};
 
         UIWindow* WindowFromSdl(SDL_Window* window)
         {
@@ -509,162 +414,9 @@ namespace OpenRCT2::Ui
             }
 
             [gNativeChrome attachToView:parent];
-            gChromeLastParkOpen = -1;
+            gChromeHasLastState = false;
         }
 
-        bool ParkIsOpen()
-        {
-            auto* context = OpenRCT2::GetContext();
-            if (context == nullptr)
-            {
-                return false;
-            }
-
-            auto* sceneMgr = context->GetSceneManager();
-            if (sceneMgr == nullptr || sceneMgr->getActiveScene() == nullptr
-                || sceneMgr->getActiveScene() != sceneMgr->getGameScene())
-            {
-                return false;
-            }
-
-            if (gLegacyScene != LegacyScene::playing || isInTrackDesignerOrManager())
-            {
-                return false;
-            }
-
-            auto* windowMgr = GetWindowManager();
-            if (windowMgr == nullptr)
-            {
-                return false;
-            }
-            if (windowMgr->FindByClass(WindowClass::progressWindow) != nullptr
-                || windowMgr->FindByClass(WindowClass::titleMenu) != nullptr
-                || windowMgr->FindByClass(WindowClass::titleLogo) != nullptr
-                || windowMgr->FindByClass(WindowClass::titleExit) != nullptr
-                || windowMgr->FindByClass(WindowClass::titleOptions) != nullptr
-                || windowMgr->FindByClass(WindowClass::scenarioSelect) != nullptr || NativeScenarioPickerIsOpen())
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        void ApplyViewportFlag(uint32_t flag, int32_t extra, bool switchOnClearsFlag)
-        {
-            auto* w = WindowGetMain();
-            if (w == nullptr || w->viewport == nullptr)
-            {
-                return;
-            }
-
-            if (extra < 0)
-            {
-                w->viewport->flags ^= flag;
-            }
-            else if (switchOnClearsFlag)
-            {
-                if (extra != 0)
-                {
-                    w->viewport->flags &= ~flag;
-                }
-                else
-                {
-                    w->viewport->flags |= flag;
-                }
-            }
-            else if (extra != 0)
-            {
-                w->viewport->flags |= flag;
-            }
-            else
-            {
-                w->viewport->flags &= ~flag;
-            }
-            w->invalidate();
-        }
-
-        void ApplyHeightMarks(int32_t extra)
-        {
-            auto* w = WindowGetMain();
-            if (w == nullptr || w->viewport == nullptr)
-            {
-                return;
-            }
-
-            if (extra < 0)
-            {
-                if ((w->viewport->flags & kHeightMarkFlags) != 0)
-                {
-                    w->viewport->flags &= ~kHeightMarkFlags;
-                }
-                else
-                {
-                    w->viewport->flags |= kHeightMarkFlags;
-                }
-            }
-            else if (extra != 0)
-            {
-                w->viewport->flags |= kHeightMarkFlags;
-            }
-            else
-            {
-                w->viewport->flags &= ~kHeightMarkFlags;
-            }
-            w->invalidate();
-        }
-
-        void SetGameSpeed(uint8_t speed)
-        {
-            if (speed < 1 || speed > 4)
-            {
-                speed = 1;
-            }
-            auto setSpeedAction = GameActions::GameSetSpeedAction(speed);
-            GameActions::Execute(&setSpeedAction, getGameState());
-        }
-
-        void CycleGameSpeed()
-        {
-            uint8_t newSpeed = gGameSpeed + 1;
-            if (newSpeed < 1 || newSpeed > 4)
-            {
-                newSpeed = 1;
-            }
-            SetGameSpeed(newSpeed);
-        }
-
-        void CentreOpenedWindow(WindowBase* w)
-        {
-            if (w == nullptr)
-            {
-                return;
-            }
-            if (w->classification == WindowClass::mainWindow)
-            {
-                return;
-            }
-            if (w->flags.hasAny(WindowFlag::stickToBack, WindowFlag::stickToFront))
-            {
-                return;
-            }
-
-            const int32_t screenWidth = ContextGetWidth();
-            const int32_t screenHeight = ContextGetHeight();
-            const int32_t x = std::clamp((screenWidth - w->width) / 2, 0, std::max(0, screenWidth - w->width));
-            const int32_t y = std::clamp((screenHeight - w->height) / 2, 0, std::max(0, screenHeight - w->height));
-            Windows::WindowSetPosition(*w, { x, y });
-        }
-
-        void CentreWindowClass(WindowClass cls)
-        {
-            auto* windowMgr = GetWindowManager();
-            if (windowMgr == nullptr)
-            {
-                return;
-            }
-            CentreOpenedWindow(windowMgr->FindByClass(cls));
-        }
     } // namespace
 
     void NativeChromeAttach(SDL_Window* window)
@@ -700,15 +452,7 @@ namespace OpenRCT2::Ui
             [gNativeChrome detach];
             [gNativeChrome release];
             gNativeChrome = nil;
-            gChromeLastParkOpen = -1;
-            gChromeLastPaused = -1;
-            gChromeLastSpeed = -1;
-            gChromeLastFlags = 0xFFFFFFFFu;
-            gChromeLastCash = kMoney64Undefined;
-            gChromeLastGuests = 0xFFFFFFFFu;
-            gChromeLastRating = 0xFFFFu;
-            gChromeLastMonth = -1;
-            gChromeLastDay = -1;
+            gChromeHasLastState = false;
         };
 
         if ([NSThread isMainThread])
@@ -852,74 +596,44 @@ namespace OpenRCT2::Ui
         }
 #endif
 
-        const int open = ParkIsOpen() ? 1 : 0;
-        int paused = 0;
-        int speed = 1;
-        uint32_t flags = 0;
-        money64 cashValue = kMoney64Undefined;
-        uint32_t guestsValue = 0;
-        uint16_t ratingValue = 0;
-        int32_t monthValue = -1;
-        int32_t dayValue = -1;
+        const NativeChromeParkStateSnapshot state = NativeChromeCaptureParkStateSnapshot();
+        const BOOL parkOpenChanged = !gChromeHasLastState || state.Open != gChromeLastState.Open;
+        const BOOL chromeStateChanged = !gChromeHasLastState || state.Paused != gChromeLastState.Paused
+            || state.Speed != gChromeLastState.Speed || state.ViewportFlags != gChromeLastState.ViewportFlags;
+        const BOOL statusChanged = !gChromeHasLastState || state.Cash != gChromeLastState.Cash
+            || state.Guests != gChromeLastState.Guests || state.Rating != gChromeLastState.Rating
+            || state.Month != gChromeLastState.Month || state.Day != gChromeLastState.Day;
+        if (!parkOpenChanged && !chromeStateChanged && !statusChanged)
+        {
+            return;
+        }
+        gChromeLastState = state;
+        gChromeHasLastState = true;
+
         NSString* cashText = nil;
         NSString* guestsText = nil;
         NSString* ratingText = nil;
         NSString* dateText = nil;
-        if (open != 0)
+        if (state.Open != 0)
         {
-            paused = GameIsPaused() ? 1 : 0;
-            speed = gGameSpeed;
-            auto* mainWindow = WindowGetMain();
-            if (mainWindow != nullptr && mainWindow->viewport != nullptr)
-            {
-                flags = mainWindow->viewport->flags;
-            }
-
-            const auto& gameState = getGameState();
-            cashValue = gameState.park.cash;
-            guestsValue = gameState.park.numGuestsInPark;
-            ratingValue = gameState.park.rating;
-            monthValue = gameState.date.GetMonth();
-            dayValue = gameState.date.GetDay();
-            cashText = [FormatParkCash(cashValue) retain];
-            guestsText = [[NSString alloc] initWithFormat:@"%u", guestsValue];
-            ratingText = [[NSString alloc] initWithFormat:@"%u", ratingValue];
-            dateText = [FormatParkDate(gameState.date) retain];
+            cashText = [FormatParkCash(state.Cash) retain];
+            guestsText = [[NSString alloc] initWithFormat:@"%u", state.Guests];
+            ratingText = [[NSString alloc] initWithFormat:@"%u", state.Rating];
+            dateText = [FormatParkDate(state.Month, state.Day) retain];
         }
-
-        const BOOL parkOpenChanged = open != gChromeLastParkOpen;
-        const BOOL chromeStateChanged = paused != gChromeLastPaused || speed != gChromeLastSpeed || flags != gChromeLastFlags;
-        const BOOL statusChanged = cashValue != gChromeLastCash || guestsValue != gChromeLastGuests
-            || ratingValue != gChromeLastRating || monthValue != gChromeLastMonth || dayValue != gChromeLastDay;
-        if (!parkOpenChanged && !chromeStateChanged && !statusChanged)
-        {
-            [cashText release];
-            [guestsText release];
-            [ratingText release];
-            [dateText release];
-            return;
-        }
-
-        gChromeLastParkOpen = open;
-        gChromeLastPaused = paused;
-        gChromeLastSpeed = speed;
-        gChromeLastFlags = flags;
-        gChromeLastCash = cashValue;
-        gChromeLastGuests = guestsValue;
-        gChromeLastRating = ratingValue;
-        gChromeLastMonth = monthValue;
-        gChromeLastDay = dayValue;
 
         auto sync = ^{
             if (parkOpenChanged)
             {
-                [gNativeChrome setParkOpen:open != 0];
+                [gNativeChrome setParkOpen:state.Open != 0];
             }
             if (parkOpenChanged || chromeStateChanged)
             {
-                [gNativeChrome updateParkChromeStatePaused:paused != 0 speed:static_cast<uint8_t>(speed) flags:flags];
+                [gNativeChrome updateParkChromeStatePaused:state.Paused != 0
+                                                     speed:static_cast<uint8_t>(state.Speed)
+                                                     flags:state.ViewportFlags];
             }
-            if (open != 0 && (parkOpenChanged || statusChanged))
+            if (state.Open != 0 && (parkOpenChanged || statusChanged))
             {
                 [gNativeChrome updateStatusCash:cashText guests:guestsText rating:ratingText date:dateText];
             }
@@ -958,169 +672,10 @@ namespace OpenRCT2::Ui
             os_log_info(OS_LOG_DEFAULT, "[OpenRCT2Touch] native load/save: invoked action %d", event.user.code);
             return true;
         }
-
-        if (!ParkIsOpen())
+        if (NativeChromeRouteParkAction(event.user.code, extra))
         {
-            return true;
+            os_log_info(OS_LOG_DEFAULT, "[OpenRCT2Touch] native chrome: invoked action %d", event.user.code);
         }
-
-        WindowBase* mainWindow = nullptr;
-
-        switch (event.user.code)
-        {
-            case kNativeChromeBuildNewRide:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::constructRide));
-                break;
-            case kNativeChromeTrees:
-                Windows::ToggleSceneryWindow();
-                CentreWindowClass(WindowClass::scenery);
-                break;
-            case kNativeChromePaths:
-                Windows::ToggleFootpathWindow();
-                CentreWindowClass(WindowClass::footpath);
-                break;
-            case kNativeChromeLand:
-                Windows::ToggleLandWindow();
-                CentreWindowClass(WindowClass::land);
-                break;
-            case kNativeChromeWater:
-                Windows::ToggleWaterWindow();
-                CentreWindowClass(WindowClass::water);
-                break;
-            case kNativeChromeClearScenery:
-                Windows::ToggleClearSceneryWindow();
-                CentreWindowClass(WindowClass::clearScenery);
-                break;
-            case kNativeChromeRideList:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::rideList));
-                break;
-            case kNativeChromeParkInformation:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::parkInformation));
-                break;
-            case kNativeChromeStaffList:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::staffList));
-                break;
-            case kNativeChromeGuestList:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::guestList));
-                break;
-            case kNativeChromeFinances:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::finances));
-                break;
-            case kNativeChromeResearch:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::research));
-                break;
-            case kNativeChromeRecentNews:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::recentNews));
-                break;
-            case kNativeChromeMap:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::map));
-                break;
-            case kNativeChromeExtraViewport:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::viewport));
-                break;
-            case kNativeChromeViewClipping:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::viewClipping));
-                break;
-            case kNativeChromeTransparency:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::transparency));
-                break;
-            case kNativeChromeLoadSave:
-                SaveGameAs();
-                CentreWindowClass(WindowClass::loadsave);
-                break;
-            case kNativeChromeLoadGame:
-            {
-                auto intent = Intent(WindowClass::loadsave);
-                intent.PutEnumExtra<LoadSaveAction>(INTENT_EXTRA_LOADSAVE_ACTION, LoadSaveAction::load);
-                intent.PutEnumExtra<LoadSaveType>(INTENT_EXTRA_LOADSAVE_TYPE, LoadSaveType::park);
-                ContextOpenIntent(&intent);
-                break;
-            }
-            case kNativeChromeOptions:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::options));
-                break;
-            case kNativeChromeAbout:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::about));
-                break;
-            case kNativeChromeCheats:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::cheats));
-                break;
-            case kNativeChromeTileInspector:
-                CentreOpenedWindow(OpenRCT2::ContextOpenWindow(WindowClass::tileInspector));
-                break;
-            case kNativeChromePause:
-                if (Network::GetMode() != Network::Mode::client)
-                {
-                    auto pauseToggleAction = GameActions::PauseToggleAction();
-                    GameActions::Execute(&pauseToggleAction, getGameState());
-                }
-                break;
-            case kNativeChromeGameSpeed:
-                if (extra >= 1 && extra <= 4)
-                {
-                    SetGameSpeed(static_cast<uint8_t>(extra));
-                }
-                else
-                {
-                    CycleGameSpeed();
-                }
-                break;
-            case kNativeChromeZoomIn:
-                mainWindow = WindowGetMain();
-                if (mainWindow != nullptr)
-                {
-                    Windows::WindowZoomIn(*mainWindow, false);
-                }
-                break;
-            case kNativeChromeZoomOut:
-                mainWindow = WindowGetMain();
-                if (mainWindow != nullptr)
-                {
-                    Windows::WindowZoomOut(*mainWindow, false);
-                }
-                break;
-            case kNativeChromeRotateCW:
-                ViewportRotateAll(1);
-                break;
-            case kNativeChromeViewUnderground:
-                ApplyViewportFlag(VIEWPORT_FLAG_UNDERGROUND_INSIDE, extra, false);
-                break;
-            case kNativeChromeViewSeeThroughRides:
-                ApplyViewportFlag(VIEWPORT_FLAG_HIDE_RIDES, extra, false);
-                break;
-            case kNativeChromeViewSeeThroughScenery:
-                ApplyViewportFlag(VIEWPORT_FLAG_HIDE_SCENERY, extra, false);
-                break;
-            case kNativeChromeViewGuests:
-                ApplyViewportFlag(VIEWPORT_FLAG_HIDE_GUESTS, extra, true);
-                break;
-            case kNativeChromeViewStaff:
-                ApplyViewportFlag(VIEWPORT_FLAG_HIDE_STAFF, extra, true);
-                break;
-            case kNativeChromeViewPathIssues:
-                ApplyViewportFlag(VIEWPORT_FLAG_HIGHLIGHT_PATH_ISSUES, extra, false);
-                break;
-            case kNativeChromeViewHeightMarks:
-                ApplyHeightMarks(extra);
-                break;
-            case kNativeChromeQuitToMenu:
-            {
-                auto* windowMgr = GetWindowManager();
-                if (windowMgr != nullptr)
-                {
-                    windowMgr->CloseByClass(WindowClass::manageTrackDesign);
-                    windowMgr->CloseByClass(WindowClass::trackDeletePrompt);
-                }
-                auto loadOrQuitAction = GameActions::LoadOrQuitAction(
-                    GameActions::LoadOrQuitModes::openSavePrompt, PromptMode::saveBeforeQuit);
-                GameActions::Execute(&loadOrQuitAction, getGameState());
-                CentreWindowClass(WindowClass::savePrompt);
-                break;
-            }
-            default:
-                break;
-        }
-        os_log_info(OS_LOG_DEFAULT, "[OpenRCT2Touch] native chrome: invoked action %d", event.user.code);
         return true;
     }
 } // namespace OpenRCT2::Ui
