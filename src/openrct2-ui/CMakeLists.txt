@@ -50,6 +50,8 @@ if (APPLE)
         list(APPEND OPENRCT2_UI_MM_SOURCES
             "${ROOT_DIR}/ios/platform/UiContext.iOS.mm"
             "${ROOT_DIR}/ios/platform/NativeChrome.iOS.mm"
+            "${ROOT_DIR}/ios/platform/NativeChromeParkState.iOS.mm"
+            "${ROOT_DIR}/ios/platform/NativeChromeActionRouting.iOS.mm"
             "${ROOT_DIR}/ios/platform/NativeScenarioPicker.iOS.mm"
             "${ROOT_DIR}/ios/platform/NativeLoadSave.iOS.mm")
         set(OPENRCT2_UI_SWIFT_SOURCES
