@@ -149,7 +149,9 @@ namespace OpenRCT2::Ui
             NativeChromeLoadSaveDismiss();
         }
 
-        void CommitPath(const u8string& path)
+        // Takes the path by value: ClosePicker() clears gPaths, so a reference
+        // into it would dangle before Select() reads the path.
+        void CommitPath(u8string path)
         {
             Audio::Play(Audio::SoundId::click1, 0, ContextGetWidth() / 2);
             const auto action = gAction;
