@@ -4,6 +4,11 @@ This checklist records the current audit plan for the iPhone support, dynamic
 windowing, native scenario picker, native park chrome, and related iOS branch
 changes.
 
+Recent `touch/ios27-windowing` changes strengthen the adaptive-windowing
+assessment, but expand the native presentation surface area. This checklist now
+treats native load/save and the shared modal host/bridge layer as first-class
+audit targets alongside the scenario picker.
+
 ## Build system and platform split
 
 ### `CMakeLists.txt`
@@ -54,6 +59,9 @@ changes.
 - Confirm scene lifecycle keys are correct.
 - Confirm the iPhone and iPad orientation contract matches the intended product.
 - Confirm status-bar and Home-indicator behavior follows Apple guidance.
+- Confirm the adaptive iOS 27 contract is intentional, documented, and
+  consistent with `docs/IOS-27-WINDOWING.md`.
+- Verify the app remains single-scene by design, rather than by omission.
 - Confirm nothing here is fork-branding-specific if upstreaming.
 - Keep: yes.
 - Upstreamability: high for the iOS port, low for branding details.
@@ -63,6 +71,10 @@ changes.
 - Verify lifecycle logging is still needed in production.
 - Check whether this should be debug-only.
 - Confirm there are no duplicate scene and app lifecycle events.
+- Audit whether app-level lifecycle observation is still appropriate now that
+  the branch relies on `UIScene` lifecycle semantics.
+- Confirm lifecycle logging does not duplicate scene-driven behavior or mask SDL
+  lifecycle debt.
 - Keep: maybe.
 - Simplify: likely gate or reduce logging.
 
@@ -80,6 +92,10 @@ changes.
 
 - Confirm UIKit usage here is strictly bridge-layer only.
 - Audit window and scene selection logic for duplication with other files.
+- Confirm scene-local geometry and safe-area lookup are the canonical source of
+  truth for iOS 27 resizing.
+- Audit duplicated `connectedScenes` and active-window lookup logic across
+  `UiContext.iOS.mm`, `RCT2Importer.iOS.mm`, and `NativeChrome.iOS.mm`.
 - Audit text-input bridge lifetime and responder behavior.
 - Confirm the file-picker hook is routed correctly.
 - Keep: yes.
@@ -105,6 +121,9 @@ changes.
 
 - Confirm Metal renderer enforcement is necessary.
 - Audit rotation and recovery code for SDL workaround versus permanent architecture.
+- Reassess whether current iOS drawable recovery logic is a temporary SDL
+  workaround or an intentional long-term renderer contract.
+- Confirm windowing fixes do not regress performance during interactive resize.
 - Check whether any logging can be reduced after stabilization.
 - Keep: yes.
 - Upstreamability: high if framed as an iOS renderer fix.
@@ -143,24 +162,38 @@ changes.
 
 ### `ios/platform/NativeChrome.iOS.mm`
 
-- Audit whether this file mixes too many concerns:
-  - SDL event bridge
-  - park-state polling
-  - window centering
-  - action dispatch
-  - attach and detach lifecycle
+- Audit whether this file has become a generic native modal and chrome
+  dispatcher rather than a thin bridge.
+- Separate responsibilities for:
+  - overlay attach and detach
+  - park chrome state sync
+  - scenario picker presentation
+  - load/save presentation
+  - action routing
+  - window-centering policy
+- Confirm modal routing remains consistent when multiple native surfaces are
+  possible.
 - Verify all native controls map to existing in-engine intents only.
 - Confirm no duplicated game logic lives here.
-- Review whether polling in `NativeChromeTick()` should become a cleaner state-sync layer.
-- Keep: yes.
-- Simplify: high priority; split into bridge, state, and action helpers.
+- Review whether polling in `NativeChromeTick()` should become a cleaner
+  state-sync layer.
+- Check whether `NativeChromeTick()` is accumulating product logic that should
+  move elsewhere.
+- Keep: yes, but split.
+- Simplify: highest priority.
+- Upstreamability: medium to low until responsibilities are separated.
 
 ### `ios/platform/chrome/ParkChromeActions.h`
 
 ### `ios/platform/chrome/ParkChromeActions.swift`
 
 - Confirm the action enum is stable and minimal.
+- Confirm the action space is still coherent as native surfaces expand.
 - Check for duplication between the C++ and Swift definitions.
+- Audit whether action IDs are becoming an ad hoc protocol between too many
+  systems.
+- Check whether load/save and scenario-picker actions should be grouped or
+  mechanically generated.
 - Keep: yes.
 - Simplify: use a generated or shared definition if practical.
 
@@ -170,7 +203,10 @@ changes.
 
 - Confirm the model holds only view state, not platform-specific types.
 - Audit `UserDefaults` persistence scope.
-- Check whether pause and resume behavior belongs here or in the action layer.
+- Confirm the remaining model is mostly view state after the recent
+  pause/resume cleanup.
+- Audit whether any remaining control-policy decisions should move out of the
+  model.
 - Keep: yes.
 
 ### `ios/platform/chrome/ParkMenuCatalog.swift`
@@ -185,6 +221,10 @@ changes.
 - Audit use of iOS-only glass APIs.
 - Separate reusable layout and components from iOS-specific styling.
 - Check whether macOS reuse would require only style swaps.
+- Confirm the updated pause/speed and menu behavior keeps the chrome as a thin
+  controller rather than embedding gameplay policy.
+- Audit where menu semantics are now cleaner after removing implicit
+  pause/resume.
 - Keep: yes.
 - Simplify: extract platform-neutral view structure from the style layer.
 
@@ -197,10 +237,15 @@ changes.
 ### `ios/platform/chrome/ParkChromeHost.swift`
 
 - Audit UIKit hosting and controller logic for duplication.
+- Audit whether this file has become a generic native host and container for
+  multiple SwiftUI modal systems.
 - Confirm this is the only place SwiftUI depends on UIKit hosting.
-- Check whether the scenario picker host and park chrome host can share adapter code.
+- Check whether scenario picker and load/save hosting should share reusable host
+  types or layout helpers.
+- Confirm view visibility and hit-testing rules remain correct when chrome,
+  scenario picker, and load/save overlap.
 - Keep: yes.
-- Simplify: high priority.
+- Simplify: highest priority.
 
 ## Native scenario picker
 
@@ -208,10 +253,34 @@ changes.
 
 - Identify duplicated logic already present in desktop `ScenarioSelect.cpp`.
 - Extract a shared scenario snapshot builder in C++ if possible.
+- Audit this file together with `ios/platform/NativeLoadSave.iOS.mm` as part of
+  a growing native modal layer.
+- Check whether shared snapshot building, selection state, and preview and
+  update plumbing can be abstracted across native modal wrappers.
 - Keep the native layer focused on presentation plus preview loading only.
 - Keep: maybe.
 - Simplify: highest priority.
 - Upstreamability: medium until deduplicated.
+
+### `ios/platform/NativeLoadSave.iOS.h`
+
+- Confirm the public native load/save API is minimal and does not leak
+  unnecessary UI assumptions.
+- Check whether it matches the same abstraction style as the native scenario
+  picker.
+
+### `ios/platform/NativeLoadSave.iOS.mm`
+
+- Identify duplicated logic already present in
+  `src/openrct2-ui/interface/FileBrowser.cpp`.
+- Confirm callback lifetime and path ownership are safe.
+- Audit whether save-name commit, overwrite selection, and file scanning belong
+  in shared logic instead of the native wrapper.
+- Check whether native load/save and native scenario picker should share a
+  common snapshot and presentation framework.
+- Keep: maybe.
+- Simplify: highest priority.
+- Upstreamability: medium to low until deduplicated.
 
 ### `ios/platform/chrome/ScenarioPickerModel.swift`
 
@@ -228,6 +297,27 @@ changes.
 - Audit whether any strings or behaviors duplicate desktop logic unnecessarily.
 - Keep: yes.
 
+### `ios/platform/chrome/LoadSaveModel.swift`
+
+- Confirm the model is pure view state.
+- Audit whether overwrite and save-name matching logic belongs in shared domain
+  logic instead of the view model.
+- Check whether this model duplicates patterns that should be shared with
+  `ScenarioPickerModel.swift`.
+- Keep: yes.
+- Simplify: medium to high priority.
+
+### `ios/platform/chrome/LoadSaveView.swift`
+
+- Confirm this is a reusable native modal view pattern, not a one-off
+  implementation.
+- Check whether the sheet presentation, list structure, and confirmation flow
+  should be generalized with the scenario picker host.
+- Audit whether the current save/load UX is fork-only product policy or
+  intended iOS platform policy.
+- Keep: yes for the fork.
+- Upstreamability: medium.
+
 ## Engine UI files with iOS bypasses
 
 ### `src/openrct2-ui/windows/ScenarioSelect.cpp`
@@ -235,6 +325,15 @@ changes.
 - Confirm the iOS hook cleanly swaps the native picker for the desktop window.
 - Minimize divergence from the desktop path.
 - Keep: yes.
+
+### `src/openrct2-ui/interface/FileBrowser.cpp`
+
+- Confirm the iOS native load/save interception point is the correct abstraction
+  boundary.
+- Audit whether platform dispatch now belongs in a cleaner adapter layer.
+- Verify built-in desktop behavior remains unchanged.
+- Keep: yes.
+- Simplify: medium.
 
 ### `src/openrct2-ui/windows/TopToolbar.cpp`
 
@@ -287,11 +386,14 @@ changes.
 
 ## Top simplification targets
 
-1. `ios/platform/NativeScenarioPicker.iOS.mm`
-2. `src/openrct2-ui/UiContext.cpp`
-3. `ios/platform/NativeChrome.iOS.mm`
-4. `ios/platform/chrome/ParkChromeHost.swift`
-5. `ios/platform/chrome/ScenarioPickerModel.swift`
+1. `ios/platform/NativeChrome.iOS.mm`
+2. `ios/platform/chrome/ParkChromeHost.swift`
+3. `ios/platform/NativeScenarioPicker.iOS.mm`
+4. `ios/platform/NativeLoadSave.iOS.mm`
+5. `src/openrct2-ui/interface/FileBrowser.cpp`
+6. `src/openrct2-ui/UiContext.cpp`
+7. `ios/platform/chrome/ScenarioPickerModel.swift`
+8. `ios/platform/chrome/LoadSaveModel.swift`
 
 ## Note on avoiding `UIImage`
 
@@ -304,3 +406,10 @@ direct replacement is `CGImage`.
   struct and construct the `CGImage` in a shared helper.
 
 This keeps UIKit out of the model layer and improves macOS reuse potential.
+
+## Closing note
+
+- The iOS 27 adaptive-window direction is now more strongly validated.
+- The main remaining architecture question is no longer whether native overlays
+  should exist, but how to prevent native scenario picker, load/save, and park
+  chrome from becoming three parallel presentation stacks.
