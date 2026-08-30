@@ -73,7 +73,6 @@ final class ParkChromeModel {
     }
 
     func queueParkMenu(_ action: ParkChromeAction) {
-        ensurePlaying()
         queue(action)
     }
 

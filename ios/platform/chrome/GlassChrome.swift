@@ -83,7 +83,6 @@ struct PauseSpeedMenu: View {
         .transaction { $0.animation = nil }
         .simultaneousGesture(TapGesture().onEnded {
             frozenSpeed = model.speed
-            model.ensurePaused()
         })
         .accessibilityLabel("Pause, speed, and more")
         .accessibilityHint("Opens pause, speed, and more")
@@ -99,7 +98,9 @@ private struct PauseControlLabel: View {
     var body: some View {
         let speed = frozenSpeed ?? model.speed
         Group {
-            if speed > 1 {
+            if model.isPaused {
+                Image(systemName: "play.fill")
+            } else if speed > 1 {
                 Text("\(max(1, Int(speed)))x")
                     .monospacedDigit()
             } else {
@@ -126,11 +127,7 @@ private struct PauseSpeedMenuItems: View {
                     model.ensurePaused()
                 }
             } label: {
-                Label {
-                    Text("Pause")
-                } icon: {
-                    ParkChromeSymbol(systemImage: "pause.fill", primary: .orange)
-                }
+                Label(model.isPaused ? "Resume" : "Pause", systemImage: model.isPaused ? "play.fill" : "pause.fill")
             }
             .accessibilityIdentifier("openrct2.touch.pause")
 
@@ -172,7 +169,6 @@ private struct PauseSpeedMenuItems: View {
                 return
             }
             model.queue(.gameSpeed, extra: Int32(clamped))
-            model.ensurePlaying()
         }
     }
 }
@@ -298,7 +294,6 @@ struct StatusMenu: View {
         .transaction { $0.animation = nil }
         .simultaneousGesture(TapGesture().onEnded {
             frozenTicker = ParkTickerSnapshot(model)
-            model.ensurePaused()
         })
         .accessibilityLabel("Park information")
         .accessibilityHint("Opens park information")
@@ -470,11 +465,8 @@ struct ParkMenuLabel: View {
     let item: ParkMenuItem
 
     var body: some View {
-        Label {
-            Text(item.title)
-        } icon: {
-            ParkChromeSymbol(item: item)
-        }
+        // Plain SF Symbol so the icon adopts the menu's label colour in light/dark.
+        Label(item.title, systemImage: item.systemImage)
     }
 }
 
