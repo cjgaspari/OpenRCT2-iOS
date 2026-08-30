@@ -295,6 +295,9 @@ final class ParkChromeSession: NSObject {
         pauseHost?.view.isHidden = parkHidden
         cameraHost?.view.isHidden = parkHidden
         dockHost?.view.isHidden = parkHidden
+        // Hide the full-screen anchor when the picker is closed so it never
+        // overlays and blocks the park chrome. present/dismiss both call
+        // applyVisibility() synchronously, so the sheet still animates.
         scenarioHost?.view.isHidden = !scenarioModel.isPresented
 
         let visible = model.isParkOpen || scenarioModel.isPresented

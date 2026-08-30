@@ -32,7 +32,6 @@ struct ScenarioPickerMockup: View {
                         compactBrowser
                     }
                 }
-                .background(Color(uiColor: .systemGroupedBackground))
                 .navigationTitle("Select Scenario")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -100,34 +99,29 @@ struct ScenarioPickerMockup: View {
             .accessibilityAddTraits(source.id == selectedSourceID ? .isSelected : [])
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
     }
 
     private var sourceStrip: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                ForEach(MockScenarioSource.fixture) { source in
-                    Button {
-                        selectSource(source)
-                    } label: {
-                        Label(source.shortTitle, systemImage: source.symbol)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .foregroundStyle(source.id == selectedSourceID ? .white : .primary)
-                            .background(
-                                source.id == selectedSourceID ? Color.accentColor : Color(uiColor: .secondarySystemGroupedBackground),
-                                in: .capsule
-                            )
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    ForEach(MockScenarioSource.fixture) { source in
+                        Button {
+                            selectSource(source)
+                        } label: {
+                            Label(source.shortTitle, systemImage: source.symbol)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .modifier(MockSourceChipGlass(selected: source.id == selectedSourceID))
+                        .accessibilityAddTraits(source.id == selectedSourceID ? .isSelected : [])
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(source.id == selectedSourceID ? .isSelected : [])
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
         }
         .scrollIndicators(.hidden)
-        .background(.bar)
     }
 
     private func scenarioList(compact: Bool) -> some View {
@@ -141,6 +135,7 @@ struct ScenarioPickerMockup: View {
                                 NavigationLink(value: scenario) {
                                     ScenarioMockRow(scenario: scenario, selected: false)
                                 }
+                                .listRowBackground(Color.clear)
                             } else {
                                 Button {
                                     selectedScenarioID = scenario.id
@@ -160,7 +155,8 @@ struct ScenarioPickerMockup: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 52)
         .overlay {
             if scenarios.isEmpty {
@@ -178,6 +174,18 @@ struct ScenarioPickerMockup: View {
         selectedScenarioID = MockScenario.fixture.first {
             $0.sourceID == source.id && !$0.isLocked
         }?.id
+    }
+}
+
+private struct MockSourceChipGlass: ViewModifier {
+    let selected: Bool
+
+    func body(content: Content) -> some View {
+        if selected {
+            content.buttonStyle(.glassProminent).tint(.accentColor)
+        } else {
+            content.buttonStyle(.glass)
+        }
     }
 }
 
@@ -222,6 +230,18 @@ private struct ScenarioMockDetail: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         ScenarioPreviewPlaceholder(isLocked: scenario.isLocked)
+                            .overlay {
+                                if !scenario.isLocked {
+                                    Button {
+                                    } label: {
+                                        Label("Play", systemImage: "play.fill")
+                                            .font(.headline)
+                                    }
+                                    .buttonStyle(.glassProminent)
+                                    .tint(.green)
+                                    .controlSize(.large)
+                                }
+                            }
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text(scenario.title)
@@ -254,20 +274,8 @@ private struct ScenarioMockDetail: View {
                     .padding(24)
                     .frame(maxWidth: .infinity, alignment: .center)
                 }
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
                 .navigationTitle(scenario.title)
                 .navigationBarTitleDisplayMode(.inline)
-                .safeAreaInset(edge: .bottom) {
-                    if !scenario.isLocked {
-                        Button("Start Scenario", systemImage: "play.fill") {}
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .background(.bar)
-                    }
-                }
             } else {
                 ContentUnavailableView(
                     "Choose a Scenario",

@@ -8,6 +8,37 @@ import SwiftUI
 
 struct ScenarioPickerRootView: View {
     @Bindable var model: ScenarioPickerModel
+
+    var body: some View {
+        // An inert anchor: the browser is presented as a native medium sheet so
+        // it reads like the View/Build tools rather than covering the whole scene.
+        Color.clear
+            .allowsHitTesting(false)
+            .sheet(isPresented: sheetPresented) {
+                ScenarioPickerBrowser(model: model)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .presentationContentInteraction(.scrolls)
+                    .presentationSizing(.page)
+            }
+    }
+
+    // Routes a user-driven swipe-dismiss through the engine cancel path while
+    // letting the engine remain the source of truth for `isPresented`.
+    private var sheetPresented: Binding<Bool> {
+        Binding(
+            get: { model.isPresented },
+            set: { newValue in
+                if !newValue, model.isPresented {
+                    model.cancel()
+                }
+            }
+        )
+    }
+}
+
+struct ScenarioPickerBrowser: View {
+    @Bindable var model: ScenarioPickerModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var path: [ScenarioPickerScenario] = []
 
@@ -26,7 +57,6 @@ struct ScenarioPickerRootView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
-                .background(Color(uiColor: .systemGroupedBackground))
                 .navigationTitle(model.snapshot?.title ?? "Select Scenario")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -109,6 +139,7 @@ private struct ScenarioSourceSidebar: View {
             .accessibilityIdentifier("openrct2.touch.scenario.source.\(source.id)")
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
     }
 }
 
@@ -118,33 +149,37 @@ private struct ScenarioSourceStrip: View {
 
     var body: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                ForEach(sources) { source in
-                    Button {
-                        model.selectSource(source.id)
-                    } label: {
-                        Label(source.shortTitle, systemImage: ScenarioSourceSymbol.name(for: source.id))
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .foregroundStyle(source.id == model.selectedSourceID ? .white : .primary)
-                            .background(
-                                source.id == model.selectedSourceID
-                                    ? Color.accentColor
-                                    : Color(uiColor: .secondarySystemGroupedBackground),
-                                in: .capsule
-                            )
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    ForEach(sources) { source in
+                        Button {
+                            model.selectSource(source.id)
+                        } label: {
+                            Label(source.shortTitle, systemImage: ScenarioSourceSymbol.name(for: source.id))
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .modifier(ScenarioSourceChipGlass(selected: source.id == model.selectedSourceID))
+                        .accessibilityAddTraits(source.id == model.selectedSourceID ? .isSelected : [])
+                        .accessibilityIdentifier("openrct2.touch.scenario.source.\(source.id)")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(source.id == model.selectedSourceID ? .isSelected : [])
-                    .accessibilityIdentifier("openrct2.touch.scenario.source.\(source.id)")
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
         }
         .scrollIndicators(.hidden)
-        .background(.bar)
+    }
+}
+
+private struct ScenarioSourceChipGlass: ViewModifier {
+    let selected: Bool
+
+    func body(content: Content) -> some View {
+        if selected {
+            content.buttonStyle(.glassProminent).tint(.accentColor)
+        } else {
+            content.buttonStyle(.glass)
+        }
     }
 }
 
@@ -176,7 +211,8 @@ private struct ScenarioPickerList: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 52)
         .overlay {
             if scenarios.isEmpty {
@@ -203,6 +239,7 @@ private struct ScenarioPickerList: View {
                 NavigationLink(value: scenario) {
                     ScenarioPickerRow(scenario: scenario, selected: false)
                 }
+                .listRowBackground(Color.clear)
                 .accessibilityIdentifier("openrct2.touch.scenario.row.\(scenario.id)")
             } else {
                 Button {
@@ -296,6 +333,11 @@ private struct ScenarioPickerDetail: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 ScenarioPickerPreview(model: model, scenario: scenario)
+                    .overlay {
+                        if !scenario.isLocked {
+                            ScenarioStartButton(model: model, scenario: scenario)
+                        }
+                    }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(scenario.title)
@@ -335,29 +377,6 @@ private struct ScenarioPickerDetail: View {
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .safeAreaInset(edge: .bottom) {
-            if !scenario.isLocked {
-                Button {
-                    model.start(scenario)
-                } label: {
-                    if model.isStarting {
-                        ProgressView()
-                            .frame(minWidth: 118)
-                    } else {
-                        Label("Start Scenario", systemImage: "play.fill")
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(model.isStarting)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
-                .background(.bar)
-                .accessibilityIdentifier("openrct2.touch.scenario.start")
-            }
-        }
     }
 
     private func detailSection(title: String, text: String) -> some View {
@@ -367,6 +386,31 @@ private struct ScenarioPickerDetail: View {
             Text(text)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct ScenarioStartButton: View {
+    let model: ScenarioPickerModel
+    let scenario: ScenarioPickerScenario
+
+    var body: some View {
+        Button {
+            model.start(scenario)
+        } label: {
+            if model.isStarting {
+                ProgressView()
+                    .tint(.white)
+                    .frame(minWidth: 96)
+            } else {
+                Label("Play", systemImage: "play.fill")
+                    .font(.headline)
+            }
+        }
+        .buttonStyle(.glassProminent)
+        .tint(.green)
+        .controlSize(.large)
+        .disabled(model.isStarting)
+        .accessibilityIdentifier("openrct2.touch.scenario.start")
     }
 }
 

@@ -2,29 +2,46 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var model = ChromePreviewModel()
+    @State private var showScenarioPicker = ProcessInfo.processInfo.arguments.contains("--scenario-picker")
 
     var body: some View {
-        if ProcessInfo.processInfo.arguments.contains("--scenario-picker") {
+        ZStack {
+            ParkCanvas()
+                .ignoresSafeArea()
+            ParkChromePlayground(model: model)
+        }
+        .overlay(alignment: .top) {
+            ChromeMixer(model: model)
+                .padding(.top, 78)
+        }
+        .overlay(alignment: .bottom) {
+            Button {
+                showScenarioPicker = true
+            } label: {
+                Label("Open Scenario Picker", systemImage: "flag.checkered")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.blue)
+            .padding(.bottom, 120)
+            .accessibilityIdentifier("openrct2.touch.mockup.openScenarioPicker")
+        }
+        .overlay(alignment: .center) {
+            if let openWindow = model.openWindow {
+                EngineWindowCard(title: openWindow.title, onClose: model.dismissWindowButtonTapped)
+                    .padding(.horizontal, 48)
+                    .offset(y: 128)
+            }
+        }
+        .sheet(isPresented: $showScenarioPicker) {
             ScenarioPickerMockup()
-        } else {
-            ZStack {
-                ParkCanvas()
-                ParkChromePlayground(model: model)
-            }
-            .overlay(alignment: .top) {
-                ChromeMixer(model: model)
-                    .padding(.top, 78)
-            }
-            .overlay(alignment: .center) {
-                if let openWindow = model.openWindow {
-                    EngineWindowCard(title: openWindow.title, onClose: model.dismissWindowButtonTapped)
-                        .padding(.horizontal, 48)
-                        .offset(y: 128)
-                }
-            }
-            .task {
-                await runStatusTicker()
-            }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationContentInteraction(.scrolls)
+                .presentationSizing(.page)
+        }
+        .task {
+            await runStatusTicker()
         }
     }
 
