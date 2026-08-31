@@ -48,7 +48,7 @@ set -e
 if [[ "$LAUNCH_STATUS" -ne 0 ]]; then
     echo "Device launch exited $LAUNCH_STATUS. Console log: $LOG_FILE" >&2
     if grep -q 'Locked\|FBSOpenApplicationErrorDomain' "$LOG_FILE"; then
-        echo "Unlock the iPhone, then rerun: ./scripts/play-ios-device.sh" >&2
+        echo "Unlock the target device ($DEVICE), then rerun: ./scripts/play-ios-device.sh" >&2
     fi
     echo "After an app crash, collect the device report with:" >&2
     echo "  OPENRCT2_DEVICE_UDID=$DEVICE ./scripts/collect-crash.sh" >&2

@@ -262,6 +262,9 @@ only as environment variables; the scripts never save them in the repository.
 
 ### 4. Sign, install, and launch
 
+For a short step-by-step guide (iPhone, iPad, or both), see
+[`docs/BUILD-AND-RUN.md`](docs/BUILD-AND-RUN.md).
+
 One-time local setup (team and device identifiers stay out of git):
 
 ```sh
@@ -273,7 +276,9 @@ cp scripts/device.env.example runtime/device.env
 Then:
 
 ```sh
-./scripts/play-ios-device.sh
+./scripts/play-ios-device.sh           # prefers iPhone Air
+./scripts/play-ios-device.sh --ipad    # prefers iPad Pro
+./scripts/play-ios-device.sh --all     # every connected device
 ```
 
 That signs a device build, copies ignored `ref/rct2` into the `.app` before

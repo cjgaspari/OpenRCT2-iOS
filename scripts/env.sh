@@ -28,8 +28,12 @@ export SMOKE_EXPECTED_CHECKSUM="${SMOKE_EXPECTED_CHECKSUM-25232284e49cf2cb000000
 
 # Personal signing/device pin. runtime/ is gitignored; never commit team or UDID.
 if [[ -f "$ROOT/runtime/device.env" ]]; then
+    existing_udid="${OPENRCT2_DEVICE_UDID:-}"
     set -a
     # shellcheck disable=SC1091
     source "$ROOT/runtime/device.env"
     set +a
+    if [[ -n "$existing_udid" ]]; then
+        export OPENRCT2_DEVICE_UDID="$existing_udid"
+    fi
 fi

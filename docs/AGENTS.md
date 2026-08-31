@@ -53,9 +53,13 @@ UI rendering, asset-import plumbing, input wiring. Use `iphone` or `ipad` instea
 
 **Outer loop — physical iPhone or iPad (needs the human for setup + feel):**
 ```bash
-./scripts/play-ios-device.sh      # signed install + launch; prefers a connected iPhone Air
-./scripts/collect-crash.sh        # pulls matching crash reports via CoreDevice
+./scripts/play-ios-device.sh           # signed install + launch; prefers iPhone Air
+./scripts/play-ios-device.sh --ipad    # prefers iPad Pro
+./scripts/play-ios-device.sh --all     # every connected device
+./scripts/collect-crash.sh             # pulls matching crash reports via CoreDevice
 ```
+
+See `docs/BUILD-AND-RUN.md` for the short human build/run guide.
 
 Team and UDID live in gitignored `runtime/device.env` (copy `scripts/device.env.example`). Unlock the device before launch.
 

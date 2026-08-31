@@ -27,13 +27,15 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 
 ## Device play
 
-Install and launch on the connected iPhone (prefers CJ’s iPhone Air):
+Install and launch on a connected iPhone or iPad (`docs/BUILD-AND-RUN.md`):
 
 ```sh
-./scripts/play-ios-device.sh
+./scripts/play-ios-device.sh           # prefers CJ’s iPhone Air
+./scripts/play-ios-device.sh --ipad  # prefers CJ’s iPad Pro
+./scripts/play-ios-device.sh --all   # every connected device
 ```
 
-Team and UDID live in gitignored `runtime/device.env` (copy `scripts/device.env.example` once). Unlock the phone before launch. Pass `--console` only when you need streamed device logs. Do not put team or UDID in git, docs, or commits.
+Team and UDID live in gitignored `runtime/device.env` (copy `scripts/device.env.example` once). Unlock the device before launch. Pass `--console` only when you need streamed device logs. Do not put team or UDID in git, docs, or commits.
 
 ## Current goal
 
