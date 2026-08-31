@@ -64,7 +64,10 @@ private final class ParkChromeHostingController<Content: View>: UIHostingControl
     }
 }
 
-private final class ScenarioPickerHostingController<Content: View>: UIHostingController<Content> {
+/// Shared hosting controller for full-screen modal overlays (scenario picker,
+/// load/save). Keeps the background transparent and defers safe-area handling
+/// to the hosted SwiftUI view.
+private final class ModalHostingController<Content: View>: UIHostingController<Content> {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
@@ -81,13 +84,12 @@ final class ParkChromeSession: NSObject {
     private var statusHost: ParkChromeHostingController<StatusMenu>?
     private var pauseHost: ParkChromeHostingController<PauseSpeedMenu>?
     private var dockHost: ParkChromeHostingController<ParkChromeDockView>?
-    private var scenarioHost: ScenarioPickerHostingController<ScenarioPickerRootView>?
-    private var loadSaveHost: ScenarioPickerHostingController<LoadSaveRootView>?
+    private var scenarioHost: ModalHostingController<ScenarioPickerRootView>?
+    private var loadSaveHost: ModalHostingController<LoadSaveRootView>?
     private var container: ParkChromePassThroughView?
     private var topConstraints: [NSLayoutConstraint] = []
     private var bottomConstraints: [NSLayoutConstraint] = []
-    private var scenarioConstraints: [NSLayoutConstraint] = []
-    private var loadSaveConstraints: [NSLayoutConstraint] = []
+    private var modalConstraints: [NSLayoutConstraint] = []
 
     init(onAction: @escaping @convention(c) (Int32, Int32) -> Void) {
         self.onAction = onAction
@@ -141,8 +143,8 @@ final class ParkChromeSession: NSObject {
         let pauseHost = ParkChromeHostingController(rootView: PauseSpeedMenu(model: model))
         let cameraHost = ParkChromeHostingController(rootView: BuildCluster(model: model))
         let dockHost = ParkChromeHostingController(rootView: ParkChromeDockView(model: model))
-        let scenarioHost = ScenarioPickerHostingController(rootView: ScenarioPickerRootView(model: scenarioModel))
-        let loadSaveHost = ScenarioPickerHostingController(rootView: LoadSaveRootView(model: loadSaveModel))
+        let scenarioHost = ModalHostingController(rootView: ScenarioPickerRootView(model: scenarioModel))
+        let loadSaveHost = ModalHostingController(rootView: LoadSaveRootView(model: loadSaveModel))
         install(statusHost, in: container, parent: parentController)
         install(pauseHost, in: container, parent: parentController)
         install(cameraHost, in: container, parent: parentController)
@@ -150,21 +152,10 @@ final class ParkChromeSession: NSObject {
         install(scenarioHost, in: container, parent: parentController)
         install(loadSaveHost, in: container, parent: parentController)
 
-        scenarioConstraints = [
-            scenarioHost.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            scenarioHost.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            scenarioHost.view.topAnchor.constraint(equalTo: container.topAnchor),
-            scenarioHost.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-        ]
-        NSLayoutConstraint.activate(scenarioConstraints)
-
-        loadSaveConstraints = [
-            loadSaveHost.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            loadSaveHost.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            loadSaveHost.view.topAnchor.constraint(equalTo: container.topAnchor),
-            loadSaveHost.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-        ]
-        NSLayoutConstraint.activate(loadSaveConstraints)
+        modalConstraints =
+            makeFullScreenConstraints(for: scenarioHost.view, in: container)
+            + makeFullScreenConstraints(for: loadSaveHost.view, in: container)
+        NSLayoutConstraint.activate(modalConstraints)
 
         self.statusHost = statusHost
         self.pauseHost = pauseHost
@@ -182,12 +173,10 @@ final class ParkChromeSession: NSObject {
     func detach() {
         NSLayoutConstraint.deactivate(topConstraints)
         NSLayoutConstraint.deactivate(bottomConstraints)
-        NSLayoutConstraint.deactivate(scenarioConstraints)
-        NSLayoutConstraint.deactivate(loadSaveConstraints)
+        NSLayoutConstraint.deactivate(modalConstraints)
         topConstraints = []
         bottomConstraints = []
-        scenarioConstraints = []
-        loadSaveConstraints = []
+        modalConstraints = []
         detachHost(statusHost)
         detachHost(pauseHost)
         detachHost(cameraHost)
@@ -359,6 +348,17 @@ final class ParkChromeSession: NSObject {
         let visible = model.isParkOpen || scenarioModel.isPresented || loadSaveModel.isPresented
         container?.isHidden = !visible
         container?.isUserInteractionEnabled = visible
+    }
+
+    /// Returns constraints that pin `view` to all four edges of `container`.
+    /// Used by both the scenario picker and load/save overlay.
+    private func makeFullScreenConstraints(for view: UIView, in container: UIView) -> [NSLayoutConstraint] {
+        [
+            view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            view.topAnchor.constraint(equalTo: container.topAnchor),
+            view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ]
     }
 
     private func install(_ host: UIViewController, in container: UIView, parent: UIViewController?) {
