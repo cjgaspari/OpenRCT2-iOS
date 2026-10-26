@@ -1,7 +1,7 @@
 # OpenRCT2 Touch development status
 
-- **Last updated:** October 25, 2026
-- **Working branch:** `touch/iphone-duo-adaptation` (from `touch/ios27-windowing`)
+- **Last updated:** October 26, 2026
+- **Working branch:** `ipad` (`touch/iphone-duo-adaptation` merged at `96106a6307`)
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
 - **Live slice:** park-only SwiftUI Liquid Glass chrome on a fluidly resizable, rotatable canvas (status on the leading top edge, pause on the trailing top edge, View/rotate on the leading thumb, trailing Build). Standard status/Home UI is restored and system edge gestures take precedence. Portrait stacks View over rotate; compact-height landscape lays them out horizontally. Goal 6/7 end-to-end device proofs remain.
 - **Accepted checkpoint:** physical Files import, persistence, and scenario load on July 16
@@ -43,6 +43,11 @@ end-to-end exit scripts are still pending.
   binary-beta gates in [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md).
 - `./scripts/build-ios-device.sh unsigned` produces an Xcode device build
   without requiring repository-held signing identity data.
+- Build 4 (`0.1.0`) passes the ROM-free generic-device Xcode build, both iOS
+  bundle audits, release metadata validation, repository safety, and the
+  macOS headless proof. The exact source is pushed to `origin/ipad` at
+  `96106a6307`; TestFlight upload remains behind the documented physical-iPad
+  acceptance and App Store Connect credential gates.
 - Build 3 signs, audits, installs, and launches on the physical M2 iPad Pro
   under `com.chrissotraidis.openrct2touch`. Live logs confirm a read-only
   bundle, writable Documents/Library paths, and the first-run Files flow.
