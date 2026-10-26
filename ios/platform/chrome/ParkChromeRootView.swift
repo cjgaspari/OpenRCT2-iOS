@@ -36,10 +36,24 @@ struct ParkChromeDockView: View {
     @Bindable var model: ParkChromeModel
 
     var body: some View {
-        ViewRotateCluster(model: model)
-            .sheet(isPresented: $model.isShowingViewTools) {
-                ViewToolsSheet(model: model)
-            }
+        ViewRotateCluster(model: model, forceVertical: model.isDuoRightChromeActive)
+    }
+}
+
+/// Keep sheet presentation on a small, always-present chrome host so moving
+/// controls between the standard layout and the app-owned Duo rail doesn't
+/// replace the presenter above SDL's Metal surface.
+struct ParkChromeStatusView: View {
+    @Bindable var model: ParkChromeModel
+
+    var body: some View {
+        StatusMenu(model: model)
+        .sheet(isPresented: $model.isShowingViewTools) {
+            ViewToolsSheet(model: model)
+        }
+        .sheet(isPresented: $model.isShowingBuildTools) {
+            BuildToolsSheet(model: model)
+        }
     }
 }
 
@@ -95,7 +109,27 @@ struct ViewToolsSheet: View {
                         }
                     }
                     .listRowBackground(Color.clear)
+                    .disabled(model.usesDuoRightChrome)
                     .accessibilityIdentifier("openrct2.touch.swapBottomControls")
+
+                    Toggle(isOn: $model.usesDuoRightChrome) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Duo right-edge chrome")
+                                    .font(.body.weight(.semibold))
+                                Text("Status along bottom; controls in the Duo right-side safe area")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            ParkChromeSymbol(
+                                systemImage: "sidebar.right",
+                                primary: .blue,
+                                secondary: .cyan)
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                    .accessibilityIdentifier("openrct2.touch.duoRightChrome")
 
                     ForEach(ParkMenuCatalog.viewToggles) { item in
                         Toggle(isOn: model.toggleBinding(for: item.action)) {

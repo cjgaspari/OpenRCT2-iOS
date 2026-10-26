@@ -7,7 +7,55 @@
 import SwiftUI
 import UIKit
 
+private enum ParkChromeLayout {
+    static let edgeInset: CGFloat = 12
+    static let controlSpacing: CGFloat = 12
+}
+
 final class ParkChromePassThroughView: UIView {
+    var onLayoutEnvironmentChanged: (() -> Void)?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        if #available(iOS 27.1, *) {
+            registerForTraitChanges(
+                UITraitCollection.systemTraitsAffectingVerticalBarEdge
+            ) { (view: ParkChromePassThroughView, _) in
+                view.onLayoutEnvironmentChanged?()
+            }
+        }
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
+        onLayoutEnvironmentChanged?()
+    }
+
+    @available(iOS 27.1, *)
+    var trailingControlRailTop: CGFloat {
+        let railLeading = bounds.maxX - safeAreaInsets.right
+        var occupiedBottom = safeAreaInsets.top
+
+        if let window,
+           let statusBarFrame = window.windowScene?.statusBarManager?.statusBarFrame {
+            let localStatusBarFrame = convert(statusBarFrame, from: window)
+            if localStatusBarFrame.maxX > railLeading {
+                occupiedBottom = max(occupiedBottom, localStatusBarFrame.maxY)
+            }
+        }
+
+        for region in reservedRegions(kind: .occlusion, options: [])
+        where region.isActive && region.frame.maxX > railLeading {
+            occupiedBottom = max(occupiedBottom, region.frame.maxY)
+        }
+
+        return occupiedBottom + ParkChromeLayout.controlSpacing
+    }
+
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard let hit = super.hitTest(point, with: event), hit !== self else {
             return nil
@@ -78,7 +126,7 @@ final class ParkChromeSession: NSObject {
     let loadSaveModel = LoadSaveModel()
     private let onAction: @convention(c) (Int32, Int32) -> Void
     private var cameraHost: ParkChromeHostingController<BuildCluster>?
-    private var statusHost: ParkChromeHostingController<StatusMenu>?
+    private var statusHost: ParkChromeHostingController<ParkChromeStatusView>?
     private var pauseHost: ParkChromeHostingController<PauseSpeedMenu>?
     private var dockHost: ParkChromeHostingController<ParkChromeDockView>?
     private var scenarioHost: ScenarioPickerHostingController<ScenarioPickerRootView>?
@@ -98,9 +146,11 @@ final class ParkChromeSession: NSObject {
         scenarioModel.onAction = { [weak self] code, extra in
             self?.onAction(code, extra)
         }
-        model.onSwapBottomControlsChanged = { [weak self] in
+        model.onChromeLayoutChanged = { [weak self] in
             DispatchQueue.main.async {
+                self?.applyTopLayout()
                 self?.applyBottomLayout()
+                self?.applyVisibility()
             }
         }
         scenarioModel.onPresentationChanged = { [weak self] in
@@ -137,7 +187,7 @@ final class ParkChromeSession: NSObject {
         ])
 
         let parentController = parent.owningViewController
-        let statusHost = ParkChromeHostingController(rootView: StatusMenu(model: model))
+        let statusHost = ParkChromeHostingController(rootView: ParkChromeStatusView(model: model))
         let pauseHost = ParkChromeHostingController(rootView: PauseSpeedMenu(model: model))
         let cameraHost = ParkChromeHostingController(rootView: BuildCluster(model: model))
         let dockHost = ParkChromeHostingController(rootView: ParkChromeDockView(model: model))
@@ -173,6 +223,11 @@ final class ParkChromeSession: NSObject {
         self.scenarioHost = scenarioHost
         self.loadSaveHost = loadSaveHost
         self.container = container
+        container.onLayoutEnvironmentChanged = { [weak self] in
+            self?.applyTopLayout()
+            self?.applyBottomLayout()
+            self?.applyVisibility()
+        }
         applyTopLayout()
         applyBottomLayout()
         applyVisibility()
@@ -295,53 +350,146 @@ final class ParkChromeSession: NSObject {
     }
 
     private func applyTopLayout() {
-        guard let status = statusHost?.view, let pause = pauseHost?.view, let container else {
+        guard let status = statusHost?.view,
+              let pause = pauseHost?.view,
+              let container else {
             return
         }
 
         NSLayoutConstraint.deactivate(topConstraints)
-        // The horizontally corner-adapted margins avoid the iPad window
-        // controls while preserving the usual system spacing on iPhone.
-        let content = container.layoutGuide(for: .margins(cornerAdaptation: .horizontal))
+        // Use the scene-local safe area for asymmetric vertical bars and add
+        // horizontal corner adaptation for rounded displays. The design inset
+        // keeps Liquid Glass's visual bloom away from the physical edge.
+        let content = container.layoutGuide(for: .safeArea(cornerAdaptation: .horizontal))
         status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         pause.setContentCompressionResistancePriority(.required, for: .horizontal)
         pause.setContentHuggingPriority(.required, for: .horizontal)
-        topConstraints = [
-            status.topAnchor.constraint(equalTo: content.topAnchor, constant: 8),
-            status.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            pause.topAnchor.constraint(equalTo: content.topAnchor, constant: 8),
-            pause.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            pause.centerYAnchor.constraint(equalTo: status.centerYAnchor),
-            status.trailingAnchor.constraint(lessThanOrEqualTo: pause.leadingAnchor, constant: -12),
-        ]
+        let duoRightChromeActive = usesDuoRightChrome
+        if model.isDuoRightChromeActive != duoRightChromeActive {
+            model.isDuoRightChromeActive = duoRightChromeActive
+        }
+        if duoRightChromeActive {
+            topConstraints = [
+                status.leadingAnchor.constraint(
+                    equalTo: content.leadingAnchor,
+                    constant: ParkChromeLayout.edgeInset),
+                status.bottomAnchor.constraint(
+                    equalTo: content.bottomAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+                status.trailingAnchor.constraint(
+                    lessThanOrEqualTo: content.trailingAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+            ]
+        } else {
+            topConstraints = [
+                status.topAnchor.constraint(
+                    equalTo: content.topAnchor,
+                    constant: ParkChromeLayout.edgeInset),
+                status.leadingAnchor.constraint(
+                    equalTo: content.leadingAnchor,
+                    constant: ParkChromeLayout.edgeInset),
+                pause.topAnchor.constraint(
+                    equalTo: content.topAnchor,
+                    constant: ParkChromeLayout.edgeInset),
+                pause.trailingAnchor.constraint(
+                    equalTo: content.trailingAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+                pause.centerYAnchor.constraint(equalTo: status.centerYAnchor),
+                status.trailingAnchor.constraint(
+                    lessThanOrEqualTo: pause.leadingAnchor,
+                    constant: -ParkChromeLayout.controlSpacing),
+            ]
+        }
         NSLayoutConstraint.activate(topConstraints)
     }
 
     private func applyBottomLayout() {
-        guard let camera = cameraHost?.view, let dock = dockHost?.view, let container else {
+        guard let pause = pauseHost?.view,
+              let camera = cameraHost?.view,
+              let dock = dockHost?.view,
+              let container else {
             return
         }
 
         NSLayoutConstraint.deactivate(bottomConstraints)
-        let content = container.layoutGuide(for: .margins(cornerAdaptation: .horizontal))
-        if model.swapBottomControls {
+        let content = container.layoutGuide(for: .safeArea(cornerAdaptation: .horizontal))
+        if usesDuoRightChrome {
+            // This is deliberately app-owned chrome. SDL remains the window's
+            // root controller, while the controls occupy the scene's trailing
+            // safe-area strip without changing UIKit containment.
+            let trailingInset = max(container.safeAreaInsets.right, 64)
+            let railCenterOffset = trailingInset / 2
+            let statusReserve: CGFloat
+            if #available(iOS 27.1, *) {
+                statusReserve = container.trailingControlRailTop
+            } else {
+                statusReserve = container.safeAreaInsets.top + ParkChromeLayout.edgeInset
+            }
+            let bottomInset = max(container.safeAreaInsets.bottom, ParkChromeLayout.edgeInset)
             bottomConstraints = [
-                camera.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-                camera.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
-                dock.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-                dock.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
-                camera.trailingAnchor.constraint(lessThanOrEqualTo: dock.leadingAnchor, constant: -12),
+                pause.centerXAnchor.constraint(
+                    equalTo: container.safeAreaLayoutGuide.trailingAnchor,
+                    constant: railCenterOffset),
+                pause.topAnchor.constraint(
+                    equalTo: container.topAnchor,
+                    constant: statusReserve),
+                dock.centerXAnchor.constraint(equalTo: pause.centerXAnchor),
+                dock.bottomAnchor.constraint(
+                    equalTo: container.bottomAnchor,
+                    constant: -bottomInset),
+                camera.centerXAnchor.constraint(equalTo: pause.centerXAnchor),
+                camera.bottomAnchor.constraint(
+                    equalTo: dock.topAnchor,
+                    constant: -24),
+            ]
+        } else if model.swapBottomControls {
+            bottomConstraints = [
+                camera.leadingAnchor.constraint(
+                    equalTo: content.leadingAnchor,
+                    constant: ParkChromeLayout.edgeInset),
+                camera.bottomAnchor.constraint(
+                    equalTo: content.bottomAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+                dock.trailingAnchor.constraint(
+                    equalTo: content.trailingAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+                dock.bottomAnchor.constraint(
+                    equalTo: content.bottomAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+                camera.trailingAnchor.constraint(
+                    lessThanOrEqualTo: dock.leadingAnchor,
+                    constant: -ParkChromeLayout.controlSpacing),
             ]
         } else {
             bottomConstraints = [
-                dock.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-                dock.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
-                camera.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-                camera.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -8),
-                dock.trailingAnchor.constraint(lessThanOrEqualTo: camera.leadingAnchor, constant: -12),
+                dock.leadingAnchor.constraint(
+                    equalTo: content.leadingAnchor,
+                    constant: ParkChromeLayout.edgeInset),
+                dock.bottomAnchor.constraint(
+                    equalTo: content.bottomAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+                camera.trailingAnchor.constraint(
+                    equalTo: content.trailingAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+                camera.bottomAnchor.constraint(
+                    equalTo: content.bottomAnchor,
+                    constant: -ParkChromeLayout.edgeInset),
+                dock.trailingAnchor.constraint(
+                    lessThanOrEqualTo: camera.leadingAnchor,
+                    constant: -ParkChromeLayout.controlSpacing),
             ]
         }
         NSLayoutConstraint.activate(bottomConstraints)
+    }
+
+    private var usesDuoRightChrome: Bool {
+        guard model.usesDuoRightChrome else {
+            return false
+        }
+        if #available(iOS 27.1, *) {
+            return container?.traitCollection.verticalBarEdge == .trailing
+        }
+        return false
     }
 
     private func applyVisibility() {
@@ -350,12 +498,8 @@ final class ParkChromeSession: NSObject {
         pauseHost?.view.isHidden = parkHidden
         cameraHost?.view.isHidden = parkHidden
         dockHost?.view.isHidden = parkHidden
-        // Hide the full-screen anchor when the picker is closed so it never
-        // overlays and blocks the park chrome. present/dismiss both call
-        // applyVisibility() synchronously, so the sheet still animates.
         scenarioHost?.view.isHidden = !scenarioModel.isPresented
         loadSaveHost?.view.isHidden = !loadSaveModel.isPresented
-
         let visible = model.isParkOpen || scenarioModel.isPresented || loadSaveModel.isPresented
         container?.isHidden = !visible
         container?.isUserInteractionEnabled = visible

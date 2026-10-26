@@ -21,20 +21,29 @@ final class ParkChromeModel {
     var swapBottomControls: Bool {
         didSet {
             UserDefaults.standard.set(swapBottomControls, forKey: Self.swapBottomControlsKey)
-            onSwapBottomControlsChanged?()
+            onChromeLayoutChanged?()
         }
     }
+    var usesDuoRightChrome: Bool {
+        didSet {
+            UserDefaults.standard.set(usesDuoRightChrome, forKey: Self.usesDuoRightChromeKey)
+            onChromeLayoutChanged?()
+        }
+    }
+    var isDuoRightChromeActive = false
 
     @ObservationIgnored
     var onAction: ((Int32, Int32) -> Void)?
 
     @ObservationIgnored
-    var onSwapBottomControlsChanged: (() -> Void)?
+    var onChromeLayoutChanged: (() -> Void)?
 
     private static let swapBottomControlsKey = "openrct2.touch.swapBottomControls"
+    private static let usesDuoRightChromeKey = "openrct2.touch.usesDuoRightChrome"
 
     init() {
         swapBottomControls = UserDefaults.standard.bool(forKey: Self.swapBottomControlsKey)
+        usesDuoRightChrome = UserDefaults.standard.bool(forKey: Self.usesDuoRightChromeKey)
     }
 
     var speedLabel: String {

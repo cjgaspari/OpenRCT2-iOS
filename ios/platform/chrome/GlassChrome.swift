@@ -196,6 +196,7 @@ struct TopChromeBar: View {
 /// lays them out horizontally so both stay reachable on a short screen.
 struct ViewRotateCluster: View {
     var model: ParkChromeModel
+    var forceVertical = false
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Namespace private var unionNamespace
 
@@ -223,7 +224,7 @@ struct ViewRotateCluster: View {
     }
 
     private var clusterLayout: AnyLayout {
-        verticalSizeClass == .compact
+        !forceVertical && verticalSizeClass == .compact
             ? AnyLayout(HStackLayout(spacing: 8))
             : AnyLayout(VStackLayout(spacing: 8))
     }
@@ -262,15 +263,12 @@ struct BuildCluster: View {
                 .imageScale(.medium)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
-                .glassEffect(.regular.interactive())
+                .glassEffect(.regular.tint(.orange).interactive())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Build")
         .accessibilityHint("Opens ride, scenery, paths, and terrain tools")
         .accessibilityIdentifier("openrct2.touch.buildSheet")
-        .sheet(isPresented: $model.isShowingBuildTools) {
-            BuildToolsSheet(model: model)
-        }
     }
 }
 

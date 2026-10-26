@@ -34,6 +34,22 @@ device itself still presents one full-device app at a time. Apple's iOS 27
 resizable-iPhone work applies to iPhone Mirroring on Mac and to iPhone apps
 running on iPad; the universal build uses native iPad windowing on iPad.
 
+## iPhone Duo contract
+
+iPhone Duo uses this same adaptive scene; it does not select a separate view
+hierarchy or test a device model. Layout follows the current container, size
+classes, the vertical-bar-edge trait, and each edge of the scene-local safe
+area. By default, the native park controls stay on corner-adapted safe-area
+guides. The optional Duo right-edge feature places app-owned controls in the
+trailing bar strip only when the system reports a trailing vertical bar. It
+uses active UIKit reserved regions to stay below the camera and system status
+area. The full-bleed SDL canvas may continue behind noninteractive regions.
+
+Fold or hinge APIs are reserved for a future interaction that benefits from
+the physical hinge itself. They must not decide ordinary layout, navigation,
+or column count. Intermediate widths and side-by-side multitasking remain part
+of the normal adaptive-window validation matrix.
+
 ## Why this is Apple's recommended path
 
 Apple deprecated `UIRequiresFullScreen` in iPadOS 26. With the iOS 27 SDK, the
@@ -87,6 +103,7 @@ physical:
 | iPad Simulator / Xcode 27 Device Hub | Drag repeatedly through narrow, wide, tall, half, third, quadrant, and full-screen sizes. The park remains live and chrome remains reachable without overlapping window controls or the resize affordance. |
 | Physical iPadOS 27 device | Repeat fluid resize in Windowed Apps mode, rotate, enter/exit full screen, and verify the first upward Home swipe leaves the app normally. |
 | Physical iPhone on iOS 27 | Verify time/cellular status UI, visible Home indicator, one-swipe Home behavior, rotation, and no accidental gesture capture near screen edges. |
+| Physical iPhone Duo | Repeat the iPhone checks on outer and inner presentations; verify asymmetric safe areas and intermediate widths keep all native chrome reachable without crossing a reserved fold region. |
 | iPhone Mirroring on macOS 27 | Resize the mirrored app and verify that live canvas and native chrome track every intermediate size. |
 
 If interactive resizing exposes frame-time spikes, profile before changing the
