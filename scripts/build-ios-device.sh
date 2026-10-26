@@ -96,7 +96,7 @@ cmake -S "$ROOT" -B "$BUILD_ROOT" -G Xcode \
     -DOPENRCT2_BUNDLE_LOCAL_RCT2="${OPENRCT2_BUNDLE_LOCAL_RCT2:-OFF}"
 
 DESTINATION="generic/platform=iOS"
-if [[ -n "$DEVICE" ]]; then
+if [[ "$MODE" == "signed" && -n "$DEVICE" ]]; then
     DESTINATION="id=$DEVICE"
 fi
 

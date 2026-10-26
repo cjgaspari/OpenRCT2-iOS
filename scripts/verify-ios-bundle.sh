@@ -25,6 +25,17 @@ if [[ "$(plutil -extract CFBundleIdentifier raw "$APP/Info.plist")" != "$OPENRCT
     echo "Unexpected iOS bundle identifier." >&2
     exit 1
 fi
+marketing_version="$(plutil -extract CFBundleShortVersionString raw "$APP/Info.plist")"
+build_number="$(plutil -extract CFBundleVersion raw "$APP/Info.plist")"
+if [[ ! "$marketing_version" =~ ^[0-9]+(\.[0-9]+){0,2}$
+    || ! "$build_number" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+    echo "App bundle contains unresolved or invalid release version metadata." >&2
+    exit 1
+fi
+if [[ "$(plutil -extract ITSAppUsesNonExemptEncryption raw "$APP/Info.plist")" != "false" ]]; then
+    echo "App bundle does not declare its export-compliance encryption status." >&2
+    exit 1
+fi
 if [[ "$(plutil -extract 'UIApplicationSceneManifest.UIApplicationSupportsMultipleScenes' raw "$APP/Info.plist")" != "false"
     || "$(plutil -extract 'UIApplicationSceneManifest.UISceneConfigurations.UIWindowSceneSessionRoleApplication.0.UISceneDelegateClassName' raw "$APP/Info.plist")" != "SDLUIKitSceneDelegate" ]]; then
     echo "App bundle does not declare the required single-window UIScene lifecycle." >&2

@@ -28,6 +28,8 @@ endif ()
 option(OPENRCT2_IOS_CODE_SIGNING "Allow Xcode to sign the iPadOS app" OFF)
 set(OPENRCT2_IOS_DEVELOPMENT_TEAM "" CACHE STRING "Apple development team used only for a signed iPadOS build")
 option(OPENRCT2_BUNDLE_LOCAL_RCT2 "Copy ignored ref/rct2 into the local .app before codesign (personal installs only)" OFF)
+set(OPENRCT2_TOUCH_MARKETING_VERSION "0.1.0")
+set(OPENRCT2_TOUCH_BUILD_NUMBER "4")
 
 if (OPENRCT2_IOS_CODE_SIGNING)
     if (NOT CMAKE_GENERATOR STREQUAL "Xcode")
@@ -82,6 +84,8 @@ set_target_properties(openrct2-touch PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic
     XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${OPENRCT2_IOS_DEVELOPMENT_TEAM}"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.chrissotraidis.openrct2touch"
+    XCODE_ATTRIBUTE_MARKETING_VERSION "${OPENRCT2_TOUCH_MARKETING_VERSION}"
+    XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION "${OPENRCT2_TOUCH_BUILD_NUMBER}"
     XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "27.0")
@@ -107,6 +111,12 @@ if (CMAKE_GENERATOR STREQUAL "Xcode")
     add_custom_target(openrct2-touch-stage DEPENDS openrct2-touch)
 else ()
     add_custom_target(openrct2-touch-stage
+        COMMAND /usr/bin/plutil -replace CFBundleShortVersionString
+            -string "${OPENRCT2_TOUCH_MARKETING_VERSION}"
+            "$<TARGET_BUNDLE_DIR:openrct2-touch>/Info.plist"
+        COMMAND /usr/bin/plutil -replace CFBundleVersion
+            -string "${OPENRCT2_TOUCH_BUILD_NUMBER}"
+            "$<TARGET_BUNDLE_DIR:openrct2-touch>/Info.plist"
         COMMAND "${CMAKE_COMMAND}" -E copy_directory
             "${ROOT_DIR}/assets/engine"
             "$<TARGET_BUNDLE_DIR:openrct2-touch>"
