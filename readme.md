@@ -276,7 +276,8 @@ cp scripts/device.env.example runtime/device.env
 Then:
 
 ```sh
-./scripts/play-ios-device.sh           # prefers iPhone Air
+./scripts/play-ios-device.sh           # prefers iPhone Duo
+./scripts/play-ios-device.sh --duo     # requires iPhone Duo
 ./scripts/play-ios-device.sh --ipad    # prefers iPad Pro
 ./scripts/play-ios-device.sh --all     # every connected device
 ```

@@ -2,9 +2,10 @@
 set -euo pipefail
 
 # One-command personal signed install on a connected iPhone or iPad.
-# Prefers CJ's iPhone Air by default; use --ipad for CJ's iPad Pro, or --all for both.
+# Prefers CJ's iPhone Duo by default; use --ipad for CJ's iPad Pro, or --all for every device.
 # Team/UDID come from gitignored runtime/device.env.
-# Copies ignored ref/rct2 into the .app before codesign so Files import is optional.
+# Copies ignored ref/rct2 into this local development .app before codesign so
+# the owner's personal device install can launch without a Files import.
 #
 #   ./scripts/play-ios-device.sh
 #   ./scripts/play-ios-device.sh --ipad
@@ -27,6 +28,10 @@ for argument in "$@"; do
             TARGET=iphone
             CLI_TARGET_EXPLICIT=1
             ;;
+        --duo)
+            TARGET=duo
+            CLI_TARGET_EXPLICIT=1
+            ;;
         --ipad)
             TARGET=ipad
             CLI_TARGET_EXPLICIT=1
@@ -40,18 +45,19 @@ for argument in "$@"; do
             ;;
         -h|--help)
             cat <<'EOF'
-Usage: ./scripts/play-ios-device.sh [--iphone | --ipad | --all] [--console] [--list]
+Usage: ./scripts/play-ios-device.sh [--duo | --iphone | --ipad | --all] [--console] [--list]
 
 Signs, installs, and launches OpenRCT2 Touch on a connected iPhone or iPad.
 
 Device selection:
-  (default)   prefers CJ's iPhone Air, then any iPhone, then any iPad
-  --iphone    prefers CJ's iPhone Air, then any connected iPhone
+  (default)   prefers CJ's iPhone Duo, then iPhone Air, any iPhone, then any iPad
+  --duo       requires a connected iPhone Duo
+  --iphone    prefers CJ's iPhone Duo, then iPhone Air, then any connected iPhone
   --ipad      prefers CJ's iPad Pro, then any connected iPad
   --all       build once, then install and launch on every connected device
   --list      print connected device names and UDIDs
 
-  --iphone, --ipad, and --all override OPENRCT2_DEVICE_UDID in runtime/device.env.
+  --duo, --iphone, --ipad, and --all override OPENRCT2_DEVICE_UDID in runtime/device.env.
   With no CLI target flag, a pinned OPENRCT2_DEVICE_UDID wins over OPENRCT2_DEVICE_TARGET.
 
 First-time setup (once):
@@ -66,11 +72,11 @@ EOF
             ;;
         --*)
             echo "Unknown option: $argument" >&2
-            echo "Usage: $0 [--iphone | --ipad | --all] [--console] [--list]" >&2
+            echo "Usage: $0 [--duo | --iphone | --ipad | --all] [--console] [--list]" >&2
             exit 2
             ;;
         *)
-            echo "Usage: $0 [--iphone | --ipad | --all] [--console] [--list]" >&2
+            echo "Usage: $0 [--duo | --iphone | --ipad | --all] [--console] [--list]" >&2
             exit 2
             ;;
     esac
@@ -101,7 +107,7 @@ read_device_udids() {
 
 device_label() {
     python3 "$SCRIPT_DIR/pick-ios-device.py" --list 2>/dev/null \
-        | awk -v udid="$1" '$2 == udid { print $1; exit }'
+        | awk -F '\t' -v udid="$1" '$2 == udid { print $1; exit }'
 }
 
 if [[ "$CLI_TARGET_EXPLICIT" == "1" ]]; then
@@ -131,7 +137,7 @@ fi
 
 if [[ ! -f "$RCT2_DATA/Data/g1.dat" ]]; then
     echo "Local RCT2 data is missing at $RCT2_DATA/Data/g1.dat" >&2
-    echo "Copy your RCT2 folder to ref/rct2, or omit bundling and import via Files after install." >&2
+    echo "Copy your legally owned RCT2 folder to ref/rct2." >&2
     exit 1
 fi
 

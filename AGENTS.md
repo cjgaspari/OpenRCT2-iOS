@@ -17,7 +17,7 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 
 ## Non-negotiable rules
 
-- Never track, commit, push, archive, or distribute proprietary RCT/RCT2 data. Only `ref/README.md` may be tracked under `ref/`. A local Simulator `.app` under `build/` may copy ignored `ref/rct2` for personal installs; never put that payload in git, an IPA, or an xcarchive.
+- Never track, commit, push, archive, or distribute proprietary RCT/RCT2 data. Only `ref/README.md` may be tracked under `ref/`. A local `.app` under `build/` may copy ignored `ref/rct2` for personal Simulator or locally signed development-device installs; never put that payload in git, an IPA, an xcarchive, TestFlight, or another distributable artifact.
 - Work only on `ipad` or a short-lived branch merged into `ipad`. Never add commits to `develop`, push to `upstream`, or open an upstream PR.
 - Preserve upstream licences, attribution, file headers, `contributors.md`, and history.
 - Make small `[touch] ...` commits only after the applicable verification loop is green.
@@ -30,9 +30,10 @@ Deliver a native iPadOS OpenRCT2 MVP that imports user-owned RCT2 data, loads a 
 Install and launch on a connected iPhone or iPad (`docs/BUILD-AND-RUN.md`):
 
 ```sh
-./scripts/play-ios-device.sh           # prefers CJ’s iPhone Air
-./scripts/play-ios-device.sh --ipad  # prefers CJ’s iPad Pro
-./scripts/play-ios-device.sh --all   # every connected device
+./scripts/play-ios-device.sh          # prefers CJ’s iPhone Duo
+./scripts/play-ios-device.sh --duo   # requires CJ’s iPhone Duo
+./scripts/play-ios-device.sh --ipad   # prefers CJ’s iPad Pro
+./scripts/play-ios-device.sh --all    # every connected device
 ```
 
 Team and UDID live in gitignored `runtime/device.env` (copy `scripts/device.env.example` once). Unlock the device before launch. Pass `--console` only when you need streamed device logs. Do not put team or UDID in git, docs, or commits.

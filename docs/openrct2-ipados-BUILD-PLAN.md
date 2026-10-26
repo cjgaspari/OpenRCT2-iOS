@@ -381,7 +381,7 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 **Files:** `ios/platform/Platform.iOS.mm`, `scripts/stage-assets.sh`, a small import UI in `ios/App`.
 **Tasks:**
 1. Implement `Platform.iOS.mm`: `GetInstallPath()`/`GetAssetPath()` → app bundle; `GetFolderPath(userData/userConfig/userCache)` → sandbox `Documents`/`Library`. Add the iOS branch to `GetOpenRCT2DirectoryName()` semantics as needed.
-2. `stage-assets.sh`: copy `assets/engine` → `App/Resources`; for **personal Simulator installs**, `scripts/bundle-local-rct2.sh` may copy ignored `ref/rct2` into the local `.app` under `build/`. Documents seeding remains available. Never copy RCT2 into git, an IPA, or an xcarchive.
+2. `stage-assets.sh`: copy `assets/engine` → `App/Resources`; for **personal Simulator or locally signed development-device installs**, `scripts/bundle-local-rct2.sh` may copy ignored `ref/rct2` into the local `.app` under `build/`. Documents seeding remains available. Never copy RCT2 into git, an IPA, an xcarchive, TestFlight, or another distributable artifact.
 3. Implement the **real** import path: `UIDocumentPickerViewController` (folder import) + security-scoped bookmarks → copy/reference RCT2 data into the sandbox → write `rct2Path` to `config.ini`. Expose the app's `Documents` in the Files app (`UIFileSharingEnabled` / `LSSupportsOpeningDocumentsInPlace`).
 4. First-run UX: detect missing/invalid RCT2 data (no `Data/g1.dat`) → show import screen.
 **Exit criteria:** with `ref/`-staged data, a real scenario loads on device/sim end-to-end. Separately, the manual Files-app import flow works once, by hand, on a real iPad.
@@ -541,7 +541,7 @@ Keep it short, imperative, and pointing here for depth. Contents:
 - **Sideload (free provisioning):** fine for you; 7-day cert churn; 3 apps at once.
 - **TestFlight:** needs the $99 program; internal testers = no review; external = Beta App Review + 90-day build expiry. Legit as a beta channel; don't use it to dodge review permanently.
 - **EU alternative marketplaces:** possible post-DMA, but still require Apple Notarization.
-- **Assets:** do not git-track or ship RCT2 in an IPA. Users own their data. Personal Simulator installs may copy ignored `ref/rct2` into the local `.app`. App Store distribution is not a target.
+- **Assets:** do not git-track or ship RCT2 in an IPA, xcarchive, TestFlight, or another distributable artifact. Users own their data. Personal Simulator and locally signed development-device installs may copy ignored `ref/rct2` into the local `.app`. App Store distribution is not a target.
 - **Attribution:** keep upstream `licence.txt`, `contributors.md`; add a NOTICE crediting OpenRCT2.
 - **Framing (reputational):** present as a **human-directed AI port / fork**, honestly. The RCT and open-source communities are sensitive to AI-generated code dumped upstream (the GZDoom episode). Keep it a fork; don't spam upstream with unrequested PRs.
 

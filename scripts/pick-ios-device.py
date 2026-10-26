@@ -24,6 +24,10 @@ class Device:
     def is_ipad(self) -> bool:
         return "iPad" in self.name
 
+    @property
+    def is_duo(self) -> bool:
+        return "iPhone Duo" in self.name
+
 
 def load_devices(json_path: str | None = None) -> list[Device]:
     if json_path:
@@ -63,10 +67,12 @@ def transport_rank(transport: str) -> int:
 
 def name_rank(device: Device, target: str) -> int:
     if target == "iphone":
-        if "iPhone Air" in device.name:
+        if device.is_duo:
             return 0
-        if device.is_iphone:
+        if "iPhone Air" in device.name:
             return 1
+        if device.is_iphone:
+            return 2
         if device.is_ipad:
             return 10
         return 5
@@ -78,19 +84,23 @@ def name_rank(device: Device, target: str) -> int:
         if device.is_iphone:
             return 10
         return 5
-    # auto: prefer iPhone Air, then other iPhones, then iPads.
-    if "iPhone Air" in device.name:
+    # auto: prefer iPhone Duo, then iPhone Air, other iPhones, and iPads.
+    if device.is_duo:
         return 0
-    if device.is_iphone:
+    if "iPhone Air" in device.name:
         return 1
-    if device.is_ipad:
+    if device.is_iphone:
         return 2
-    return 3
+    if device.is_ipad:
+        return 3
+    return 4
 
 
 def filter_devices(devices: list[Device], target: str) -> list[Device]:
     if target == "all":
         return devices
+    if target == "duo":
+        return [device for device in devices if device.is_duo]
     if target == "iphone":
         filtered = [device for device in devices if device.is_iphone]
         return filtered or devices
@@ -106,16 +116,18 @@ def pick_devices(devices: list[Device], target: str) -> list[Device]:
         return sorted(
             candidates,
             key=lambda device: (
-                transport_rank(device.transport),
                 name_rank(device, "auto"),
+                transport_rank(device.transport),
                 device.name.lower(),
             ),
         )
+    if not candidates:
+        return []
     best = min(
         candidates,
         key=lambda device: (
-            transport_rank(device.transport),
             name_rank(device, target if target != "auto" else "auto"),
+            transport_rank(device.transport),
             device.name.lower(),
         ),
     )
@@ -126,7 +138,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--target",
-        choices=("auto", "iphone", "ipad", "all"),
+        choices=("auto", "duo", "iphone", "ipad", "all"),
         default="auto",
         help="Which connected device(s) to return (default: auto).",
     )

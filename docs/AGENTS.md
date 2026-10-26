@@ -15,7 +15,7 @@ Port **OpenRCT2** to run **natively on iPhone and iPad** with finger and hardwar
 
 ## Golden rules (NON-NEGOTIABLE)
 
-1. **Assets are sacred.** Never commit, push, or put the `ref/` folder or any RollerCoaster Tycoon game data into git, an IPA, or an xcarchive. `ref/` is git-ignored; it is the user's own copy. A local Simulator `.app` under `build/` may include that ignored payload for personal installs. If a change would put game assets into a tracked file, a commit, or a distributable archive → **STOP, that is a hard error.**
+1. **Assets are sacred.** Never commit, push, or put the `ref/` folder or any RollerCoaster Tycoon game data into git, an IPA, an xcarchive, TestFlight, or another distributable artifact. `ref/` is git-ignored; it is the user's own copy. A local `.app` under `build/` may include that ignored payload for personal Simulator or locally signed development-device installs. If a change would put game assets into a tracked file, a commit, or a distributable archive → **STOP, that is a hard error.**
 2. **Branch discipline.** Do all work on the **`ipad`** branch (or short-lived phase branches merged into it). **Never commit to `develop`** — it is the read-only mirror of upstream. **Never push to `upstream` / `OpenRCT2/OpenRCT2`. Never open a pull request against upstream.** This is a standalone fork.
 3. **Preserve provenance.** Keep every upstream `licence.txt`, per-file copyright header, and `contributors.md` intact. Never strip or rewrite them. Never rewrite `develop` history; no force-pushes to shared branches. Keep the "forked from" link.
 4. **Commit hygiene.** Small, reversible commits, each with a green build. Prefix port commits `[touch] …` (e.g. `[touch] Phase 3: add UiContext.iOS.mm`). State what changed. **Never leave `ipad` red.**
@@ -53,7 +53,8 @@ UI rendering, asset-import plumbing, input wiring. Use `iphone` or `ipad` instea
 
 **Outer loop — physical iPhone or iPad (needs the human for setup + feel):**
 ```bash
-./scripts/play-ios-device.sh           # signed install + launch; prefers iPhone Air
+./scripts/play-ios-device.sh           # signed install + launch; prefers iPhone Duo
+./scripts/play-ios-device.sh --duo     # require a connected iPhone Duo
 ./scripts/play-ios-device.sh --ipad    # prefers iPad Pro
 ./scripts/play-ios-device.sh --all     # every connected device
 ./scripts/collect-crash.sh             # pulls matching crash reports via CoreDevice

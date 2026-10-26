@@ -66,7 +66,7 @@ Each iteration reports: current goal, slice, changed files, proof commands and o
 
 - Bundle resources are read-only; Documents/Library paths are writable and survive relaunch.
 - The Files picker validates `Data/g1.dat`, copies or coordinates access safely, reports progress/errors, and persists the selected path.
-- Proprietary data is never git-tracked or copied into `.ipa`, `.xcarchive`, or another distributable artifact. A local Simulator `.app` under `build/` may include ignored `ref/rct2` for personal installs; Documents seeding remains valid.
+- Proprietary data is never git-tracked or copied into `.ipa`, `.xcarchive`, TestFlight, or another distributable artifact. A local `.app` under `build/` may include ignored `ref/rct2` for personal Simulator or locally signed development-device installs; Documents seeding remains valid.
 - A scenario loads through both a local developer flow and one manual Files import on a physical iPad.
 
 ### Goal 6 — Pointer, keyboard, and mouse play
@@ -119,4 +119,4 @@ Stop and ask for the human only for:
 - The root CMake build currently creates `libopenrct2` plus an `openrct2` UI executable. Goal 2 must establish an iOS-linkable UI target or an equivalent source target.
 - Existing Apple guards and framework links mean macOS (`Cocoa`, `CoreServices`) and iOS (`UIKit`, mobile-safe APIs) must be separated explicitly.
 - `Ui.cpp` exposes `SDL_main` only for Android today; the iOS entry-point contract must be proven rather than assumed.
-- Proprietary data may be placed in an installed app sandbox or a local Simulator `.app` under `build/` for personal testing. Never stage it into git, an IPA, or an xcarchive.
+- Proprietary data may be placed in an installed app sandbox or a local `.app` under `build/` for personal Simulator or locally signed development-device testing. Never stage it into git, an IPA, an xcarchive, TestFlight, or another distributable artifact.

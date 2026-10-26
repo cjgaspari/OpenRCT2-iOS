@@ -35,20 +35,25 @@ From the repo root:
 That one command:
 
 1. Builds a signed iOS app.
-2. Copies your local `ref/rct2` into the app bundle.
+2. Copies your local `ref/rct2` into this personal development app bundle.
 3. Installs on a connected device.
 4. Launches OpenRCT2 Touch.
 
-By default it prefers **CJ's iPhone Air**. Use a flag when you want a different target:
+By default it prefers **CJ's iPhone Duo**. Use a flag when you want a different target:
 
 | Command | What it does |
 | --- | --- |
-| `./scripts/play-ios-device.sh` | iPhone Air first, then any iPhone, then any iPad |
-| `./scripts/play-ios-device.sh --iphone` | iPhone only (Air preferred) |
+| `./scripts/play-ios-device.sh` | iPhone Duo first, then iPhone Air, any iPhone, then any iPad |
+| `./scripts/play-ios-device.sh --duo` | Require a connected iPhone Duo; do not fall back |
+| `./scripts/play-ios-device.sh --iphone` | iPhone only (Duo, then Air, preferred) |
 | `./scripts/play-ios-device.sh --ipad` | iPad only (iPad Pro preferred) |
 | `./scripts/play-ios-device.sh --all` | Build once, install on every connected device |
 | `./scripts/play-ios-device.sh --list` | Show connected device names and UDIDs |
 | `./scripts/play-ios-device.sh --console` | Stream launch logs until the app exits |
+
+For a one-command Duo-only shortcut, run `./scripts/play-ios-duo.sh`. It requires
+CJ's iPhone Duo and never falls back to another connected iPhone. Pass
+`--console` when you also want streamed device logs.
 
 Pin a specific device in `runtime/device.env`:
 
@@ -56,7 +61,7 @@ Pin a specific device in `runtime/device.env`:
 OPENRCT2_DEVICE_UDID=00008140-...
 ```
 
-That pin is used when you run `./scripts/play-ios-device.sh` with no target flag. Passing `--iphone`, `--ipad`, or `--all` overrides the pin for that run.
+That pin is used when you run `./scripts/play-ios-device.sh` with no target flag. Passing `--duo`, `--iphone`, `--ipad`, or `--all` overrides the pin for that run.
 
 Or pick by family without a UDID:
 
@@ -104,6 +109,6 @@ OpenRCT2 is a large C++ CMake project (hundreds of source files, vcpkg dependenc
 - Duplicate dependency wiring that already lives in CMake and `vendor/`.
 - Make it easy to accidentally ship proprietary RCT2 data or personal signing settings in git.
 
-The scripts wrap the generated project so every run does the same safe steps: configure CMake, sign with your local team, bundle RCT2 only into the local `.app`, audit the bundle, then install with `devicectl`.
+The scripts wrap the generated project so every run does the same safe steps: configure CMake, copy your ignored local data into the personal development app, sign with your local team, audit the bundle, then install with `devicectl`.
 
 You *can* open the generated project in Xcode for debugging, but **Run** from Xcode alone will not copy `ref/rct2`, run bundle safety checks, or pick your connected device the same way every time. `./scripts/play-ios-device.sh` is the supported path.

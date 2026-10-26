@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Copy user-owned RCT2 data into a local .app for personal Simulator installs.
-# This does not track, commit, or package an IPA. Signed device builds must not
-# be modified after codesign.
+# Copy user-owned RCT2 data into a local .app for personal Simulator or locally
+# signed development-device installs. This never targets an IPA or xcarchive;
+# device copying happens before codesign.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/env.sh"
@@ -72,6 +72,6 @@ if [[ ! -f "$DESTINATION/Data/g1.dat" ]]; then
     exit 1
 fi
 
-echo "Copied local RCT2 data into the Simulator app for personal use only."
+echo "Copied local RCT2 data into the local development app for personal use only."
 echo "Destination: $DESTINATION"
 du -sh "$DESTINATION"

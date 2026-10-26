@@ -1,7 +1,7 @@
 # OpenRCT2 Touch development status
 
-- **Last updated:** August 30, 2026
-- **Working branch:** `touch/iphone-vertical`
+- **Last updated:** October 25, 2026
+- **Working branch:** `touch/iphone-duo-adaptation` (from `touch/ios27-windowing`)
 - **Current goal:** [Goal 6 — Pointer, keyboard, and mouse play](../GOAL-LOOP.md#goal-6--pointer-keyboard-and-mouse-play)
 - **Live slice:** park-only SwiftUI Liquid Glass chrome on a fluidly resizable, rotatable canvas (status on the leading top edge, pause on the trailing top edge, View/rotate on the leading thumb, trailing Build). Standard status/Home UI is restored and system edge gestures take precedence. Portrait stacks View over rotate; compact-height landscape lays them out horizontally. Goal 6/7 end-to-end device proofs remain.
 - **Accepted checkpoint:** physical Files import, persistence, and scenario load on July 16
@@ -73,6 +73,12 @@ end-to-end exit scripts are still pending.
   horizontally corner-adapted margins. See
   [`IOS-27-WINDOWING.md`](IOS-27-WINDOWING.md) for the Apple-source decision
   record and validation matrix.
+- October 25 iPhone Duo checkpoint: `./scripts/play-ios-device.sh --duo`
+  selected the Duo without falling back, then completed the signed Xcode 27.2
+  build, repository and bundle audits, install, and CoreDevice launch. The
+  remaining Duo work is the same human interaction and layout-feel evidence as
+  the other physical-device targets; no device-model-specific layout branch
+  was introduced.
 - The attached Magic Keyboard and trackpad retain their existing behavior.
   Finger controls support placement, long press, responsive inverted
   two-finger panning, and a more deliberate pinch threshold. The app-owned
@@ -175,8 +181,9 @@ Files import, forced relaunch persistence check, and scenario load also passed.
 - Record the full Goal 7 coaster build and scenery placement using only fingers,
   including text entry. Revisit feel only if that longer flow exposes a gap.
 - Confirm landscape chrome reachability and canvas feel on physical iPhone and
-  iPad. A signed iPhone Air install/launch succeeded; landscape feel is still
-  a human gate. iPad hardware was not used in this slice.
+  iPad. Signed iPhone Air and iPhone Duo install/launch passes succeeded;
+  landscape and Duo inner/outer presentation feel remain human gates. iPad
+  hardware was not used in this slice.
 - On iPadOS 27, drag the Windowed Apps resize handle through narrow, wide, tall,
   half, third, quadrant, and full-screen sizes; confirm live canvas updates and
   reachable chrome without window-control or resize-affordance overlap.
