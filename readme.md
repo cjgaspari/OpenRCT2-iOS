@@ -62,7 +62,7 @@ and merge the result into `ipad`; do not develop Touch changes on the mirror.
 | --- | :---: | --- |
 | Native iOS runtime | ✅ | Signed ARM64 iPadOS app with SDL Metal presentation; universal portrait/landscape canvas, fluid system resizing, and standard status/Home UI are the live contract |
 | User data and persistence | ✅ | User-owned RCT2 data in the app sandbox survives build replacement and relaunch; scenarios load on device |
-| Files folder import | ✅ | Standard RCT2 data imports through Files on a physical iPad, persists after relaunch, and loads scenarios; RCT Classic is also validated in Simulator |
+| ZIP and folder import | ✅ | The first-run Liquid Glass panel accepts a dropped ZIP or a ZIP/folder chosen from Files; standard RCT2 data persists after relaunch and loads scenarios, and RCT Classic is also supported |
 | Keyboard and trackpad | ✅ | Pointer controls, shortcuts, text entry, scrolling, and tuned viewport zoom work on device |
 | Finger controls | ✅ | Placement, path painting/removal, pan, pinch zoom, construction rotation, and native text entry accepted on device |
 | Apple Pencil | — | Not supported; the current gesture model requires fingers or a hardware pointer |
@@ -111,9 +111,11 @@ or an attached mouse/trackpad instead.
 Like upstream OpenRCT2, this project is an engine and requires original data
 from **RollerCoaster Tycoon 2** or **RollerCoaster Tycoon Classic** that you own.
 The standard RCT2 `Data/g1.dat` layout and RCT Classic `Assets/g1.dat` layout
-are supported by the import flow. Copy the complete, unmodified installation
-folder to iCloud Drive, **On My iPad**, or an attached drive before first
-launch. Select the folder containing `Data`, not `Data` itself.
+are supported by the import flow. Put the complete, unmodified installation in
+a ZIP, or copy the installation folder to iCloud Drive, **On My iPad**, or an
+attached drive before first launch. The ZIP may contain the installation
+directly or inside one enclosing folder. When importing a folder, select the
+folder containing `Data`, not `Data` itself.
 
 Standard RCT2:
 
@@ -310,15 +312,16 @@ proprietary RCT2 data. It also saves the device launch console to
 ### 5. Import your game data
 
 1. Launch OpenRCT2 Touch and tap **OK** on the missing-data explanation.
-2. When the Files picker appears, select the installation folder described in
+2. In the Liquid Glass import panel, drop your ZIP, tap **Choose ZIP**, or tap
+   **Choose Folder**. Select the data described in
    [Bring your own game data](#bring-your-own-game-data).
-3. Leave the app open while it validates and copies the folder into its private
-   Documents container.
+3. Leave the app open while it safely extracts (when needed), validates, and
+   copies the data into its private Documents container.
 4. Load a scenario, quit the app, reopen it, and confirm the scenario remains
    available.
 
-If validation fails, check that you selected the installation root and that
-`Data/g1.dat` or `Assets/g1.dat` exists. Rebuilding with the same bundle
+If validation fails, check that the selected folder or ZIP contains an
+installation root with `Data/g1.dat` or `Assets/g1.dat`. Rebuilding with the same bundle
 identifier preserves the sandbox. Any bundle-identifier change creates a new
 sandbox. The current `com.cjgaspari.openrct2touch` release therefore requires
 existing development testers to import once after updating.
@@ -336,7 +339,7 @@ existing development testers to import once after updating.
 - **The software keyboard stays hidden:** disconnect or disable the attached
   hardware keyboard. iPadOS intentionally suppresses the software keyboard
   while a hardware keyboard is active.
-- **The import picker does not appear:** make sure OpenRCT2 Touch is active,
+- **The import panel does not appear:** make sure OpenRCT2 Touch is active,
   dismiss any software keyboard, and retry. If it still fails, capture the
   device log and file an iPad-port issue.
 - **The app closes immediately:** rerun `./scripts/install-run-ios.sh` to save

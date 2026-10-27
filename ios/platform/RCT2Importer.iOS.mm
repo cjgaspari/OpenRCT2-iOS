@@ -9,56 +9,47 @@
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <UIKit/UIKit.h>
+#include <zip.h>
 
-@interface OpenRCT2TouchDirectoryPickerDelegate : NSObject <UIDocumentPickerDelegate>
+extern "C"
 {
-@public
-    BOOL finished;
-    BOOL dismissed;
-    NSURL* selectedURL;
+    typedef void (*OpenRCT2TouchImportSelectionCallback)(void* context, void* url, int32_t cancelled);
+    void* OpenRCT2TouchPresentRCT2ImportPanel(
+        void* presenter, void* context, OpenRCT2TouchImportSelectionCallback callback);
+    void OpenRCT2TouchReleaseRCT2ImportPanel(void* session);
 }
-@end
 
-@implementation OpenRCT2TouchDirectoryPickerDelegate
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-- (instancetype)init
+#include <algorithm>
+#include <array>
+#include <cerrno>
+
+namespace
 {
-    self = [super init];
-    if (self != nil)
+    struct ImportPanelSelection
     {
-        finished = NO;
-        dismissed = NO;
-        selectedURL = nil;
+        BOOL finished;
+        NSURL* selectedURL;
+    };
+
+    static void HandleImportPanelSelection(void* context, void* url, int32_t cancelled)
+    {
+        auto* selection = static_cast<ImportPanelSelection*>(context);
+        if (selection == nullptr || selection->finished)
+        {
+            return;
+        }
+
+        if (cancelled == 0 && url != nullptr)
+        {
+            selection->selectedURL = [static_cast<NSURL*>(url) retain];
+        }
+        selection->finished = YES;
     }
-    return self;
-}
-
-- (void)documentPicker:(UIDocumentPickerViewController*)controller didPickDocumentsAtURLs:(NSArray<NSURL*>*)urls
-{
-    selectedURL = [urls.firstObject retain];
-    finished = YES;
-    [controller dismissViewControllerAnimated:YES
-                                    completion:^{
-                                        dismissed = YES;
-                                    }];
-}
-
-- (void)documentPickerWasCancelled:(UIDocumentPickerViewController*)controller
-{
-    finished = YES;
-    [controller dismissViewControllerAnimated:YES
-                                    completion:^{
-                                        dismissed = YES;
-                                    }];
-}
-
-- (void)dealloc
-{
-    [selectedURL release];
-    [super dealloc];
-}
-
-@end
+} // namespace
 
 namespace OpenRCT2::Ui
 {
@@ -300,6 +291,278 @@ namespace OpenRCT2::Ui
         return nil;
     }
 
+    static BOOL IsSupportedImportRoot(NSFileManager* fileManager, NSURL* sourceURL)
+    {
+        NSURL* dataURL = FindChild(fileManager, sourceURL, @"Data", YES);
+        return ContainsG1(fileManager, dataURL) || FindRCTClassicResources(fileManager, sourceURL) != nil;
+    }
+
+    static NSURL* FindSupportedImportRoot(NSFileManager* fileManager, NSURL* extractedURL)
+    {
+        NSMutableArray<NSDictionary*>* queue = [NSMutableArray arrayWithObject:@{ @"url" : extractedURL, @"depth" : @0 }];
+        while (queue.count > 0)
+        {
+            NSDictionary* item = queue.firstObject;
+            [queue removeObjectAtIndex:0];
+            NSURL* candidate = item[@"url"];
+            NSUInteger depth = [item[@"depth"] unsignedIntegerValue];
+            if (IsSupportedImportRoot(fileManager, candidate))
+            {
+                return candidate;
+            }
+            if (depth >= 4)
+            {
+                continue;
+            }
+
+            NSArray<NSURL*>* children = [fileManager contentsOfDirectoryAtURL:candidate
+                                                    includingPropertiesForKeys:@[ NSURLIsDirectoryKey ]
+                                                                       options:NSDirectoryEnumerationSkipsHiddenFiles
+                                                                         error:nil];
+            for (NSURL* child in children)
+            {
+                NSNumber* isDirectory = nil;
+                if ([child getResourceValue:&isDirectory forKey:NSURLIsDirectoryKey error:nil]
+                    && isDirectory.boolValue)
+                {
+                    [queue addObject:@{ @"url" : child, @"depth" : @(depth + 1) }];
+                }
+            }
+        }
+        return nil;
+    }
+
+    static void SetImportError(NSString** errorMessage, NSString* message)
+    {
+        if (errorMessage != nullptr && *errorMessage == nil)
+        {
+            *errorMessage = [message copy];
+        }
+    }
+
+    static NSURL* ExtractZipArchive(
+        NSFileManager* fileManager, NSURL* archiveURL, void (^updateProgress)(NSString*), NSString** errorMessage)
+    {
+        constexpr zip_int64_t kMaximumEntries = 100000;
+        constexpr zip_uint64_t kMaximumEntryBytes = 1024ULL * 1024ULL * 1024ULL;
+        constexpr zip_uint64_t kMaximumArchiveBytes = 4ULL * 1024ULL * 1024ULL * 1024ULL;
+
+        NSURL* extractionURL = [fileManager.temporaryDirectory
+            URLByAppendingPathComponent:[NSString stringWithFormat:@"rct2.zip-import-%@", NSUUID.UUID.UUIDString]
+                             isDirectory:YES];
+        NSError* fileError = nil;
+        if (![fileManager createDirectoryAtURL:extractionURL
+                    withIntermediateDirectories:YES
+                                     attributes:nil
+                                          error:&fileError])
+        {
+            SetImportError(
+                errorMessage,
+                [NSString stringWithFormat:@"Could not prepare ZIP import: %@", fileError.localizedDescription]);
+            return nil;
+        }
+
+        int zipError = 0;
+        zip_t* archive = zip_open(archiveURL.fileSystemRepresentation, ZIP_RDONLY, &zipError);
+        if (archive == nullptr)
+        {
+            char errorBuffer[256] = {};
+            zip_error_to_str(errorBuffer, sizeof(errorBuffer), zipError, errno);
+            SetImportError(
+                errorMessage,
+                [NSString stringWithFormat:@"Could not open the ZIP: %s", errorBuffer]);
+            [fileManager removeItemAtURL:extractionURL error:nil];
+            return nil;
+        }
+
+        const zip_int64_t entryCount = zip_get_num_entries(archive, 0);
+        if (entryCount < 0 || entryCount > kMaximumEntries)
+        {
+            SetImportError(errorMessage, @"The ZIP contains too many files to import safely.");
+            zip_close(archive);
+            [fileManager removeItemAtURL:extractionURL error:nil];
+            return nil;
+        }
+
+        zip_uint64_t totalBytes = 0;
+        bool failed = false;
+        for (zip_uint64_t index = 0; index < static_cast<zip_uint64_t>(entryCount) && !failed; index++)
+        {
+            zip_stat_t entry = {};
+            zip_stat_init(&entry);
+            if (zip_stat_index(archive, index, ZIP_FL_ENC_GUESS, &entry) != 0 || entry.name == nullptr)
+            {
+                SetImportError(errorMessage, @"The ZIP directory is damaged.");
+                break;
+            }
+
+            NSString* rawPath = [NSString stringWithUTF8String:entry.name];
+            if (rawPath == nil || [rawPath hasPrefix:@"/"] || rawPath.length > 4096)
+            {
+                SetImportError(errorMessage, @"The ZIP contains an unsafe file path.");
+                break;
+            }
+
+            NSString* normalizedPath = [rawPath stringByReplacingOccurrencesOfString:@"\\" withString:@"/"];
+            NSMutableArray<NSString*>* safeComponents = [NSMutableArray array];
+            for (NSString* component in [normalizedPath componentsSeparatedByString:@"/"])
+            {
+                if (component.length == 0 || [component isEqualToString:@"."])
+                {
+                    continue;
+                }
+                if ([component isEqualToString:@".."])
+                {
+                    SetImportError(errorMessage, @"The ZIP contains a path outside its import folder.");
+                    failed = true;
+                    break;
+                }
+                [safeComponents addObject:component];
+            }
+            if (failed || safeComponents.count == 0 || safeComponents.count > 64)
+            {
+                if (!failed)
+                {
+                    SetImportError(errorMessage, @"The ZIP contains an invalid file path.");
+                }
+                break;
+            }
+
+            zip_uint8_t operatingSystem = 0;
+            zip_uint32_t externalAttributes = 0;
+            mode_t fileMode = 0;
+            if (zip_file_get_external_attributes(
+                    archive, index, 0, &operatingSystem, &externalAttributes)
+                == 0)
+            {
+                fileMode = static_cast<mode_t>(externalAttributes >> 16);
+                if ((fileMode & S_IFMT) == S_IFLNK)
+                {
+                    SetImportError(errorMessage, @"The ZIP contains a symbolic link, which cannot be imported safely.");
+                    break;
+                }
+            }
+
+            const BOOL isDirectory = [normalizedPath hasSuffix:@"/"] || (fileMode & S_IFMT) == S_IFDIR;
+            NSURL* targetURL = extractionURL;
+            for (NSString* component in safeComponents)
+            {
+                targetURL = [targetURL URLByAppendingPathComponent:component isDirectory:NO];
+            }
+
+            NSString* basePath = [extractionURL.URLByStandardizingPath.path stringByAppendingString:@"/"];
+            NSString* targetPath = targetURL.URLByStandardizingPath.path;
+            if (![targetPath hasPrefix:basePath])
+            {
+                SetImportError(errorMessage, @"The ZIP contains an unsafe file path.");
+                break;
+            }
+
+            if (isDirectory)
+            {
+                if (![fileManager createDirectoryAtURL:targetURL
+                            withIntermediateDirectories:YES
+                                             attributes:nil
+                                                  error:&fileError])
+                {
+                    SetImportError(
+                        errorMessage,
+                        [NSString stringWithFormat:@"Could not create an imported folder: %@",
+                                                   fileError.localizedDescription]);
+                    break;
+                }
+                continue;
+            }
+
+            if (entry.size > kMaximumEntryBytes || totalBytes > kMaximumArchiveBytes - entry.size)
+            {
+                SetImportError(errorMessage, @"The ZIP expands beyond the safe import size limit.");
+                break;
+            }
+            totalBytes += entry.size;
+
+            if (![fileManager createDirectoryAtURL:[targetURL URLByDeletingLastPathComponent]
+                        withIntermediateDirectories:YES
+                                         attributes:nil
+                                              error:&fileError])
+            {
+                SetImportError(
+                    errorMessage,
+                    [NSString stringWithFormat:@"Could not prepare an imported file: %@",
+                                               fileError.localizedDescription]);
+                break;
+            }
+
+            zip_file_t* input = zip_fopen_index(archive, index, 0);
+            if (input == nullptr)
+            {
+                SetImportError(errorMessage, @"Could not read a file from the ZIP.");
+                break;
+            }
+
+            int output = open(targetURL.fileSystemRepresentation, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+            if (output < 0)
+            {
+                zip_fclose(input);
+                SetImportError(errorMessage, @"Could not create a file from the ZIP.");
+                break;
+            }
+
+            std::array<uint8_t, 64 * 1024> buffer = {};
+            zip_uint64_t writtenBytes = 0;
+            while (writtenBytes < entry.size)
+            {
+                const zip_uint64_t remaining = entry.size - writtenBytes;
+                const zip_uint64_t requested = std::min<zip_uint64_t>(buffer.size(), remaining);
+                const zip_int64_t readBytes = zip_fread(input, buffer.data(), requested);
+                if (readBytes <= 0)
+                {
+                    failed = true;
+                    break;
+                }
+
+                zip_int64_t offset = 0;
+                while (offset < readBytes)
+                {
+                    const ssize_t result = write(output, buffer.data() + offset, static_cast<size_t>(readBytes - offset));
+                    if (result <= 0)
+                    {
+                        failed = true;
+                        break;
+                    }
+                    offset += result;
+                }
+                writtenBytes += static_cast<zip_uint64_t>(readBytes);
+            }
+
+            close(output);
+            zip_fclose(input);
+            if (failed || writtenBytes != entry.size)
+            {
+                SetImportError(errorMessage, @"The ZIP ended unexpectedly while extracting a file.");
+                break;
+            }
+
+            if (index == 0 || index + 1 == static_cast<zip_uint64_t>(entryCount) || index % 200 == 0)
+            {
+                updateProgress(
+                    [NSString stringWithFormat:@"Extracting ZIP (%llu of %lld)…", index + 1, entryCount]);
+            }
+        }
+
+        if (zip_close(archive) != 0 && errorMessage != nullptr && *errorMessage == nil)
+        {
+            SetImportError(errorMessage, @"The ZIP could not be closed after extraction.");
+        }
+
+        if (errorMessage != nullptr && *errorMessage != nil)
+        {
+            [fileManager removeItemAtURL:extractionURL error:nil];
+            return nil;
+        }
+        return extractionURL;
+    }
+
     static NSString* CopyRCT2Directory(
         NSURL* sourceURL, void (^updateProgress)(NSString*), NSString** errorMessage)
     {
@@ -452,7 +715,7 @@ namespace OpenRCT2::Ui
         return result;
     }
 
-    static NSURL* PickDirectory(UIWindow* presentationWindow, NSString* title)
+    static NSURL* PickImportSource(UIWindow* presentationWindow)
     {
         UIViewController* presenter = GetPresenter(presentationWindow);
         if (presenter == nil)
@@ -460,30 +723,22 @@ namespace OpenRCT2::Ui
             return nil;
         }
 
-        OpenRCT2TouchDirectoryPickerDelegate* delegate = [[OpenRCT2TouchDirectoryPickerDelegate alloc] init];
-        UIDocumentPickerViewController* picker = [[UIDocumentPickerViewController alloc]
-            initWithDocumentTypes:@[ @"public.folder" ]
-                           inMode:UIDocumentPickerModeOpen];
-        picker.delegate = delegate;
-        picker.allowsMultipleSelection = NO;
-        picker.shouldShowFileExtensions = YES;
-        picker.title = title;
+        ImportPanelSelection selection = { NO, nil };
+        void* session = OpenRCT2TouchPresentRCT2ImportPanel(
+            static_cast<void*>(presenter), static_cast<void*>(&selection), HandleImportPanelSelection);
+        if (session == nullptr)
+        {
+            NSLog(@"[OpenRCT2Touch] import: SwiftUI panel presentation failed");
+            return nil;
+        }
 
-        NSLog(@"[OpenRCT2Touch] import: picker-presented");
-        [presenter presentViewController:picker animated:YES completion:nil];
-        while (!delegate->finished)
+        NSLog(@"[OpenRCT2Touch] import: SwiftUI ZIP/folder panel presented");
+        while (!selection.finished)
         {
             PumpMainRunLoop();
         }
-        while (!delegate->dismissed)
-        {
-            PumpMainRunLoop();
-        }
-
-        NSURL* result = [delegate->selectedURL retain];
-        [picker release];
-        [delegate release];
-        return [result autorelease];
+        OpenRCT2TouchReleaseRCT2ImportPanel(session);
+        return [selection.selectedURL autorelease];
     }
 
     static void ShowImportError(SDL_Window* window, NSString* message)
@@ -493,7 +748,7 @@ namespace OpenRCT2::Ui
             SDL_MESSAGEBOX_ERROR, "OpenRCT2 Touch Import", message.UTF8String, window);
     }
 
-    static std::string ImportDirectory(SDL_Window* window, UIWindow* presentationWindow, NSURL* sourceURL)
+    static std::string ImportSource(SDL_Window* window, UIWindow* presentationWindow, NSURL* sourceURL)
     {
         UIViewController* presenter = GetPresenter(presentationWindow);
         if (presenter == nil)
@@ -524,14 +779,49 @@ namespace OpenRCT2::Ui
                                                  options:NSFileCoordinatorReadingWithoutChanges
                                                    error:&coordinationError
                                               byAccessor:^(NSURL* coordinatedURL) {
-                                                  coordinatedResult = CopyRCT2Directory(
-                                                      coordinatedURL,
-                                                      ^(NSString* status) {
-                                                          dispatch_async(dispatch_get_main_queue(), ^{
-                                                              progress.message = status;
-                                                          });
-                                                      },
-                                                      &coordinatedErrorMessage);
+                                                  void (^updateProgress)(NSString*) = ^(NSString* status) {
+                                                      dispatch_async(dispatch_get_main_queue(), ^{
+                                                          progress.message = status;
+                                                      });
+                                                  };
+
+                                                  NSNumber* isDirectory = nil;
+                                                  [coordinatedURL getResourceValue:&isDirectory
+                                                                           forKey:NSURLIsDirectoryKey
+                                                                            error:nil];
+                                                  if (isDirectory.boolValue)
+                                                  {
+                                                      coordinatedResult = CopyRCT2Directory(
+                                                          coordinatedURL, updateProgress, &coordinatedErrorMessage);
+                                                      return;
+                                                  }
+
+                                                  if ([coordinatedURL.pathExtension caseInsensitiveCompare:@"zip"]
+                                                      != NSOrderedSame)
+                                                  {
+                                                      coordinatedErrorMessage = [@"Choose an RCT2 folder or a ZIP file." copy];
+                                                      return;
+                                                  }
+
+                                                  NSFileManager* fileManager = [[NSFileManager alloc] init];
+                                                  updateProgress(@"Inspecting ZIP…");
+                                                  NSURL* extractedURL = ExtractZipArchive(
+                                                      fileManager, coordinatedURL, updateProgress, &coordinatedErrorMessage);
+                                                  if (extractedURL != nil)
+                                                  {
+                                                      NSURL* importRoot = FindSupportedImportRoot(fileManager, extractedURL);
+                                                      if (importRoot == nil)
+                                                      {
+                                                          coordinatedErrorMessage = [@"The ZIP does not contain a supported RCT2 or RCT Classic installation. Include Data/g1.dat and the ObjData, Scenarios, and Tracks folders." copy];
+                                                      }
+                                                      else
+                                                      {
+                                                          coordinatedResult = CopyRCT2Directory(
+                                                              importRoot, updateProgress, &coordinatedErrorMessage);
+                                                      }
+                                                      [fileManager removeItemAtURL:extractedURL error:nil];
+                                                  }
+                                                  [fileManager release];
                                               }];
 
                 if (coordinationError != nil && coordinatedErrorMessage == nil)
@@ -600,10 +890,10 @@ namespace OpenRCT2::Ui
                 return {};
             }
 
-            NSString* pickerTitle = [NSString stringWithUTF8String:title.c_str()];
+            (void) title;
             while (true)
             {
-                NSURL* sourceURL = PickDirectory(presentationContext.window, pickerTitle);
+                NSURL* sourceURL = PickImportSource(presentationContext.window);
                 if (sourceURL == nil)
                 {
                     NSLog(@"[OpenRCT2Touch] import: cancelled");
@@ -611,7 +901,7 @@ namespace OpenRCT2::Ui
                     return {};
                 }
 
-                auto result = ImportDirectory(window, presentationContext.window, sourceURL);
+                auto result = ImportSource(window, presentationContext.window, sourceURL);
                 if (!result.empty())
                 {
                     DestroyPresentationContext(&presentationContext);

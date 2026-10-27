@@ -382,7 +382,7 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 **Tasks:**
 1. Implement `Platform.iOS.mm`: `GetInstallPath()`/`GetAssetPath()` → app bundle; `GetFolderPath(userData/userConfig/userCache)` → sandbox `Documents`/`Library`. Add the iOS branch to `GetOpenRCT2DirectoryName()` semantics as needed.
 2. `stage-assets.sh`: copy `assets/engine` → `App/Resources`; for **personal Simulator or locally signed development-device installs**, `scripts/bundle-local-rct2.sh` may copy ignored `ref/rct2` into the local `.app` under `build/`. Documents seeding remains available. Never copy RCT2 into git, an IPA, an xcarchive, TestFlight, or another distributable artifact.
-3. Implement the **real** import path: `UIDocumentPickerViewController` (folder import) + security-scoped bookmarks → copy/reference RCT2 data into the sandbox → write `rct2Path` to `config.ini`. Expose the app's `Documents` in the Files app (`UIFileSharingEnabled` / `LSSupportsOpeningDocumentsInPlace`).
+3. Implement the **real** import path: a native first-run panel that accepts a dropped ZIP or a ZIP/folder selected through Files, safely extracts when needed, validates the RCT2/RCT Classic root, and copies the data into the sandbox → write `rct2Path` to `config.ini`. Expose the app's `Documents` in the Files app (`UIFileSharingEnabled` / `LSSupportsOpeningDocumentsInPlace`).
 4. First-run UX: detect missing/invalid RCT2 data (no `Data/g1.dat`) → show import screen.
 **Exit criteria:** with `ref/`-staged data, a real scenario loads on device/sim end-to-end. Separately, the manual Files-app import flow works once, by hand, on a real iPad.
 

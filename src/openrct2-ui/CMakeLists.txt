@@ -62,6 +62,7 @@ if (APPLE)
             "${ROOT_DIR}/ios/platform/chrome/ParkChromeRootView.swift"
             "${ROOT_DIR}/ios/platform/chrome/ScenarioPickerView.swift"
             "${ROOT_DIR}/ios/platform/chrome/LoadSaveView.swift"
+            "${ROOT_DIR}/ios/platform/chrome/RCT2ImportView.swift"
             "${ROOT_DIR}/ios/platform/chrome/ParkChromeHost.swift")
     endif ()
     set_source_files_properties(${OPENRCT2_UI_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules -fno-objc-arc")

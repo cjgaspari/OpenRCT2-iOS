@@ -29,7 +29,7 @@ option(OPENRCT2_IOS_CODE_SIGNING "Allow Xcode to sign the iPadOS app" OFF)
 set(OPENRCT2_IOS_DEVELOPMENT_TEAM "" CACHE STRING "Apple development team used only for a signed iPadOS build")
 option(OPENRCT2_BUNDLE_LOCAL_RCT2 "Copy ignored ref/rct2 into the local .app before codesign (personal installs only)" OFF)
 set(OPENRCT2_TOUCH_MARKETING_VERSION "0.1.0")
-set(OPENRCT2_TOUCH_BUILD_NUMBER "4")
+set(OPENRCT2_TOUCH_BUILD_NUMBER "5")
 
 if (OPENRCT2_IOS_CODE_SIGNING)
     if (NOT CMAKE_GENERATOR STREQUAL "Xcode")
@@ -46,6 +46,7 @@ endif ()
 target_link_libraries(openrct2-touch PRIVATE
     SDL2::SDL2main
     OpenRCT2::openrct2-ui
+    libzip::zip
     "-framework SwiftUI"
     "-framework Combine")
 # Park chrome Swift lives in openrct2-ui. Putting even a dummy .swift file on
@@ -86,6 +87,8 @@ set_target_properties(openrct2-touch PROPERTIES
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.cjgaspari.openrct2touch"
     XCODE_ATTRIBUTE_MARKETING_VERSION "${OPENRCT2_TOUCH_MARKETING_VERSION}"
     XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION "${OPENRCT2_TOUCH_BUILD_NUMBER}"
+    XCODE_ATTRIBUTE_SKIP_INSTALL NO
+    XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
     XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "27.0")
