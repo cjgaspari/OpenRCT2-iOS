@@ -75,7 +75,8 @@ The verified checkpoint and remaining acceptance gates are kept in
 [`GOAL-LOOP.md`](GOAL-LOOP.md).
 
 Build 3 is signed and installed on an iPad Pro (12.9-inch, 6th generation)
-running iPadOS 26.5.2 under `com.chrissotraidis.openrct2touch`. A clean install
+running iPadOS 26.5.2 under the previous development bundle identifier. The
+current release line uses `com.cjgaspari.openrct2touch`. A clean install
 imports user-owned standard RCT2 data through Files, retains it after a forced
 relaunch, and loads a scenario successfully.
 
@@ -175,7 +176,7 @@ for an iPad registered to your Apple development team.
 ### 1. Clone and check the toolchain
 
 ```sh
-git clone https://github.com/chrissotraidis/OpenRCT2Touch.git
+git clone https://github.com/cjgaspari/OpenRCT2-iOS.git
 cd OpenRCT2Touch
 git switch ipad
 
@@ -318,9 +319,9 @@ proprietary RCT2 data. It also saves the device launch console to
 
 If validation fails, check that you selected the installation root and that
 `Data/g1.dat` or `Assets/g1.dat` exists. Rebuilding with the same bundle
-identifier preserves the sandbox. The July 2026 change from the old
-`org.openrct2.touch` identifier to `com.chrissotraidis.openrct2touch` creates a
-new sandbox, so existing development testers must import once after updating.
+identifier preserves the sandbox. Any bundle-identifier change creates a new
+sandbox. The current `com.cjgaspari.openrct2touch` release therefore requires
+existing development testers to import once after updating.
 
 ### Troubleshooting
 
@@ -349,10 +350,10 @@ new sandbox, so existing development testers must import once after updating.
   Attach the console log and the newest file from `runtime/device-crashes/` to
   an iPad-port issue. A crash on a beta iPadOS release cannot be diagnosed from
   the icon disappearing alone.
-- **Two OpenRCT2 Touch icons appear after updating:** builds using the former
-  `org.openrct2.touch` identifier can coexist with the current
-  `com.chrissotraidis.openrct2touch` app. Do not delete the older app until you
-  have accounted for any saves in its separate sandbox.
+- **Two OpenRCT2 Touch icons appear after updating:** builds using a former
+  bundle identifier can coexist with the current `com.cjgaspari.openrct2touch`
+  app. Do not delete an older app until you have accounted for any saves in
+  its separate sandbox.
 
 ## Known limitations
 
@@ -403,7 +404,7 @@ project policy summary, not legal advice.
 OpenRCT2 Touch is an independent, human-directed community port. It is not
 affiliated with or endorsed by the OpenRCT2 team, Chris Sawyer, Atari, or the
 owners of the RollerCoaster Tycoon trademarks. Report iPad-port issues in this
-fork's [issue tracker](https://github.com/chrissotraidis/OpenRCT2Touch/issues),
+fork's [issue tracker](https://github.com/cjgaspari/OpenRCT2-iOS/issues),
 not to upstream OpenRCT2.
 
 The port exists because of the years of work by the

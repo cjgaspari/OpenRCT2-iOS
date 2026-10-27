@@ -70,7 +70,7 @@ These decisions shape every phase. Read them once; they explain the "why" behind
 
 **2.5 Small, reversible commits.** Every task is a commit with a green build. The agent must never leave the **working branch** red. Use a branch per phase, cut from the pinned base (§2.6).
 
-**2.6 We work inside the fork (decided).** The project lives in the fork **`chrissotraidis/OpenRCT2Touch`** (forked from `OpenRCT2/OpenRCT2`, GPL-3.0). This is a real GitHub fork, *not* a fresh repo with a submodule — so the entire upstream tree (`src/`, `data/`, `cmake/`, `distribution/`, …) is already present at the repo root, and all iOS work is added *alongside* it (in `/ios`, `/scripts`, etc.). The `develop` branch is kept as a clean mirror of upstream for syncing; **all port work happens on a dedicated branch** (`ipad`). Pin that branch's base to a known-good commit/tag (a release tag like `v0.5.2`/`v0.5.3`, or a specific recent `develop` SHA) so a moving upstream can't break the build under you.
+**2.6 We work inside the fork (decided).** The project lives in the fork **`cjgaspari/OpenRCT2-iOS`** (forked from `OpenRCT2/OpenRCT2`, GPL-3.0). This is a real GitHub fork, *not* a fresh repo with a submodule — so the entire upstream tree (`src/`, `data/`, `cmake/`, `distribution/`, …) is already present at the repo root, and all iOS work is added *alongside* it (in `/ios`, `/scripts`, etc.). The `develop` branch is kept as a clean mirror of upstream for syncing; **all port work happens on a dedicated branch** (`ipad`). Pin that branch's base to a known-good commit/tag (a release tag like `v0.5.2`/`v0.5.3`, or a specific recent `develop` SHA) so a moving upstream can't break the build under you.
 
 **2.7 Fork & git etiquette (the agent MUST follow this).** This is a public, GPL-licensed community project. Being a good fork is a hard requirement, not a nicety:
 - **Never commit to `develop`.** Treat it as read-only upstream mirror. All work lands on the `ipad` working branch (and short-lived phase branches merged into it).
@@ -136,7 +136,7 @@ Only `ref/README.md` is committed (a placeholder telling a future you/collaborat
 
 ## 5. Repository layout
 
-This is the fork **`chrissotraidis/OpenRCT2Touch`** — the whole upstream tree is already present at the repo root. Your additions sit *alongside* it, and the port's engine/UI source files go **into the upstream dirs where they belong** (so CMake compiles them beside `Platform.macOS.mm`). Everything the build/tests reference lives under the repo root. All committed on the **`ipad`** branch, never `develop`.
+This is the fork **`cjgaspari/OpenRCT2-iOS`** — the whole upstream tree is already present at the repo root. Your additions sit *alongside* it, and the port's engine/UI source files go **into the upstream dirs where they belong** (so CMake compiles them beside `Platform.macOS.mm`). Everything the build/tests reference lives under the repo root. All committed on the **`ipad`** branch, never `develop`.
 
 ```
 OpenRCT2Touch/                 # your fork · work on branch `ipad`
@@ -310,7 +310,7 @@ Each phase is a branch. Do not advance until **Exit criteria** are green. "Drive
 ### Phase 0 — Repo & tooling bootstrap
 **Goal:** the fork is cloned, the `ipad` branch exists, scaffolding is added, and upstream builds *unmodified* on macOS.
 **Driver:** you + agent.
-**Status:** fork already created at `chrissotraidis/OpenRCT2Touch` ✅.
+**Status:** fork already created at `cjgaspari/OpenRCT2-iOS` ✅.
 **Files:** `scripts/env.sh`, `scripts/bootstrap.sh`, appended `.gitignore`, `ref/README.md`, `README-touch.md`, `AGENTS.md` (stub), plus the new `ios/ scripts/ vendor/ ref/ assets/ runtime/ testdata/ build/` dirs.
 **Tasks:**
 1. `git clone` your fork locally. `git remote -v` should show your fork as `origin`. Add upstream as a read-only remote for syncing only: `git remote add upstream https://github.com/OpenRCT2/OpenRCT2` — **never push to it, never PR to it.**

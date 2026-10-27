@@ -2,7 +2,7 @@
 
 OpenRCT2 Touch is an independent iPadOS fork. Issues and patches that are
 specific to the iPad port belong in
-[`chrissotraidis/OpenRCT2Touch`](https://github.com/chrissotraidis/OpenRCT2Touch),
+[`cjgaspari/OpenRCT2-iOS`](https://github.com/cjgaspari/OpenRCT2-iOS),
 not in the upstream OpenRCT2 issue tracker.
 
 ## Report an iPad-port issue

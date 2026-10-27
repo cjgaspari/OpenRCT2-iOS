@@ -4,5 +4,5 @@ contact_links:
   url: https://github.com/OpenRCT2/OpenRCT2/issues
   about: Report issues that also affect upstream desktop OpenRCT2 here.
 - name: OpenRCT2 Touch installation guide
-  url: https://github.com/chrissotraidis/OpenRCT2Touch#install-on-an-ipad
+  url: https://github.com/cjgaspari/OpenRCT2-iOS#install-on-an-ipad
   about: Read the physical-iPad build, signing, import, and troubleshooting guide.

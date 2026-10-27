@@ -49,7 +49,8 @@ end-to-end exit scripts are still pending.
   `96106a6307`; TestFlight upload remains behind the documented physical-iPad
   acceptance and App Store Connect credential gates.
 - Build 3 signs, audits, installs, and launches on the physical M2 iPad Pro
-  under `com.chrissotraidis.openrct2touch`. Live logs confirm a read-only
+  under the previous development bundle identifier. The current release line
+  uses `com.cjgaspari.openrct2touch`. Live logs confirm a read-only
   bundle, writable Documents/Library paths, and the first-run Files flow.
 - On iPadOS 26.5.2, the tester selected the user-owned standard RCT2 folder
   through Files. The app acquired security-scoped access, validated
@@ -97,7 +98,8 @@ end-to-end exit scripts are still pending.
   construction rotation, and two-finger tap or hold-drag footpath removal.
 - The production `AppIcon` asset catalog compiles an opaque 1024px source into
   the required iPad icon renditions. Build 3 is installed and device-accepted
-  under `com.chrissotraidis.openrct2touch`.
+  under the previous development bundle identifier; the current release line
+  uses `com.cjgaspari.openrct2touch`.
 - The macOS headless loop completed 1,000 ticks with checksum
   `25232284e49cf2cb000000000000000000000000`.
 - Goal 8 release hygiene passes: `./scripts/check-touch-release-safety.sh`,

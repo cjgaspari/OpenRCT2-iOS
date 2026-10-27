@@ -68,7 +68,7 @@ record. A Personal Team development build is not a public binary beta.
 - [ ] Use an Apple Developer Program team and a profile valid for that channel;
   do not publish a Personal Team development artifact.
 - [ ] Archive from the tagged, clean release commit.
-- [ ] Confirm the app identifier is `com.chrissotraidis.openrct2touch`.
+- [ ] Confirm the app identifier is `com.cjgaspari.openrct2touch`.
 - [ ] Confirm the application contains `Licences/GPL-3.0-or-later.txt`, upstream
   contributors, the Touch notice, the dependency manifest, and each bundled
   dependency's licence text.
