@@ -43,9 +43,9 @@ finger gestures into OpenRCT2's established construction and pointer actions.
 
 The goal is a playable iPad experience that preserves OpenRCT2's scenarios,
 parks, construction tools, and modern quality-of-life improvements. This
-repository is currently a **source-only developer preview**. Signed development
-builds run on a physical M2 iPad Pro, but there is no public IPA, TestFlight, or
-App Store release.
+repository is currently a **developer preview**. Signed development builds run
+on physical iPhone and iPad hardware, and a private TestFlight beta is available
+to configured testers. There is no public IPA or App Store release.
 
 The maintained and GitHub default branch for this fork is **`ipad`**. The
 `develop` branch is retained only as an upstream mirror, and this project does
@@ -74,9 +74,11 @@ The verified checkpoint and remaining acceptance gates are kept in
 [`docs/DEVELOPMENT-STATUS.md`](docs/DEVELOPMENT-STATUS.md) and
 [`GOAL-LOOP.md`](GOAL-LOOP.md).
 
-Build 3 is signed and installed on an iPad Pro (12.9-inch, 6th generation)
-running iPadOS 26.5.2 under the previous development bundle identifier. The
-current release line uses `com.cjgaspari.openrct2touch`. A clean install
+TestFlight build 5 (`0.1.0`) is a ROM-free private beta with ZIP/folder import
+for user-owned game data. Build 3 is also signed and installed on an iPad Pro
+(12.9-inch, 6th generation) running iPadOS 26.5.2 under the previous development
+bundle identifier. The current release line uses
+`com.cjgaspari.openrct2touch`. A clean install
 imports user-owned standard RCT2 data through Files, retains it after a forced
 relaunch, and loads a scenario successfully.
 

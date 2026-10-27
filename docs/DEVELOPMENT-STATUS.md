@@ -43,11 +43,12 @@ end-to-end exit scripts are still pending.
   binary-beta gates in [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md).
 - `./scripts/build-ios-device.sh unsigned` produces an Xcode device build
   without requiring repository-held signing identity data.
-- Build 4 (`0.1.0`) passes the ROM-free generic-device Xcode build, both iOS
-  bundle audits, release metadata validation, repository safety, and the
-  macOS headless proof. The exact source is pushed to `origin/ipad` at
-  `96106a6307`; TestFlight upload remains behind the documented physical-iPad
-  acceptance and App Store Connect credential gates.
+- TestFlight build 5 (`0.1.0`) passes the ROM-free generic-device Xcode build,
+  archive audit, release metadata validation, repository safety, and the macOS
+  headless proof. App Store Connect accepted the upload and reports the build
+  `VALID`; its exact ZIP-import source is pushed to `origin/ipad` at
+  `794b758a8b`. The private beta still requires the documented end-to-end
+  physical-device acceptance gates.
 - Build 3 signs, audits, installs, and launches on the physical M2 iPad Pro
   under the previous development bundle identifier. The current release line
   uses `com.cjgaspari.openrct2touch`. Live logs confirm a read-only
