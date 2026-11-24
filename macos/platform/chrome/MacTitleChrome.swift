@@ -25,7 +25,6 @@ enum MacChromeTitleAction: Int32 {
 /// Full-window classic title chrome (not a single capsule).
 struct MacTitleChromeLayout: View {
     @ObservedObject var model: MacParkChromeModel
-    @Bindable private var knobs = MacGlassStyleKnobs.shared
     @State private var toolsAnchor = ToolbarButtonAnchor()
 
     var body: some View {
@@ -80,13 +79,25 @@ struct MacTitleChromeLayout: View {
 
     private var centerActions: some View {
         HStack(spacing: 12) {
-            MacGlassIconTile(title: "New Game", systemImage: "plus.square.fill") {
+            MacGlassIconTile(
+                title: "New Game",
+                systemImage: "plus.square.fill",
+                tint: Color.green.opacity(0.5)
+            ) {
                 model.queueTitle(.newGame)
             }
-            MacGlassIconTile(title: "Load Game", systemImage: "folder.fill") {
+            MacGlassIconTile(
+                title: "Load Game",
+                systemImage: "folder.fill",
+                tint: Color.green.opacity(0.5)
+            ) {
                 model.queueTitle(.loadGame)
             }
-            MacGlassIconTile(title: "Network", systemImage: "person.3.fill") {
+            MacGlassIconTile(
+                title: "Network",
+                systemImage: "person.3.fill",
+                tint: Color.blue.opacity(0.5)
+            ) {
                 model.queueTitle(.network)
             }
             toolsTile
@@ -94,13 +105,17 @@ struct MacTitleChromeLayout: View {
     }
 
     private var toolsTile: some View {
-        MacGlassIconTile(title: "Tools", systemImage: "wrench.and.screwdriver.fill") {
+        MacGlassIconTile(
+            title: "Tools",
+            systemImage: "wrench.and.screwdriver.fill",
+            tint: Color.red.opacity(0.5)
+        ) {
             popToolsMenu()
         }
         .background(ToolbarButtonAnchorReader(anchor: toolsAnchor))
     }
 
-    /// Classic title logo TL — asset only, no glass chrome / invented logo UI.
+    /// Classic OpenRCT2 logo TL: blue diamond + yellow Open / red RCT2 badge.
     private var logoButton: some View {
         Button {
             MacAboutPanel.show()
@@ -109,21 +124,16 @@ struct MacTitleChromeLayout: View {
                 if let logo = MacToolbarIconStore.titleLogoImage() {
                     Image(nsImage: logo)
                         .resizable()
-                        .interpolation(.high)
+                        .interpolation(.none)
                         .scaledToFit()
                         .frame(height: 72)
-                } else {
-                    Image(systemName: "ferry.fill")
-                        .font(.system(size: 36, weight: .semibold))
-                        .foregroundStyle(knobs.primaryLabel)
-                        .frame(width: 72, height: 72)
                 }
                 if let wordmark = MacToolbarIconStore.titleWordmarkImage() {
                     Image(nsImage: wordmark)
                         .resizable()
-                        .interpolation(.high)
+                        .interpolation(.none)
                         .scaledToFit()
-                        .frame(height: 48)
+                        .frame(height: 56)
                 }
             }
         }
@@ -171,17 +181,48 @@ final class TitleToolsTarget: NSObject {
 
 extension MacToolbarIconStore {
     static func titleLogoImage() -> NSImage? {
-        imageBesideIcons(named: "logo.png")
+        classicG2Image(named: "logo.png")
     }
 
     static func titleWordmarkImage() -> NSImage? {
-        imageBesideIcons(named: "logo_text.png")
+        classicG2Image(named: "logo_text.png")
     }
 
-    private static func imageBesideIcons(named file: String) -> NSImage? {
-        guard let icons = iconDirectory else { return nil }
-        let url = icons.deletingLastPathComponent().appendingPathComponent(file)
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return NSImage(contentsOf: url)
+    /// Classic g2 title art (`logo.png` / `logo_text.png`) — never SF Symbol ship.
+    private static func classicG2Image(named file: String) -> NSImage? {
+        for url in classicG2Candidates(file) {
+            if FileManager.default.fileExists(atPath: url.path),
+               let image = NSImage(contentsOf: url)
+            {
+                return image
+            }
+        }
+        return nil
+    }
+
+    private static func classicG2Candidates(_ file: String) -> [URL] {
+        var urls: [URL] = []
+        if let icons = iconDirectory {
+            urls.append(icons.deletingLastPathComponent().appendingPathComponent(file))
+        }
+        if let root = ProcessInfo.processInfo.environment["OPENRCT2_ROOT"], !root.isEmpty {
+            urls.append(
+                URL(fileURLWithPath: root)
+                    .appendingPathComponent("resources/g2", isDirectory: true)
+                    .appendingPathComponent(file)
+            )
+        }
+        // Walk up from the running binary (install/bin → repo root).
+        let argv0 = CommandLine.arguments.first.map { URL(fileURLWithPath: $0) }
+        var dir = (Bundle.main.executableURL ?? argv0)?.deletingLastPathComponent()
+        for _ in 0..<8 {
+            guard let current = dir else { break }
+            urls.append(
+                current.appendingPathComponent("resources/g2", isDirectory: true)
+                    .appendingPathComponent(file)
+            )
+            dir = current.deletingLastPathComponent()
+        }
+        return urls
     }
 }

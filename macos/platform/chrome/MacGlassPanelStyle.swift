@@ -215,10 +215,12 @@ struct MacGlassChipButton: View {
 }
 
 /// Large title-menu tile (~classic 82×82) — real Liquid Glass.
+/// Optional `tint` (e.g. `.green.opacity(0.5)`) colors the glass.
 struct MacGlassIconTile: View {
     let title: String
     var systemImage: String
     var nsImage: NSImage? = nil
+    var tint: Color? = nil
     let action: () -> Void
 
     var body: some View {
@@ -247,6 +249,7 @@ struct MacGlassIconTile: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.roundedRectangle(radius: 14))
         .controlSize(.large)
+        .tint(tint ?? Color.primary)
         .accessibilityLabel(title)
     }
 }
