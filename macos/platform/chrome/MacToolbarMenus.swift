@@ -10,6 +10,30 @@
 
 import AppKit
 
+@_silgen_name("OpenRCT2MacNativeViewMenuIsChecked")
+func OpenRCT2MacNativeViewMenuIsChecked(_ ddidx: Int32) -> Bool
+
+/// View-menu toggle indices that show a macOS checkmark when on (HIG).
+enum MacViewMenuCheckmarks {
+    /// Matches TopToolbar setChecked list (not Transparency Options…).
+    static let toggleIndices: Set<Int32> = [
+        0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19,
+    ]
+
+    static func state(for ddidx: Int32) -> NSControl.StateValue {
+        guard toggleIndices.contains(ddidx) else { return .off }
+        return OpenRCT2MacNativeViewMenuIsChecked(ddidx) ? .on : .off
+    }
+
+    /// Rebuild checkmarks when the toolbar View pop-up uses Int32 dropdown indices.
+    static func applyToolbarIndices(to menu: NSMenu) {
+        for item in menu.items {
+            guard let index = item.representedObject as? Int32 else { continue }
+            item.state = state(for: index)
+        }
+    }
+}
+
 enum MacToolbarIconMode: String {
     case systemSF = "sf"
     case nativeInGame = "native"
@@ -102,27 +126,27 @@ enum MacToolbarMenus {
             item("Hyper Speed", index: 5)
 
         case .viewMenu:
-            // TopToolbarViewMenuDdidx
-            item("Underground View", index: 0)
-            item("Transparent Water", index: 1)
-            item("Remove Base Land", index: 2)
-            item("Remove Vertical Faces", index: 3)
+            // TopToolbarViewMenuDdidx — rebuild checkmarks from live viewport on open.
+            item("Underground View", index: 0, state: MacViewMenuCheckmarks.state(for: 0))
+            item("Transparent Water", index: 1, state: MacViewMenuCheckmarks.state(for: 1))
+            item("Remove Base Land", index: 2, state: MacViewMenuCheckmarks.state(for: 2))
+            item("Remove Vertical Faces", index: 3, state: MacViewMenuCheckmarks.state(for: 3))
             sep()
-            item("See-through Rides", index: 5)
-            item("See-through Vehicles", index: 6)
-            item("See-through Vegetation", index: 7)
-            item("See-through Scenery", index: 8)
-            item("See-through Paths", index: 9)
-            item("See-through Supports", index: 10)
-            item("See-through Guests", index: 11)
-            item("See-through Staff", index: 12)
+            item("See-through Rides", index: 5, state: MacViewMenuCheckmarks.state(for: 5))
+            item("See-through Vehicles", index: 6, state: MacViewMenuCheckmarks.state(for: 6))
+            item("See-through Vegetation", index: 7, state: MacViewMenuCheckmarks.state(for: 7))
+            item("See-through Scenery", index: 8, state: MacViewMenuCheckmarks.state(for: 8))
+            item("See-through Paths", index: 9, state: MacViewMenuCheckmarks.state(for: 9))
+            item("See-through Supports", index: 10, state: MacViewMenuCheckmarks.state(for: 10))
+            item("See-through Guests", index: 11, state: MacViewMenuCheckmarks.state(for: 11))
+            item("See-through Staff", index: 12, state: MacViewMenuCheckmarks.state(for: 12))
             sep()
-            item("Height Marks on Land", index: 14)
-            item("Height Marks on Tracks", index: 15)
-            item("Height Marks on Paths", index: 16)
+            item("Height Marks on Land", index: 14, state: MacViewMenuCheckmarks.state(for: 14))
+            item("Height Marks on Tracks", index: 15, state: MacViewMenuCheckmarks.state(for: 15))
+            item("Height Marks on Paths", index: 16, state: MacViewMenuCheckmarks.state(for: 16))
             sep()
-            item("View Clipping…", index: 18)
-            item("Highlight Path Issues", index: 19)
+            item("View Clipping…", index: 18, state: MacViewMenuCheckmarks.state(for: 18))
+            item("Highlight Path Issues", index: 19, state: MacViewMenuCheckmarks.state(for: 19))
             sep()
             item("Transparency Options…", index: 21)
 

@@ -63,6 +63,9 @@ enum MacTransparencyFlag : uint32_t
 uint32_t OpenRCT2MacNativeTransparencyGet(void);
 void OpenRCT2MacNativeTransparencyToggle(uint32_t flag);
 
+/** View menu toggle checkmark — `ddidx` matches TopToolbarViewMenuDdidx. */
+bool OpenRCT2MacNativeViewMenuIsChecked(int32_t ddidx);
+
 /**
  * NSAlert confirm (CJ HIG 1A). Returns 0/1/2 for buttons; -1 cancelled.
  * button1/button2 may be NULL.

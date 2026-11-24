@@ -265,6 +265,56 @@ uint32_t OpenRCT2MacNativeTransparencyGet(void)
     return MapViewportToMac(w->viewport->flags);
 }
 
+bool OpenRCT2MacNativeViewMenuIsChecked(int32_t ddidx)
+{
+    // Mirror TopToolbar::viewMenuDropdown setChecked — Apple HIG checkmarks.
+    auto* w = WindowGetMain();
+    if (w == nullptr || w->viewport == nullptr)
+        return false;
+
+    const auto flags = w->viewport->flags;
+    switch (ddidx)
+    {
+        case 0: // DDIDX_UNDERGROUND_INSIDE
+            return (flags & VIEWPORT_FLAG_UNDERGROUND_INSIDE) != 0;
+        case 1: // DDIDX_TRANSPARENT_WATER
+            return Config::Get().general.transparentWater;
+        case 2: // DDIDX_HIDE_BASE
+            return (flags & VIEWPORT_FLAG_HIDE_BASE) != 0;
+        case 3: // DDIDX_HIDE_VERTICAL
+            return (flags & VIEWPORT_FLAG_HIDE_VERTICAL) != 0;
+        case 5: // DDIDX_HIDE_RIDES
+            return (flags & VIEWPORT_FLAG_HIDE_RIDES) != 0;
+        case 6: // DDIDX_HIDE_VEHICLES
+            return (flags & VIEWPORT_FLAG_HIDE_VEHICLES) != 0;
+        case 7: // DDIDX_HIDE_VEGETATION
+            return (flags & VIEWPORT_FLAG_HIDE_VEGETATION) != 0;
+        case 8: // DDIDX_HIDE_SCENERY
+            return (flags & VIEWPORT_FLAG_HIDE_SCENERY) != 0;
+        case 9: // DDIDX_HIDE_PATHS
+            return (flags & VIEWPORT_FLAG_HIDE_PATHS) != 0;
+        case 10: // DDIDX_HIDE_SUPPORTS
+            return (flags & VIEWPORT_FLAG_HIDE_SUPPORTS) != 0;
+        case 11: // DDIDX_HIDE_GUESTS
+            return (flags & VIEWPORT_FLAG_HIDE_GUESTS) != 0;
+        case 12: // DDIDX_HIDE_STAFF
+            return (flags & VIEWPORT_FLAG_HIDE_STAFF) != 0;
+        case 14: // DDIDX_LAND_HEIGHTS
+            return (flags & VIEWPORT_FLAG_LAND_HEIGHTS) != 0;
+        case 15: // DDIDX_TRACK_HEIGHTS
+            return (flags & VIEWPORT_FLAG_TRACK_HEIGHTS) != 0;
+        case 16: // DDIDX_PATH_HEIGHTS
+            return (flags & VIEWPORT_FLAG_PATH_HEIGHTS) != 0;
+        case 18: // DDIDX_VIEW_CLIPPING
+            return (flags & VIEWPORT_FLAG_CLIP_VIEW) != 0;
+        case 19: // DDIDX_HIGHLIGHT_PATH_ISSUES
+            return (flags & VIEWPORT_FLAG_HIGHLIGHT_PATH_ISSUES) != 0;
+        default:
+            // DDIDX_TRANSPARENCY opens a panel — not a sticky toggle.
+            return false;
+    }
+}
+
 void OpenRCT2MacNativeTransparencyToggle(uint32_t flag)
 {
     auto* w = WindowGetMain();

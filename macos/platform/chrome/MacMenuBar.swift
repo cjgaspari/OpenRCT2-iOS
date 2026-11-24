@@ -100,7 +100,13 @@ enum MacMenuBar {
         mainMenu.addItem(submenu("Edit", items: editItems()))
 
         // —— View ——
-        mainMenu.addItem(submenu("View", items: viewItems()))
+        let viewMenuItem = submenu("View", items: viewItems())
+        viewMenuItem.submenu?.delegate = ViewMenuBarDelegate.shared
+        // Initial checkmarks; delegate rebuilds on every open (HIG).
+        if let viewSub = viewMenuItem.submenu {
+            ViewMenuBarDelegate.applyCheckmarks(to: viewSub)
+        }
+        mainMenu.addItem(viewMenuItem)
 
         // —— Window ——
         let windowMenuItem = submenu("Window", items: windowItems())
@@ -331,7 +337,7 @@ enum MacMenuBar {
     }
 }
 
-private struct MenuBarCommand {
+struct MenuBarCommand {
     let code: Int32
     let extra: Int32
 }
@@ -344,5 +350,23 @@ final class MenuBarTarget: NSObject {
     @objc func invoke(_ sender: NSMenuItem) {
         guard let cmd = sender.representedObject as? MenuBarCommand else { return }
         handler?(cmd.code, cmd.extra)
+    }
+}
+
+/// Rebuild View toggle checkmarks when the menu bar View menu opens (Apple HIG).
+@MainActor
+final class ViewMenuBarDelegate: NSObject, NSMenuDelegate {
+    static let shared = ViewMenuBarDelegate()
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        Self.applyCheckmarks(to: menu)
+    }
+
+    static func applyCheckmarks(to menu: NSMenu) {
+        let viewCode = MacToolbarWIDX.viewMenu.rawValue
+        for item in menu.items {
+            guard let cmd = item.representedObject as? MenuBarCommand, cmd.code == viewCode else { continue }
+            item.state = MacViewMenuCheckmarks.state(for: cmd.extra)
+        }
     }
 }
