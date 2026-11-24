@@ -11,6 +11,10 @@ Duo chrome work. Coordinate with maintainers before any future, narrowly
 scoped engine plumbing. The SwiftUI Liquid Glass park HUD, Duo-aware layout
 hooks, TestFlight branding, and fork CI are product UX for this fork only.
 
+**Swift strategy (decided):** SwiftUI remains **fork-only**. Upstream OpenRCT2
+prefers C++ and has no Swift build graph; do not propose Liquid Glass chrome
+as an upstream dependency without explicit maintainer acceptance.
+
 The canonical user-facing description, requirements, physical-device build
 instructions, Files import walkthrough, controls, troubleshooting, and known
 limitations are maintained in the repository's [root README](../readme.md).
@@ -35,7 +39,8 @@ release gates rather than advertised features.
 - [Current verified status](DEVELOPMENT-STATUS.md)
 - [Touch controls and decision history](TOUCH-CONTROLS.md)
 - [Release checklist](RELEASE-CHECKLIST.md)
-- [Executable goal loop](../GOAL-LOOP.md)
+- [Executable goal loop](../GOAL-LOOP.md) (root `GOAL-LOOP.md` / `AGENTS.md` stay
+  as intentional fork process docs; not product chrome)
 - [Master iPadOS build plan](openrct2-ipados-BUILD-PLAN.md)
 
 ## Licence and data boundary

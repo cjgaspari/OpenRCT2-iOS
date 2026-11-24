@@ -9,6 +9,7 @@
 
 #include "../interface/Theme.h"
 
+#include <openrct2-ui/interface/MobileChromePolicy.h>
 #include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2-ui/windows/Windows.h>
@@ -457,9 +458,11 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* EditorBottomToolbarOpen()
     {
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        return nullptr;
-#else
+        if (!OpenRCT2::Ui::ShouldCreateDesktopChromeWindows())
+        {
+            return nullptr;
+        }
+
         static constexpr int32_t kToolbarHeight = 32;
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->Create<EditorBottomToolbarWindow>(
@@ -468,6 +471,5 @@ namespace OpenRCT2::Ui::Windows
             { WindowFlag::stickToFront, WindowFlag::transparent, WindowFlag::noBackground, WindowFlag::noTitleBar });
 
         return window;
-#endif
     }
 } // namespace OpenRCT2::Ui::Windows

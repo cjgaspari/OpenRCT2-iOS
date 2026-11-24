@@ -94,7 +94,9 @@ final class LoadSaveModel {
     }
 
     private func queue(_ action: ParkChromeAction, extra: Int32 = ParkChromeAction.extraXor) {
+        #if DEBUG
         NSLog("[OpenRCT2Touch] native load/save: queued action %d extra %d", action.rawValue, extra)
+        #endif
         onAction?(action.rawValue, extra)
     }
 }

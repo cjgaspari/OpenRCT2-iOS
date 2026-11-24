@@ -4,9 +4,9 @@
  * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 
+import CoreGraphics
+import Foundation
 import Observation
-import SwiftUI
-import UIKit
 
 struct ScenarioPickerSnapshot: Decodable {
     let title: String
@@ -45,7 +45,7 @@ final class ScenarioPickerModel {
     var snapshot: ScenarioPickerSnapshot?
     var selectedSourceID: Int32?
     var selectedScenarioID: Int32?
-    var previewImage: UIImage?
+    var previewImage: CGImage?
     var isPreviewLoading = false
     var isStarting = false
     var presentationGeneration = 0
@@ -179,7 +179,7 @@ final class ScenarioPickerModel {
             previewImage = nil
             return
         }
-        previewImage = UIImage(cgImage: image)
+        previewImage = image
     }
 
     private func preferredScenarioID(in sourceID: Int32?) -> Int32? {
@@ -199,7 +199,9 @@ final class ScenarioPickerModel {
     }
 
     private func queue(_ action: ParkChromeAction, extra: Int32 = ParkChromeAction.extraXor) {
+        #if DEBUG
         NSLog("[OpenRCT2Touch] native scenario picker: queued action %d extra %d", action.rawValue, extra)
+        #endif
         onAction?(action.rawValue, extra)
     }
 }

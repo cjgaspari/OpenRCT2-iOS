@@ -49,7 +49,10 @@ if (APPLE)
     if (OPENRCT2_IOS)
         list(APPEND OPENRCT2_UI_MM_SOURCES
             "${ROOT_DIR}/ios/platform/UiContext.iOS.mm"
+            "${ROOT_DIR}/ios/platform/IOSUIKitWindow.iOS.mm"
             "${ROOT_DIR}/ios/platform/NativeChrome.iOS.mm"
+            "${ROOT_DIR}/ios/platform/NativeChromeOverlay.iOS.mm"
+            "${ROOT_DIR}/ios/platform/NativeChromeModals.iOS.mm"
             "${ROOT_DIR}/ios/platform/NativeChromeParkState.iOS.mm"
             "${ROOT_DIR}/ios/platform/NativeChromeActionRouting.iOS.mm"
             "${ROOT_DIR}/ios/platform/NativeScenarioPicker.iOS.mm"
@@ -65,7 +68,10 @@ if (APPLE)
             "${ROOT_DIR}/ios/platform/chrome/ScenarioPickerView.swift"
             "${ROOT_DIR}/ios/platform/chrome/LoadSaveView.swift"
             "${ROOT_DIR}/ios/platform/chrome/RCT2ImportView.swift"
-            "${ROOT_DIR}/ios/platform/chrome/ParkChromeHost.swift")
+            "${ROOT_DIR}/ios/platform/chrome/ParkChromeViews.swift"
+            "${ROOT_DIR}/ios/platform/chrome/ParkChromeLayout.swift"
+            "${ROOT_DIR}/ios/platform/chrome/ParkChromeHost.swift"
+            "${ROOT_DIR}/ios/platform/chrome/ParkChromeBridges.swift")
     endif ()
     set_source_files_properties(${OPENRCT2_UI_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules -fno-objc-arc")
 endif ()

@@ -12,6 +12,7 @@
 #include "../scripting/CustomMenu.h"
 
 #include <openrct2-ui/interface/Dropdown.h>
+#include <openrct2-ui/interface/MobileChromePolicy.h>
 #include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2-ui/windows/Windows.h>
@@ -1455,9 +1456,11 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* TopToolbarOpen()
     {
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        return nullptr;
-#else
+        if (!OpenRCT2::Ui::ShouldCreateDesktopChromeWindows())
+        {
+            return nullptr;
+        }
+
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->Create<TopToolbar>(
             WindowClass::topToolbar, ScreenCoordsXY(0, 0), { ContextGetWidth(), kTopToolbarHeight + 1 },
@@ -1468,6 +1471,5 @@ namespace OpenRCT2::Ui::Windows
         WindowInitScrollWidgets(*window);
 
         return window;
-#endif
     }
 } // namespace OpenRCT2::Ui::Windows

@@ -54,8 +54,9 @@ and Duo-aware chrome are **fork product UX**, not a proposed OpenRCT2 upstream
 UI. Do not open Touch / iPad chrome pull requests against upstream without
 prior coordination (see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
 
-The August 1, 2026 checkpoint is synchronized through upstream OpenRCT2
-`develop` commit `69872010ae6b`. Future updates should merge a tested upstream
+The shipping tip (`ipad` / tag `touch-testflight-0.1.0-5`) shares merge-base
+`e16a74030d` with this fork's `develop` mirror. A full upstream rebase is a
+separate maintenance task — do not treat hygiene cleanup as that sync. Future updates should merge a tested upstream
 commit into a short-lived `touch/*` branch, run the full macOS and iOS loops,
 and merge the result into `ipad`; do not develop Touch changes on the mirror.
 

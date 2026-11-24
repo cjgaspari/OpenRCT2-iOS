@@ -430,7 +430,7 @@ private struct ScenarioPickerPreview: View {
             } else if model.isPreviewLoading {
                 ProgressView("Loading preview…")
             } else if let image = model.previewImage {
-                Image(uiImage: image)
+                Image(decorative: image, scale: 1.0)
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()

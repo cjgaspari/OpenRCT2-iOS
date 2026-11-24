@@ -25,11 +25,11 @@ reintroduced version of that file.
 
 ### `src/openrct2/CMakeLists.txt`
 
-- Verify adding `/ios/platform/Platform.iOS.mm` is the smallest way to register iOS.
+- Verify iOS platform registration beside other `Platform.*` sources.
 - Confirm the static-linking choice is justified on Apple platforms.
-- Check whether iOS source inclusion should live nearer `src/openrct2/platform/`.
 - Keep: yes.
-- Simplify: maybe move file ownership and registration closer to the platform tree.
+- Simplify: **done for ownership** — `Platform.iOS.mm` now lives at
+  `src/openrct2/platform/Platform.iOS.mm` (picked up by the core `.mm` glob).
 - Upstreamability: high.
 
 ### `src/openrct2-ui/CMakeLists.txt`
@@ -83,7 +83,7 @@ reintroduced version of that file.
 
 ## Core iOS platform support
 
-### `ios/platform/Platform.iOS.mm`
+### `src/openrct2/platform/Platform.iOS.mm`
 
 - Confirm sandbox paths are correct and minimal.
 - Confirm bundle and Documents lookup matches app behavior.
@@ -397,18 +397,18 @@ reintroduced version of that file.
 
 ## Top simplification targets
 
-1. `ios/platform/NativeChrome.iOS.mm` — **partially done:** park-state capture and
-   action routing extracted to `NativeChromeParkState.iOS.*` and
-   `NativeChromeActionRouting.iOS.*`. Remaining: overlay attach/detach and
-   modal presentation ownership.
-2. `ios/platform/chrome/ParkChromeHost.swift` — **started:** modal host type and
-   full-screen constraint helper extracted; host vs layout vs modal hosting
-   still share one file (~700 lines).
-3. `ios/platform/NativeScenarioPicker.iOS.mm`
-4. `ios/platform/NativeLoadSave.iOS.mm`
+1. `ios/platform/NativeChrome.iOS.mm` — **split:** park-state, action routing,
+   overlay ObjC, and modal presenters are separate TUs; attach/tick/event remain
+   in the host bridge.
+2. `ios/platform/chrome/ParkChromeHost.swift` — **split:** views, layout
+   extension, C bridges, and session host are separate Swift files.
+3. `ios/platform/NativeScenarioPicker.iOS.mm` — snapshot/engine still distinct;
+   UIKit window lookup shared via `IOSUIKitWindow.iOS.*`.
+4. `ios/platform/NativeLoadSave.iOS.mm` — same as above for modal hosting path.
 5. `src/openrct2-ui/interface/FileBrowser.cpp`
-6. `src/openrct2-ui/UiContext.cpp`
-7. `ios/platform/chrome/ScenarioPickerModel.swift`
+6. `src/openrct2-ui/UiContext.cpp` — iOS gesture classifier moved to
+   `input/UiContext.TouchGestures.iOS.inc.hpp`.
+7. `ios/platform/chrome/ScenarioPickerModel.swift` — preview is `CGImage?`.
 8. `ios/platform/chrome/LoadSaveModel.swift`
 
 ## Note on avoiding `UIImage`

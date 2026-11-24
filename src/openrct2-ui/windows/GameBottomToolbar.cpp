@@ -7,6 +7,7 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 
+#include <openrct2-ui/interface/MobileChromePolicy.h>
 #include <openrct2-ui/interface/Theme.h>
 #include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
@@ -363,9 +364,11 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* GameBottomToolbarOpen()
     {
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        return nullptr;
-#else
+        if (!OpenRCT2::Ui::ShouldCreateDesktopChromeWindows())
+        {
+            return nullptr;
+        }
+
         // TODO: query ParkInfoPanel, DateInfoPanel
         constexpr auto kPanelWidth = 142;
 
@@ -384,7 +387,6 @@ namespace OpenRCT2::Ui::Windows
             { WindowFlag::stickToFront, WindowFlag::transparent, WindowFlag::noBackground, WindowFlag::noTitleBar });
 
         return window;
-#endif
     }
 
     void WindowGameBottomToolbarInvalidateNewsItem()

@@ -33,7 +33,7 @@ end-to-end exit scripts are still pending.
 ## Current proof
 
 - The Touch branch is synchronized through upstream OpenRCT2 `develop` commit
-  `69872010ae6b` from July 31, 2026. The merge passed repository safety, the
+  `e16a74030d` (merge-base of `ipad`/`touch-testflight-0.1.0-5` with fork `develop` as of the public-hygiene pass; older docs cited `69872010ae6b`) from July 31, 2026. The merge passed repository safety, the
   macOS build and 1,000-tick headless run, both iOS dependency slices, both iOS
   app bundles, and the full iPad Simulator lifecycle verification.
 - `./scripts/build-ios.sh all` builds and audits both iOS device and Simulator
