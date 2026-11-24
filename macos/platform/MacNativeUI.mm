@@ -1277,6 +1277,7 @@ void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int
 
 extern "C" bool OpenRCT2MacNativeScenarioSelectShow(void);
 extern "C" bool OpenRCT2MacNativeLoadParkShow(void);
+extern "C" bool OpenRCT2MacNativeSaveParkShow(void);
 extern "C" void OpenRCT2MacNativeScenarioPreviewLoading(int32_t row);
 extern "C" void OpenRCT2MacNativeScenarioPreviewReady(int32_t row, const uint8_t* rgba, int32_t width, int32_t height);
 
@@ -1324,6 +1325,7 @@ namespace
     int32_t gMacPreviewRow = -1;
 
     std::vector<MacSaveFileRow> gMacSaveFiles;
+    std::string gMacSaveDefaultName;
 
     std::string MacPlain(std::string_view text)
     {
@@ -1724,11 +1726,39 @@ bool OpenRCT2MacNativeLoadParkPresent(void)
     return OpenRCT2MacNativeLoadParkShow();
 }
 
+bool OpenRCT2MacNativeSaveParkPresent(void)
+{
+    if (!OpenRCT2MacUINativeEnabled("savePark"))
+        return false;
+    if (!MacNativeIsMainThread())
+        return false;
+    MacSaveRebuildList();
+    return OpenRCT2MacNativeSaveParkShow();
+}
+
 bool OpenRCT2::Ui::MacNativeLoadParkOpen(
     std::function<void(OpenRCT2::ModalResult, std::string_view)> callback, bool isJsCallback)
 {
     FileBrowser::RegisterCallback(std::move(callback), isJsCallback);
     return OpenRCT2MacNativeLoadParkPresent();
+}
+
+bool OpenRCT2::Ui::MacNativeSaveParkOpen(
+    std::string_view defaultPath, std::function<void(OpenRCT2::ModalResult, std::string_view)> callback, bool isJsCallback)
+{
+    // Prefer bare filename for the text field; fall back to park name when empty.
+    if (!defaultPath.empty())
+    {
+        gMacSaveDefaultName = Path::GetFileNameWithoutExtension(u8string(defaultPath));
+        if (gMacSaveDefaultName.empty())
+            gMacSaveDefaultName = u8string(defaultPath);
+    }
+    else
+    {
+        gMacSaveDefaultName = getGameState().park.name;
+    }
+    FileBrowser::RegisterCallback(std::move(callback), isJsCallback);
+    return OpenRCT2MacNativeSaveParkPresent();
 }
 
 extern "C" void OpenRCT2MacNativeSaveFileRefresh(void)
@@ -1767,6 +1797,54 @@ extern "C" bool OpenRCT2MacNativeSaveFileLoad(int32_t index)
         return false;
     FileBrowser::Select(gMacSaveFiles[static_cast<size_t>(index)].path.c_str(), LoadSaveAction::load, LoadSaveType::park, nullptr);
     return true;
+}
+
+extern "C" void OpenRCT2MacNativeSaveFileGetDefaultName(char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    std::snprintf(out, outLen, "%s", gMacSaveDefaultName.c_str());
+}
+
+namespace
+{
+    bool MacSaveParkCommit(const u8string& fileName)
+    {
+        if (fileName.empty() || !FileBrowser::IsValidPath(fileName.c_str()))
+        {
+            ContextShowError(STR_ERROR_INVALID_CHARACTERS, kStringIdNone, {});
+            return false;
+        }
+
+        const auto dir = FileBrowser::GetDir(LoadSaveType::park);
+        const auto path = Path::WithExtension(Path::Combine(dir, fileName), ".park");
+        if (File::Exists(path))
+        {
+            char message[512];
+            std::snprintf(
+                message, sizeof(message), "\"%s\" already exists. Overwrite it?", fileName.c_str());
+            // Keep panel open when Cancel — match classic overwrite prompt.
+            if (OpenRCT2MacNativeAlertConfirm("Overwrite File", message, "Overwrite", "Cancel", nullptr) != 0)
+                return false;
+        }
+
+        FileBrowser::Select(path.c_str(), LoadSaveAction::save, LoadSaveType::park, nullptr);
+        return true;
+    }
+} // namespace
+
+extern "C" bool OpenRCT2MacNativeSaveFileSave(const char* name)
+{
+    if (name == nullptr)
+        return false;
+    return MacSaveParkCommit(u8string(name));
+}
+
+extern "C" bool OpenRCT2MacNativeSaveFileSaveIndex(int32_t index)
+{
+    if (index < 0 || static_cast<size_t>(index) >= gMacSaveFiles.size())
+        return false;
+    return MacSaveParkCommit(gMacSaveFiles[static_cast<size_t>(index)].name);
 }
 
 // ---------------------------------------------------------------------------

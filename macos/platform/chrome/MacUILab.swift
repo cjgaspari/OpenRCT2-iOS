@@ -23,6 +23,7 @@ enum MacUISurface: String, CaseIterable, Identifiable {
     // Browsers
     case scenarioSelect
     case loadPark
+    case savePark
     // Panels / windows
     case options
     case cheats
@@ -51,6 +52,7 @@ enum MacUISurface: String, CaseIterable, Identifiable {
         case .news: return "Recent news"
         case .scenarioSelect: return "Scenario select"
         case .loadPark: return "Load saved game"
+        case .savePark: return "Save / Save As"
         case .options: return "Options"
         case .cheats: return "Cheats"
         case .about: return "About"
@@ -74,7 +76,7 @@ enum MacUISurface: String, CaseIterable, Identifiable {
             return "Title & chrome"
         case .alerts, .progress, .news:
             return "Dialogs"
-        case .scenarioSelect, .loadPark:
+        case .scenarioSelect, .loadPark, .savePark:
             return "Browsers"
         default:
             return "Panels"

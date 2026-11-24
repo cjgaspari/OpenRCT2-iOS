@@ -71,6 +71,12 @@ namespace OpenRCT2::Ui::FileBrowser
         {
             return nullptr;
         }
+        // Save / Save As park → same glass browser with name field (CJ).
+        if (action == LoadSaveAction::save && type == LoadSaveType::park
+            && OpenRCT2::Ui::MacNativeSaveParkOpen(defaultPath, callback, isJsCallback))
+        {
+            return nullptr;
+        }
 #endif
 #ifdef __EMSCRIPTEN__
         if (action == LoadSaveAction::save)

@@ -48,6 +48,12 @@ func OpenRCT2MacNativeSaveFileGetDate(_ index: Int32, _ out: UnsafeMutablePointe
 func OpenRCT2MacNativeSaveFileLoad(_ index: Int32) -> Bool
 @_silgen_name("OpenRCT2MacNativeSaveFileRefresh")
 func OpenRCT2MacNativeSaveFileRefresh()
+@_silgen_name("OpenRCT2MacNativeSaveFileGetDefaultName")
+func OpenRCT2MacNativeSaveFileGetDefaultName(_ out: UnsafeMutablePointer<CChar>, _ outLen: Int)
+@_silgen_name("OpenRCT2MacNativeSaveFileSave")
+func OpenRCT2MacNativeSaveFileSave(_ name: UnsafePointer<CChar>) -> Bool
+@_silgen_name("OpenRCT2MacNativeSaveFileSaveIndex")
+func OpenRCT2MacNativeSaveFileSaveIndex(_ index: Int32) -> Bool
 
 // MARK: - Preview store (classic ParkPreview → RGBA)
 
@@ -374,7 +380,12 @@ func OpenRCT2MacNativeScenarioSelectShow() -> Bool {
     MainActor.assumeIsolated { MacScenarioSelectPanel.show() }
 }
 
-// MARK: - Load saved game (3.18 / title)
+// MARK: - Load / Save park (3.18)
+
+private enum ParkFileMode {
+    case load
+    case save
+}
 
 enum MacLoadParkPanel {
     @MainActor private static var panel: NSPanel?
@@ -390,7 +401,7 @@ enum MacLoadParkPanel {
             title: "Load Saved Game",
             size: NSSize(width: 560, height: 400),
             minSize: NSSize(width: 420, height: 280),
-            root: LoadParkView {
+            root: ParkFileBrowserView(mode: .load) {
                 panel?.close()
                 panel = nil
             }
@@ -399,10 +410,35 @@ enum MacLoadParkPanel {
     }
 }
 
-private struct LoadParkView: View {
+enum MacSaveParkPanel {
+    @MainActor private static var panel: NSPanel?
+
+    @MainActor
+    static func show() -> Bool {
+        OpenRCT2MacNativeSaveFileRefresh()
+        if let panel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            return true
+        }
+        panel = MacGlassPanelHost.present(
+            title: "Save Game",
+            size: NSSize(width: 560, height: 420),
+            minSize: NSSize(width: 420, height: 300),
+            root: ParkFileBrowserView(mode: .save) {
+                panel?.close()
+                panel = nil
+            }
+        )
+        return true
+    }
+}
+
+private struct ParkFileBrowserView: View {
+    let mode: ParkFileMode
     let onClose: () -> Void
     @State private var selected: Int?
     @State private var files: [SaveFileRow] = []
+    @State private var fileName: String = ""
     @Bindable private var knobs = MacGlassStyleKnobs.shared
 
     private var saveCountLabel: String {
@@ -415,6 +451,10 @@ private struct LoadParkView: View {
             return "1 save"
         }
         return "\(count) saves"
+    }
+
+    private var trimmedName: String {
+        fileName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var body: some View {
@@ -448,12 +488,13 @@ private struct LoadParkView: View {
                     )
                     .onTapGesture(count: 2) {
                         selected = file.index
-                        if OpenRCT2MacNativeSaveFileLoad(Int32(file.index)) {
-                            onClose()
-                        }
+                        commitSelection(file.index)
                     }
                     .onTapGesture(count: 1) {
                         selected = file.index
+                        if mode == .save {
+                            fileName = file.name
+                        }
                     }
                 }
             }
@@ -463,6 +504,21 @@ private struct LoadParkView: View {
             .padding(4)
             .background(MacGlassTextPlate())
             .padding(.horizontal, 10)
+
+            if mode == .save {
+                HStack(spacing: 8) {
+                    Text("Name")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(knobs.secondaryLabel)
+                    TextField("Park name", text: $fileName)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12))
+                        .onSubmit { commitSaveName() }
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 8)
+                .padding(.bottom, 2)
+            }
 
             MacGlassClearFooter {
                 MacGlassSecondaryText(text: saveCountLabel)
@@ -477,18 +533,35 @@ private struct LoadParkView: View {
                 .help("Refresh")
                 .accessibilityLabel("Refresh")
                 Spacer()
-                Button("Load") {
-                    if let selected, OpenRCT2MacNativeSaveFileLoad(Int32(selected)) {
-                        onClose()
+                switch mode {
+                case .load:
+                    Button("Load") {
+                        if let selected {
+                            commitSelection(selected)
+                        }
                     }
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.regular)
+                    .disabled(selected == nil)
+                case .save:
+                    Button("Save") {
+                        commitSaveName()
+                    }
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.regular)
+                    .disabled(trimmedName.isEmpty)
                 }
-                .buttonStyle(.glassProminent)
-                .controlSize(.regular)
-                .disabled(selected == nil)
             }
         }
         .background(Color.clear)
-        .onAppear { reload() }
+        .onAppear {
+            reload()
+            if mode == .save {
+                var buf = [CChar](repeating: 0, count: 256)
+                OpenRCT2MacNativeSaveFileGetDefaultName(&buf, buf.count)
+                fileName = String(cString: buf)
+            }
+        }
     }
 
     private func reload() {
@@ -503,6 +576,29 @@ private struct LoadParkView: View {
         }
         files = next
     }
+
+    private func commitSelection(_ index: Int) {
+        switch mode {
+        case .load:
+            if OpenRCT2MacNativeSaveFileLoad(Int32(index)) {
+                onClose()
+            }
+        case .save:
+            if OpenRCT2MacNativeSaveFileSaveIndex(Int32(index)) {
+                onClose()
+            }
+        }
+    }
+
+    private func commitSaveName() {
+        let name = trimmedName
+        guard !name.isEmpty else { return }
+        name.withCString { cName in
+            if OpenRCT2MacNativeSaveFileSave(cName) {
+                onClose()
+            }
+        }
+    }
 }
 
 private struct SaveFileRow: Identifiable {
@@ -515,6 +611,11 @@ private struct SaveFileRow: Identifiable {
 @_cdecl("OpenRCT2MacNativeLoadParkShow")
 func OpenRCT2MacNativeLoadParkShow() -> Bool {
     MainActor.assumeIsolated { MacLoadParkPanel.show() }
+}
+
+@_cdecl("OpenRCT2MacNativeSaveParkShow")
+func OpenRCT2MacNativeSaveParkShow() -> Bool {
+    MainActor.assumeIsolated { MacSaveParkPanel.show() }
 }
 
 // Compatibility alias used by earlier call sites / docs.

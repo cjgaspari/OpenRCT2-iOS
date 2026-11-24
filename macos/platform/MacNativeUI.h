@@ -157,6 +157,7 @@ void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int
 /** Title / Tier-3 browsers — Liquid Glass chrome, dense lists. */
 bool OpenRCT2MacNativeScenarioSelectPresent(void);
 bool OpenRCT2MacNativeLoadParkPresent(void);
+bool OpenRCT2MacNativeSaveParkPresent(void);
 
 int32_t OpenRCT2MacNativeScenarioTabCount(void);
 bool OpenRCT2MacNativeScenarioTabVisible(int32_t tab);
@@ -176,6 +177,9 @@ int32_t OpenRCT2MacNativeSaveFileCount(void);
 void OpenRCT2MacNativeSaveFileGetName(int32_t index, char* out, size_t outLen);
 void OpenRCT2MacNativeSaveFileGetDate(int32_t index, char* out, size_t outLen);
 bool OpenRCT2MacNativeSaveFileLoad(int32_t index);
+void OpenRCT2MacNativeSaveFileGetDefaultName(char* out, size_t outLen);
+bool OpenRCT2MacNativeSaveFileSave(const char* name);
+bool OpenRCT2MacNativeSaveFileSaveIndex(int32_t index);
 
 /** Live Glass Style Lab — knobs for clear/regular, dimming, frost, tint. */
 bool OpenRCT2MacNativeGlassStyleLabPresent(void);
@@ -215,6 +219,9 @@ namespace OpenRCT2::Ui
     bool MacNativeScenarioSelectOpen(std::function<void(std::string_view)> callback);
     /** Present Mac glass load-park browser (registers FileBrowser callback). */
     bool MacNativeLoadParkOpen(std::function<void(ModalResult, std::string_view)> callback, bool isJsCallback);
+    /** Present Mac glass save-park browser (Save / Save As; registers FileBrowser callback). */
+    bool MacNativeSaveParkOpen(
+        std::string_view defaultPath, std::function<void(ModalResult, std::string_view)> callback, bool isJsCallback);
 } // namespace OpenRCT2::Ui
 #endif
 
