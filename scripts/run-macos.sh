@@ -5,6 +5,7 @@ set -euo pipefail
 # Desktop Mac pipeline runner (not iOS Touch). Same binary as build-macos.sh.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export ROOT
+export OPENRCT2_ROOT="$ROOT"
 unset BUILD_ROOT
 # shellcheck disable=SC1091
 source "$ROOT/scripts/env.sh"

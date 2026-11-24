@@ -13,8 +13,6 @@ final class MacChromePassThroughView: NSView {
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         let hit = super.hitTest(point)
-        // iOS Touch learned that returning nil for hosting-view hits breaks glass
-        // buttons; only pass through when the hit is this empty container itself.
         return hit === self ? nil : hit
     }
 
@@ -48,7 +46,6 @@ final class MacParkChromeSession: NSObject {
         let host = NSHostingView(rootView: root)
         host.frame = overlay.bounds
         host.autoresizingMask = [.width, .height]
-        // Transparent so Liquid Glass can sample the park framebuffer beneath.
         host.wantsLayer = true
         host.layer?.backgroundColor = NSColor.clear.cgColor
 
@@ -57,8 +54,6 @@ final class MacParkChromeSession: NSObject {
 
         overlayView = overlay
         hostingView = host
-        // Placeholder metrics until park-state wiring lands.
-        setStatus(cash: "$12,450", guests: "248", rating: "675", date: "Mar 14")
         bringToFront()
     }
 
@@ -72,24 +67,34 @@ final class MacParkChromeSession: NSObject {
 
     func bringToFront() {
         guard let overlayView, let parentView else { return }
-        if overlayView.superview !== parentView {
-            parentView.addSubview(overlayView, positioned: .above, relativeTo: nil)
-        } else {
-            parentView.addSubview(overlayView, positioned: .above, relativeTo: nil)
-        }
+        parentView.addSubview(overlayView, positioned: .above, relativeTo: nil)
         overlayView.frame = parentView.bounds
         hostingView?.frame = overlayView.bounds
     }
 
-    func setStatus(cash: String, guests: String, rating: String, date: String) {
+    func setIconDirectory(_ path: String) {
+        MacToolbarIconStore.iconDirectory = URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    func setStatus(
+        cash: String,
+        guests: String,
+        rating: String,
+        date: String,
+        temp: String,
+        weather: String
+    ) {
         model.statusCash = cash
         model.statusGuests = guests
         model.statusRating = rating
         model.statusDate = date
+        model.statusTemp = temp
+        model.statusWeather = weather
     }
 
-    func setState(paused: Bool, speed: UInt8) {
+    func setState(paused: Bool, muted: Bool, speed: UInt8) {
         model.isPaused = paused
+        model.isMuted = muted
         model.speed = speed
     }
 }
