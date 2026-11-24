@@ -330,3 +330,179 @@ private struct CheatsView: View {
 func OpenRCT2MacNativeCheatsShow() -> Bool {
     MainActor.assumeIsolated { MacCheatsPanel.show() }
 }
+
+// MARK: - Themes (2.3)
+
+@_silgen_name("OpenRCT2MacNativeThemeCount")
+func OpenRCT2MacNativeThemeCount() -> Int32
+@_silgen_name("OpenRCT2MacNativeThemeGetName")
+func OpenRCT2MacNativeThemeGetName(_ index: Int32, _ out: UnsafeMutablePointer<CChar>, _ outLen: Int)
+@_silgen_name("OpenRCT2MacNativeThemeGetActive")
+func OpenRCT2MacNativeThemeGetActive() -> Int32
+@_silgen_name("OpenRCT2MacNativeThemeSetActive")
+func OpenRCT2MacNativeThemeSetActive(_ index: Int32)
+@_silgen_name("OpenRCT2MacNativeThemeGetFlags")
+func OpenRCT2MacNativeThemeGetFlags() -> UInt8
+@_silgen_name("OpenRCT2MacNativeThemeToggleFlag")
+func OpenRCT2MacNativeThemeToggleFlag(_ flag: UInt8)
+
+enum MacThemesPanel {
+    @MainActor private static var panel: NSPanel?
+
+    @MainActor
+    static func show() -> Bool {
+        if let panel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            return true
+        }
+        panel = MacDensePanelHost.present(
+            title: "Themes",
+            size: NSSize(width: 360, height: 320),
+            root: ThemesView()
+        )
+        return true
+    }
+}
+
+private struct ThemesView: View {
+    @State private var names: [String] = []
+    @State private var active: Int = Int(OpenRCT2MacNativeThemeGetActive())
+    @State private var flags: UInt8 = OpenRCT2MacNativeThemeGetFlags()
+
+    var body: some View {
+        Form {
+            Section("Preset") {
+                Picker("Theme", selection: $active) {
+                    ForEach(names.indices, id: \.self) { i in
+                        Text(names[i]).tag(i)
+                    }
+                }
+                .controlSize(.small)
+                .onChange(of: active) { _, v in
+                    OpenRCT2MacNativeThemeSetActive(Int32(v))
+                    flags = OpenRCT2MacNativeThemeGetFlags()
+                }
+            }
+            Section("Features") {
+                flagToggle("Ride lights", 1 << 1)
+                flagToggle("Park lights", 1 << 2)
+                flagToggle("Alt scenario font", 1 << 3)
+                flagToggle("Full bottom toolbar", 1 << 4)
+                flagToggle("3D image buttons", 1 << 5)
+            }
+        }
+        .formStyle(.grouped)
+        .controlSize(.small)
+        .padding(6)
+        .onAppear { reload() }
+    }
+
+    private func flagToggle(_ title: String, _ bit: UInt8) -> some View {
+        Toggle(title, isOn: Binding(
+            get: { (flags & bit) != 0 },
+            set: { _ in
+                OpenRCT2MacNativeThemeToggleFlag(bit)
+                flags = OpenRCT2MacNativeThemeGetFlags()
+            }
+        ))
+        .controlSize(.small)
+    }
+
+    private func reload() {
+        let count = Int(OpenRCT2MacNativeThemeCount())
+        var n: [String] = []
+        for i in 0..<count {
+            var buf = [CChar](repeating: 0, count: 128)
+            OpenRCT2MacNativeThemeGetName(Int32(i), &buf, buf.count)
+            n.append(String(cString: buf))
+        }
+        names = n
+        active = Int(OpenRCT2MacNativeThemeGetActive())
+        flags = OpenRCT2MacNativeThemeGetFlags()
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeThemesShow")
+func OpenRCT2MacNativeThemesShow() -> Bool {
+    MainActor.assumeIsolated { MacThemesPanel.show() }
+}
+
+// MARK: - New Campaign (2.11)
+
+@_silgen_name("OpenRCT2MacNativeCampaignRideCount")
+func OpenRCT2MacNativeCampaignRideCount(_ type: Int16) -> Int32
+@_silgen_name("OpenRCT2MacNativeCampaignRideName")
+func OpenRCT2MacNativeCampaignRideName(_ type: Int16, _ index: Int32, _ out: UnsafeMutablePointer<CChar>, _ outLen: Int)
+@_silgen_name("OpenRCT2MacNativeCampaignStart")
+func OpenRCT2MacNativeCampaignStart(_ type: Int16, _ rideIndex: Int32, _ weeks: Int32)
+
+enum MacNewCampaignPanel {
+    @MainActor private static var panel: NSPanel?
+
+    @MainActor
+    static func show(type: Int16) -> Bool {
+        if let panel, panel.isVisible {
+            panel.close()
+            self.panel = nil
+        }
+        panel = MacDensePanelHost.present(
+            title: "New Campaign",
+            size: NSSize(width: 380, height: 180),
+            root: NewCampaignView(campaignType: type)
+        )
+        return true
+    }
+}
+
+private struct NewCampaignView: View {
+    let campaignType: Int16
+    @State private var rides: [String] = []
+    @State private var selected: Int = 0
+    @State private var weeks: Double = 2
+
+    var body: some View {
+        Form {
+            if !rides.isEmpty {
+                Picker("Target", selection: $selected) {
+                    ForEach(rides.indices, id: \.self) { i in
+                        Text(rides[i]).tag(i)
+                    }
+                }
+                .controlSize(.small)
+            }
+            HStack {
+                Text("Weeks")
+                Stepper(value: $weeks, in: 2...12, step: 1) {
+                    Text("\(Int(weeks))")
+                        .monospacedDigit()
+                        .frame(minWidth: 24, alignment: .trailing)
+                }
+                .controlSize(.small)
+            }
+            Button("Start Campaign") {
+                OpenRCT2MacNativeCampaignStart(campaignType, Int32(selected), Int32(weeks))
+            }
+            .controlSize(.small)
+        }
+        .formStyle(.grouped)
+        .padding(8)
+        .onAppear { reload() }
+    }
+
+    private func reload() {
+        let count = Int(OpenRCT2MacNativeCampaignRideCount(campaignType))
+        var n: [String] = []
+        for i in 0..<count {
+            var buf = [CChar](repeating: 0, count: 128)
+            OpenRCT2MacNativeCampaignRideName(campaignType, Int32(i), &buf, buf.count)
+            n.append(String(cString: buf))
+        }
+        rides = n
+        selected = 0
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeNewCampaignShow")
+func OpenRCT2MacNativeNewCampaignShow(_ type: Int16) -> Bool {
+    MainActor.assumeIsolated { MacNewCampaignPanel.show(type: type) }
+}

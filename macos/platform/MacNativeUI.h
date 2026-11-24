@@ -141,6 +141,19 @@ void OpenRCT2MacNativeShortcutResetAll(void);
 bool OpenRCT2MacNativeShortcutChangePresent(const char* id);
 void OpenRCT2MacNativeShortcutApplyChord(const char* id, const char* chord);
 
+bool OpenRCT2MacNativeThemesPresent(void);
+int32_t OpenRCT2MacNativeThemeCount(void);
+void OpenRCT2MacNativeThemeGetName(int32_t index, char* out, size_t outLen);
+int32_t OpenRCT2MacNativeThemeGetActive(void);
+void OpenRCT2MacNativeThemeSetActive(int32_t index);
+uint8_t OpenRCT2MacNativeThemeGetFlags(void);
+void OpenRCT2MacNativeThemeToggleFlag(uint8_t flag);
+
+bool OpenRCT2MacNativeNewCampaignPresent(int16_t campaignType);
+int32_t OpenRCT2MacNativeCampaignRideCount(int16_t campaignType);
+void OpenRCT2MacNativeCampaignRideName(int16_t campaignType, int32_t index, char* out, size_t outLen);
+void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int32_t weeks);
+
 #ifdef __cplusplus
 }
 #endif

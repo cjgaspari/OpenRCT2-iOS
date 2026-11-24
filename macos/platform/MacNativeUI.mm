@@ -18,7 +18,14 @@
 #include <openrct2/AssetPackManager.h>
 #include <openrct2-ui/UiContext.h>
 #include <openrct2-ui/input/ShortcutManager.h>
+#include <openrct2-ui/interface/Theme.h>
 #include <openrct2/Cheats.h>
+#include <openrct2/actions/park/ParkMarketingAction.h>
+#include <openrct2/management/Marketing.h>
+#include <openrct2/ride/Ride.h>
+#include <openrct2/ride/RideData.h>
+#include <openrct2/ride/RideManager.hpp>
+#include <openrct2/ride/ShopItem.h>
 #include <openrct2/Context.h>
 #include <openrct2/localisation/Language.h>
 #include <openrct2/Game.h>
@@ -33,6 +40,7 @@
 #include <openrct2/actions/peep/StaffFireAction.h>
 #include <openrct2/audio/Audio.h>
 #include <openrct2/config/Config.h>
+#include <openrct2/core/BitSet.hpp>
 #include <openrct2/core/EnumUtils.hpp>
 #include <openrct2/core/File.h>
 #include <openrct2/drawing/Drawing.h>
@@ -44,7 +52,6 @@
 #include <openrct2/object/ObjectManager.h>
 #include <openrct2/paint/Paint.h>
 #include <openrct2/paint/tile_element/Paint.TileElement.h>
-#include <openrct2/ride/Ride.h>
 #include <openrct2/windows/Intent.h>
 #include <openrct2/world/Map.h>
 #include <openrct2/world/MapSelection.h>
@@ -1014,6 +1021,169 @@ extern "C" void OpenRCT2MacNativeShortcutApplyChord(const char* id, const char* 
         sc->current = { ShortcutInput(chord) };
     }
     GetShortcutManager().saveUserBindings();
+}
+
+extern "C" bool OpenRCT2MacNativeThemesShow(void);
+extern "C" bool OpenRCT2MacNativeNewCampaignShow(int16_t type);
+
+bool OpenRCT2MacNativeThemesPresent(void)
+{
+    return OpenRCT2MacNativeThemesShow();
+}
+
+int32_t OpenRCT2MacNativeThemeCount(void)
+{
+    return static_cast<int32_t>(ThemeManagerGetNumAvailableThemes());
+}
+
+void OpenRCT2MacNativeThemeGetName(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (index < 0 || static_cast<size_t>(index) >= ThemeManagerGetNumAvailableThemes())
+        return;
+    if (const utf8* name = ThemeManagerGetAvailableThemeName(static_cast<size_t>(index)); name != nullptr)
+        std::snprintf(out, outLen, "%s", name);
+}
+
+int32_t OpenRCT2MacNativeThemeGetActive(void)
+{
+    return static_cast<int32_t>(ThemeManagerGetAvailableThemeIndex());
+}
+
+void OpenRCT2MacNativeThemeSetActive(int32_t index)
+{
+    if (index < 0 || static_cast<size_t>(index) >= ThemeManagerGetNumAvailableThemes())
+        return;
+    ThemeManagerSetActiveAvailableTheme(static_cast<size_t>(index));
+}
+
+uint8_t OpenRCT2MacNativeThemeGetFlags(void)
+{
+    return ThemeGetFlags();
+}
+
+void OpenRCT2MacNativeThemeToggleFlag(uint8_t flag)
+{
+    ThemeSetFlags(ThemeGetFlags() ^ flag);
+    ThemeSave();
+    ColourSchemeUpdateAll();
+}
+
+static std::vector<RideId> gMacCampaignRides;
+static std::vector<ShopItem> gMacCampaignShops;
+static int16_t gMacCampaignType = -1;
+
+static void MacCampaignRebuildTargets(int16_t campaignType)
+{
+    gMacCampaignType = campaignType;
+    gMacCampaignRides.clear();
+    gMacCampaignShops.clear();
+    const auto& gameState = getGameState();
+    if (campaignType == ADVERTISING_CAMPAIGN_FOOD_OR_DRINK_FREE)
+    {
+        OpenRCT2::BitSet<EnumValue(ShopItem::count)> items = {};
+        for (auto& curRide : RideManager(gameState))
+        {
+            auto* rideEntry = curRide.getRideEntry();
+            if (rideEntry != nullptr && curRide.status == RideStatus::open)
+            {
+                for (const auto itemType : rideEntry->shop_item)
+                {
+                    if (itemType != ShopItem::none && GetShopItemDescriptor(itemType).IsFoodOrDrink())
+                        items[EnumValue(itemType)] = true;
+                }
+            }
+        }
+        for (auto i = 0; i < EnumValue(ShopItem::count); i++)
+        {
+            if (items[i])
+                gMacCampaignShops.push_back(static_cast<ShopItem>(i));
+        }
+        return;
+    }
+
+    for (const auto& curRide : RideManager(gameState))
+    {
+        if (curRide.status != RideStatus::open)
+            continue;
+        const auto& rtd = curRide.getRideTypeDescriptor();
+        if (rtd.flags.has(RtdFlag::isShopOrFacility) || rtd.flags.has(RtdFlag::sellsFood) || rtd.flags.has(RtdFlag::sellsDrinks)
+            || rtd.specialType == RtdSpecialType::toilet)
+            continue;
+        gMacCampaignRides.push_back(curRide.id);
+    }
+}
+
+bool OpenRCT2MacNativeNewCampaignPresent(int16_t campaignType)
+{
+    MacCampaignRebuildTargets(campaignType);
+    return OpenRCT2MacNativeNewCampaignShow(campaignType);
+}
+
+int32_t OpenRCT2MacNativeCampaignRideCount(int16_t campaignType)
+{
+    if (gMacCampaignType != campaignType)
+        MacCampaignRebuildTargets(campaignType);
+    if (campaignType == ADVERTISING_CAMPAIGN_FOOD_OR_DRINK_FREE)
+        return static_cast<int32_t>(gMacCampaignShops.size());
+    // Park-wide campaigns need no target.
+    if (campaignType == ADVERTISING_CAMPAIGN_PARK_ENTRY_FREE || campaignType == ADVERTISING_CAMPAIGN_PARK_ENTRY_HALF_PRICE
+        || campaignType == ADVERTISING_CAMPAIGN_PARK)
+        return 0;
+    return static_cast<int32_t>(gMacCampaignRides.size());
+}
+
+void OpenRCT2MacNativeCampaignRideName(int16_t campaignType, int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (gMacCampaignType != campaignType)
+        MacCampaignRebuildTargets(campaignType);
+    if (campaignType == ADVERTISING_CAMPAIGN_FOOD_OR_DRINK_FREE)
+    {
+        if (index < 0 || static_cast<size_t>(index) >= gMacCampaignShops.size())
+            return;
+        const auto& naming = GetShopItemDescriptor(gMacCampaignShops[static_cast<size_t>(index)]).Naming;
+        if (const char* s = LanguageGetString(naming.Plural); s != nullptr)
+            std::snprintf(out, outLen, "%s", s);
+        return;
+    }
+    if (index < 0 || static_cast<size_t>(index) >= gMacCampaignRides.size())
+        return;
+    if (auto* ride = GetRide(gMacCampaignRides[static_cast<size_t>(index)]); ride != nullptr)
+        std::snprintf(out, outLen, "%s", ride->getName().c_str());
+}
+
+void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int32_t weeks)
+{
+    if (weeks < 2)
+        weeks = 2;
+    if (weeks > 12)
+        weeks = 12;
+    if (gMacCampaignType != campaignType)
+        MacCampaignRebuildTargets(campaignType);
+
+    uint16_t rideOrItem = 0;
+    if (campaignType == ADVERTISING_CAMPAIGN_FOOD_OR_DRINK_FREE)
+    {
+        if (rideIndex < 0 || static_cast<size_t>(rideIndex) >= gMacCampaignShops.size())
+            return;
+        rideOrItem = static_cast<uint16_t>(EnumValue(gMacCampaignShops[static_cast<size_t>(rideIndex)]));
+    }
+    else if (
+        campaignType != ADVERTISING_CAMPAIGN_PARK_ENTRY_FREE && campaignType != ADVERTISING_CAMPAIGN_PARK_ENTRY_HALF_PRICE
+        && campaignType != ADVERTISING_CAMPAIGN_PARK)
+    {
+        if (rideIndex < 0 || static_cast<size_t>(rideIndex) >= gMacCampaignRides.size())
+            return;
+        rideOrItem = gMacCampaignRides[static_cast<size_t>(rideIndex)].ToUnderlying();
+    }
+
+    auto gameAction = GameActions::ParkMarketingAction(campaignType, rideOrItem, weeks);
+    GameActions::Execute(&gameAction, getGameState());
 }
 
 #endif // TARGET_OS_OSX

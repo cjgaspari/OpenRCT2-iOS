@@ -26,6 +26,13 @@
 #include <openrct2/ride/ShopItem.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     static constexpr StringId kWindowTitle = kStringIdNone;
@@ -386,6 +393,10 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* NewCampaignOpen(int16_t campaignType)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeNewCampaignPresent(campaignType))
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         auto* w = static_cast<NewCampaignWindow*>(windowMgr->BringToFrontByClass(WindowClass::newCampaign));
         if (w != nullptr)
