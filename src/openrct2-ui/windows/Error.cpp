@@ -22,6 +22,13 @@
 #include <openrct2/localisation/Formatting.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+extern "C" void OpenRCT2MacNativeErrorToast(const char* message);
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     enum WindowErrorWidgetIdx : WidgetIndex
@@ -121,6 +128,33 @@ namespace OpenRCT2::Ui::Windows
         {
             return nullptr;
         }
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        // CJ HIG 3A: errors share bottom-center Liquid Glass toast with news.
+        {
+            std::string plain;
+            plain.reserve(buffer.size());
+            for (size_t i = 0; i < buffer.size();)
+            {
+                if (buffer[i] == '{')
+                {
+                    auto end = buffer.find('}', i);
+                    if (end != std::string::npos)
+                    {
+                        i = end + 1;
+                        continue;
+                    }
+                }
+                plain.push_back(buffer[i]);
+                ++i;
+            }
+            while (!plain.empty() && (plain.front() == '\n' || plain.front() == ' '))
+                plain.erase(plain.begin());
+            Audio::Play(Audio::SoundId::error, 100, ContextGetWidth() / 2);
+            OpenRCT2MacNativeErrorToast(plain.c_str());
+            return nullptr;
+        }
+#endif
 
         // Close any existing error windows if they exist.
         auto* windowMgr = GetWindowManager();

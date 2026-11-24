@@ -105,4 +105,12 @@ final class MacParkChromeSession: NSObject {
         model.isMuted = muted
         model.speed = speed
     }
+
+    func setNewsToast(message: String, showSubject: Bool, showLocate: Bool) {
+        model.setNewsToast(message: message, showSubject: showSubject, showLocate: showLocate)
+    }
+
+    func setErrorToast(message: String) {
+        model.setErrorToast(message: message)
+    }
 }

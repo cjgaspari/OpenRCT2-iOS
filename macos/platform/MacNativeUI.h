@@ -62,6 +62,18 @@ enum MacTransparencyFlag : uint32_t
 uint32_t OpenRCT2MacNativeTransparencyGet(void);
 void OpenRCT2MacNativeTransparencyToggle(uint32_t flag);
 
+/**
+ * NSAlert confirm (CJ HIG 1A). Returns 0/1/2 for buttons; -1 cancelled.
+ * button1/button2 may be NULL.
+ */
+int32_t OpenRCT2MacNativeAlertConfirm(
+    const char* title, const char* message, const char* button0, const char* button1, const char* button2);
+
+/** @return true if native NSAlert handled the prompt (skip engine window). */
+bool OpenRCT2MacNativeSavePromptPresent(void);
+bool OpenRCT2MacNativeFireStaffPresent(uint16_t peepId);
+bool OpenRCT2MacNativeDemolishRidePresent(uint16_t rideId, bool refurbish);
+
 #ifdef __cplusplus
 }
 #endif

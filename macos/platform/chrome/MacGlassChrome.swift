@@ -200,13 +200,69 @@ final class MacParkChromeModel: ObservableObject {
     @Published var speed: UInt8 = 1
     @Published var iconMode: MacToolbarIconMode = MacToolbarIconMode.current
 
+    /// Bottom-center Liquid Glass toast (news ticker + errors). CJ HIG 2A/3A.
+    @Published var toastKind: MacToastKind = .news
+    @Published var toastMessage: String = ""
+    @Published var toastVisible: Bool = false
+    @Published var toastShowSubject: Bool = false
+    @Published var toastShowLocate: Bool = false
+
     private let onAction: (Int32, Int32) -> Void
+    private var errorDismissTask: Task<Void, Never>?
 
     init(onAction: @escaping (Int32, Int32) -> Void) {
         self.onAction = onAction
         MenuTarget.shared.onIconModeChanged = { [weak self] in
             self?.iconMode = MacToolbarIconMode.current
         }
+    }
+
+    func setNewsToast(message: String, showSubject: Bool, showLocate: Bool) {
+        // Error toasts win until auto-dismiss; don't clobber with empty news.
+        if toastVisible, toastKind == .error { return }
+        if message.isEmpty {
+            if toastKind == .news {
+                toastVisible = false
+                toastMessage = ""
+            }
+            return
+        }
+        toastKind = .news
+        toastMessage = message
+        toastShowSubject = showSubject
+        toastShowLocate = showLocate
+        toastVisible = true
+    }
+
+    func setErrorToast(message: String, autoDismissSeconds: Double = 8) {
+        errorDismissTask?.cancel()
+        toastKind = .error
+        toastMessage = message
+        toastShowSubject = false
+        toastShowLocate = false
+        toastVisible = true
+        errorDismissTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(autoDismissSeconds))
+            guard !Task.isCancelled else { return }
+            if toastKind == .error {
+                toastVisible = false
+                toastMessage = ""
+            }
+        }
+    }
+
+    func dismissToast() {
+        errorDismissTask?.cancel()
+        toastVisible = false
+        toastMessage = ""
+    }
+
+    func toastSubject() {
+        onAction(MacChromeToastAction.subject.rawValue, 0)
+    }
+
+    func toastLocate() {
+        onAction(MacChromeToastAction.locate.rawValue, 0)
     }
 
     func queue(_ widx: MacToolbarWIDX, extra: Int32 = 0) {
@@ -233,6 +289,12 @@ final class MacParkChromeModel: ObservableObject {
         }
         queue(widx)
     }
+}
+
+/// Extra chrome action codes (outside WIDX_* range) for toast buttons.
+enum MacChromeToastAction: Int32 {
+    case subject = 10001
+    case locate = 10002
 }
 
 /// Option 1 north star: layered dual-top capsules + bottom ParkInfo / DateInfo.
@@ -292,21 +354,36 @@ struct MacParkChromeOverlay: View {
     }
 
     private var bottomChrome: some View {
-        GlassEffectContainer(spacing: 24) {
-            HStack(alignment: .bottom) {
-                StatusPanel(
-                    cash: model.statusCash,
-                    guests: model.statusGuests,
-                    rating: model.statusRating
+        VStack(spacing: 10) {
+            if model.toastVisible, !model.toastMessage.isEmpty {
+                MacGlassToastBar(
+                    kind: model.toastKind,
+                    message: model.toastMessage,
+                    showSubject: model.toastShowSubject,
+                    showLocate: model.toastShowLocate,
+                    onSubject: { model.toastSubject() },
+                    onLocate: { model.toastLocate() },
+                    onDismiss: { model.dismissToast() }
                 )
-                Spacer()
-                DateWeatherPanel(
-                    date: model.statusDate,
-                    temp: model.statusTemp,
-                    weather: model.statusWeather
-                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            GlassEffectContainer(spacing: 24) {
+                HStack(alignment: .bottom) {
+                    StatusPanel(
+                        cash: model.statusCash,
+                        guests: model.statusGuests,
+                        rating: model.statusRating
+                    )
+                    Spacer()
+                    DateWeatherPanel(
+                        date: model.statusDate,
+                        temp: model.statusTemp,
+                        weather: model.statusWeather
+                    )
+                }
             }
         }
+        .animation(.snappy, value: model.toastVisible)
     }
 }
 

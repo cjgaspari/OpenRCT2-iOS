@@ -23,6 +23,13 @@
 #include <openrct2/ui/WindowManager.h>
 #include <openrct2/windows/Intent.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     static constexpr ScreenSize kWindowSizeSave = { 260, 54 };
@@ -256,6 +263,11 @@ namespace OpenRCT2::Ui::Windows
         {
             uiContext.requestUserAttention();
         }
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeSavePromptPresent())
+            return nullptr;
+#endif
 
         auto savePromptWindow = std::make_unique<SavePromptWindow>(prompt_mode);
         return windowMgr->Create(

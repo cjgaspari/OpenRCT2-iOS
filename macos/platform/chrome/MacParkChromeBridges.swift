@@ -19,6 +19,7 @@ func OpenRCT2MacChromeAttach(
         let parent = Unmanaged<NSView>.fromOpaque(contentViewPtr).takeUnretainedValue()
         let session = MacParkChromeSession(onAction: onAction)
         session.attach(to: parent)
+        MacNativeToastRelay.session = session
         return Unmanaged.passRetained(session).toOpaque()
     }
 }
@@ -28,6 +29,9 @@ func OpenRCT2MacChromeDetach(_ sessionPtr: UnsafeMutableRawPointer?) {
     guard let sessionPtr else { return }
     MainActor.assumeIsolated {
         let session = Unmanaged<MacParkChromeSession>.fromOpaque(sessionPtr).takeRetainedValue()
+        if MacNativeToastRelay.session === session {
+            MacNativeToastRelay.session = nil
+        }
         session.detach()
     }
 }
@@ -120,5 +124,63 @@ func OpenRCT2MacChromeSetState(
         Unmanaged<MacParkChromeSession>.fromOpaque(sessionPtr)
             .takeUnretainedValue()
             .setState(paused: paused, muted: muted, speed: speed)
+    }
+}
+
+@_cdecl("OpenRCT2MacChromeSetNewsToast")
+func OpenRCT2MacChromeSetNewsToast(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ message: UnsafePointer<CChar>?,
+    _ showSubject: Bool,
+    _ showLocate: Bool
+) {
+    guard let sessionPtr else { return }
+    let text = message.map { String(cString: $0) } ?? ""
+    MainActor.assumeIsolated {
+        Unmanaged<MacParkChromeSession>.fromOpaque(sessionPtr)
+            .takeUnretainedValue()
+            .setNewsToast(message: text, showSubject: showSubject, showLocate: showLocate)
+    }
+}
+
+@_cdecl("OpenRCT2MacChromeSetErrorToast")
+func OpenRCT2MacChromeSetErrorToast(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ message: UnsafePointer<CChar>?
+) {
+    guard let sessionPtr else { return }
+    let text = message.map { String(cString: $0) } ?? ""
+    MainActor.assumeIsolated {
+        Unmanaged<MacParkChromeSession>.fromOpaque(sessionPtr)
+            .takeUnretainedValue()
+            .setErrorToast(message: text)
+    }
+}
+
+/// Global error toast when chrome session is known only to C++ (ErrorOpen).
+@_cdecl("OpenRCT2MacNativeErrorToast")
+func OpenRCT2MacNativeErrorToast(_ message: UnsafePointer<CChar>?) {
+    let text = message.map { String(cString: $0) } ?? ""
+    MainActor.assumeIsolated {
+        MacNativeToastRelay.error(text)
+    }
+}
+
+@MainActor
+enum MacNativeToastRelay {
+    static weak var session: MacParkChromeSession?
+
+    static func error(_ message: String) {
+        if let session {
+            session.setErrorToast(message: message)
+        } else {
+            // Fallback: brief NSAlert if chrome not attached yet.
+            let alert = NSAlert()
+            alert.messageText = "OpenRCT2"
+            alert.informativeText = message
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
     }
 }

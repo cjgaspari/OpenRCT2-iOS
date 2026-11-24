@@ -16,6 +16,13 @@
 #include <openrct2/drawing/Text.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     static constexpr ScreenSize kWindowSize = { 200, 100 };
@@ -92,6 +99,10 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* RideRefurbishPromptOpen(const Ride& ride)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeDemolishRidePresent(static_cast<uint16_t>(ride.id.ToUnderlying()), true))
+            return nullptr;
+#endif
         RefurbishRidePromptWindow* newWindow;
 
         auto* windowMgr = GetWindowManager();

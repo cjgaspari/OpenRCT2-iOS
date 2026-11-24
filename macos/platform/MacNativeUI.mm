@@ -13,18 +13,40 @@
 #include "MacNativeUI.h"
 
 #include <openrct2-ui/interface/Window.h>
+#include <openrct2-ui/windows/Windows.h>
+#include <openrct2/Context.h>
+#include <openrct2/Game.h>
+#include <openrct2/GameState.h>
+#include <openrct2/OpenRCT2.h>
+#include <openrct2/interface/Window.h>
+#include <openrct2/ui/UiContext.h>
+#include <openrct2/actions/GameActionRunner.h>
+#include <openrct2/actions/ride/RideDemolishAction.h>
+#include <openrct2/actions/peep/StaffFireAction.h>
+#include <openrct2/audio/Audio.h>
 #include <openrct2/config/Config.h>
 #include <openrct2/drawing/Drawing.h>
+#include <openrct2/entity/Peep.h>
 #include <openrct2/interface/Viewport.h>
+#include <openrct2/network/Network.h>
 #include <openrct2/paint/Paint.h>
 #include <openrct2/paint/tile_element/Paint.TileElement.h>
+#include <openrct2/ride/Ride.h>
+#include <openrct2/ui/WindowManager.h>
+#include <openrct2/windows/Intent.h>
+
+#include <cstdio>
+#include <memory>
 
 #import <Foundation/Foundation.h>
 
 using namespace OpenRCT2;
+using namespace OpenRCT2::Ui::Windows;
 
 extern "C" bool OpenRCT2MacNativeDebugPaintShow(void);
 extern "C" bool OpenRCT2MacNativeTransparencyShow(void);
+extern "C" int32_t OpenRCT2MacNativeAlertConfirm(
+    const char* title, const char* message, const char* button0, const char* button1, const char* button2);
 
 bool OpenRCT2MacNativeDebugPaintPresent(void)
 {
@@ -228,5 +250,120 @@ void OpenRCT2MacNativeTransparencyToggle(uint32_t flag)
     Config::Get().general.invisibleSupports = wflags & VIEWPORT_FLAG_INVISIBLE_SUPPORTS;
     Config::Save();
 }
+
+static void MacNativePauseForModal()
+{
+    if (Network::GetMode() == Network::Mode::none)
+    {
+        gGamePaused |= GAME_PAUSED_MODAL;
+        Audio::StopAll();
+    }
+}
+
+static void MacNativeUnpauseAfterModal()
+{
+    if (Network::GetMode() == Network::Mode::none)
+    {
+        gGamePaused &= ~GAME_PAUSED_MODAL;
+        Audio::Resume();
+    }
+}
+
+bool OpenRCT2MacNativeSavePromptPresent(void)
+{
+    MacNativePauseForModal();
+
+    const bool trackEditor = isInTrackDesignerOrManager();
+    int32_t choice = -1;
+    if (trackEditor)
+    {
+        choice = OpenRCT2MacNativeAlertConfirm(
+            "Quit OpenRCT2", "Are you sure you want to quit?", "OK", "Cancel", nullptr);
+        MacNativeUnpauseAfterModal();
+        if (choice == 0)
+            GameLoadOrQuitNoSavePrompt();
+        return true;
+    }
+
+    choice = OpenRCT2MacNativeAlertConfirm(
+        "Save Game", "Do you want to save the game before continuing?", "Save", "Don't Save", "Cancel");
+    MacNativeUnpauseAfterModal();
+
+    if (choice == 0)
+    {
+        std::unique_ptr<Intent> intent;
+        if (isInEditorMode())
+        {
+            intent = std::make_unique<Intent>(WindowClass::loadsave);
+            intent->PutEnumExtra<LoadSaveAction>(INTENT_EXTRA_LOADSAVE_ACTION, LoadSaveAction::save);
+            intent->PutEnumExtra<LoadSaveType>(INTENT_EXTRA_LOADSAVE_TYPE, LoadSaveType::landscape);
+            intent->PutExtra(INTENT_EXTRA_PATH, getGameState().scenarioOptions.name);
+        }
+        else
+        {
+            intent = CreateSaveGameAsIntent();
+        }
+        // Match classic: after Save, continue via loadsave callback when OK.
+        // Classic attaches WindowSavePromptCallback — keep engine loadsave for file pick.
+        ContextOpenIntent(intent.get());
+    }
+    else if (choice == 1)
+    {
+        GameLoadOrQuitNoSavePrompt();
+    }
+    return true;
+}
+
+bool OpenRCT2MacNativeFireStaffPresent(uint16_t peepId)
+{
+    auto* peep = getGameState().entities.TryGetEntity<Peep>(EntityId::FromUnderlying(peepId));
+    if (peep == nullptr)
+        return false;
+
+    const char* name = (peep->name != nullptr && peep->name[0] != '\0') ? peep->name : "this staff member";
+    char message[256];
+    std::snprintf(message, sizeof(message), "Are you sure you want to fire %s?", name);
+
+    MacNativePauseForModal();
+    const int32_t choice = OpenRCT2MacNativeAlertConfirm("Sack Staff", message, "Yes", "Cancel", nullptr);
+    MacNativeUnpauseAfterModal();
+    if (choice == 0)
+    {
+        auto action = GameActions::StaffFireAction(EntityId::FromUnderlying(peepId));
+        GameActions::Execute(&action, getGameState());
+    }
+    return true;
+}
+
+bool OpenRCT2MacNativeDemolishRidePresent(uint16_t rideId, bool refurbish)
+{
+    auto* ride = GetRide(RideId::FromUnderlying(rideId));
+    if (ride == nullptr)
+        return false;
+
+    // Classic uses STR_* + formatNameTo; English stand-in keeps 1:1 actions.
+    const char* name = !ride->customName.empty() ? ride->customName.c_str() : "this ride";
+    char message[256];
+    if (refurbish)
+        std::snprintf(message, sizeof(message), "Refurbish %s?", name);
+    else
+        std::snprintf(message, sizeof(message), "Demolish %s?", name);
+
+    MacNativePauseForModal();
+    const int32_t choice = OpenRCT2MacNativeAlertConfirm(
+        refurbish ? "Refurbish Ride" : "Demolish Ride", message, refurbish ? "Refurbish" : "Demolish", "Cancel",
+        nullptr);
+    MacNativeUnpauseAfterModal();
+    if (choice == 0)
+    {
+        auto action = GameActions::RideDemolishAction(
+            RideId::FromUnderlying(rideId),
+            refurbish ? GameActions::RideModifyType::renew : GameActions::RideModifyType::demolish);
+        GameActions::Execute(&action, getGameState());
+    }
+    return true;
+}
+
+// OpenRCT2MacNativeAlertConfirm is implemented in MacNativeAlerts.swift.
 
 #endif // TARGET_OS_OSX

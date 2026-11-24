@@ -19,6 +19,13 @@
 #include <openrct2/localisation/Formatter.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     static constexpr StringId kWindowTitle = STR_SACK_STAFF;
@@ -93,6 +100,10 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* StaffFirePromptOpen(Peep* peep)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (peep != nullptr && OpenRCT2MacNativeFireStaffPresent(static_cast<uint16_t>(peep->id.ToUnderlying())))
+            return nullptr;
+#endif
         // Check if the confirm window already exists
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->FocusOrCreate<StaffFirePromptWindow>(

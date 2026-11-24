@@ -16,6 +16,7 @@
     #include <SDL.h>
     #include <cstdio>
     #include <string>
+    #include <string_view>
 
     #include <openrct2-ui/UiContext.h>
     #include <openrct2-ui/interface/InGameConsole.h>
@@ -42,6 +43,7 @@
     #include <openrct2/interface/Window.h>
     #include <openrct2/network/Network.h>
     #include <openrct2/ui/WindowManager.h>
+    #include <openrct2/management/NewsItem.h>
     #include <openrct2/world/Weather.h>
 
     #import <AppKit/AppKit.h>
@@ -58,6 +60,34 @@ void OpenRCT2MacChromeSetStatus(
     void* session, const char* cash, const char* guests, const char* rating, const char* date, const char* temp,
     const char* weather);
 void OpenRCT2MacChromeSetState(void* session, bool paused, bool muted, uint8_t speed);
+void OpenRCT2MacChromeSetNewsToast(void* session, const char* message, bool showSubject, bool showLocate);
+}
+
+namespace
+{
+    constexpr int32_t kMacToastSubjectAction = 10001;
+    constexpr int32_t kMacToastLocateAction = 10002;
+
+    std::string StripFormatCodes(std::string_view in)
+    {
+        std::string out;
+        out.reserve(in.size());
+        for (size_t i = 0; i < in.size();)
+        {
+            if (in[i] == '{')
+            {
+                auto end = in.find('}', i);
+                if (end != std::string_view::npos)
+                {
+                    i = end + 1;
+                    continue;
+                }
+            }
+            out.push_back(in[i]);
+            ++i;
+        }
+        return out;
+    }
 }
 
 namespace OpenRCT2::Ui
@@ -221,6 +251,25 @@ namespace OpenRCT2::Ui
             OpenRCT2MacChromeSetStatus(gMacChromeSession, cashBuf, guestsBuf, ratingBuf, dateBuf, tempBuf, weatherBuf);
             OpenRCT2MacChromeSetState(
                 gMacChromeSession, (gGamePaused & GAME_PAUSED_NORMAL) != 0, Audio::gGameSoundsOff, gGameSpeed);
+
+            // Bottom-center Liquid Glass news toast (replaces suppressed bottom toolbar ticker).
+            auto* newsItem = News::GetItem(0);
+            if (newsItem != nullptr && !newsItem->isEmpty() && !newsItem->text.empty())
+            {
+                const auto plain = StripFormatCodes(newsItem->text);
+                const bool showSubject = newsItem->typeHasSubject() && !newsItem->hasButton();
+                bool showLocate = false;
+                if (showSubject || newsItem->typeHasLocation())
+                {
+                    auto loc = News::GetSubjectLocation(newsItem->type, static_cast<int32_t>(newsItem->assoc));
+                    showLocate = loc.has_value() && !newsItem->hasButton();
+                }
+                OpenRCT2MacChromeSetNewsToast(gMacChromeSession, plain.c_str(), showSubject, showLocate);
+            }
+            else
+            {
+                OpenRCT2MacChromeSetNewsToast(gMacChromeSession, "", false, false);
+            }
         }
 
         void HandleFileMenu(int32_t selectedIndex)
@@ -405,6 +454,26 @@ namespace OpenRCT2::Ui
             using namespace OpenRCT2::Ui::Windows;
 
             LOG_INFO("Mac Liquid Glass chrome WIDX=%d extra=%d", code, extra);
+
+            if (code == kMacToastSubjectAction)
+            {
+                if (auto* newsItem = News::GetItem(0); newsItem != nullptr && !newsItem->isEmpty())
+                    News::OpenSubject(newsItem->type, static_cast<int32_t>(newsItem->assoc));
+                return;
+            }
+            if (code == kMacToastLocateAction)
+            {
+                if (auto* newsItem = News::GetItem(0); newsItem != nullptr && !newsItem->isEmpty())
+                {
+                    auto subjectLoc = News::GetSubjectLocation(newsItem->type, static_cast<int32_t>(newsItem->assoc));
+                    if (subjectLoc.has_value())
+                    {
+                        if (auto* mainWindow = WindowGetMain(); mainWindow != nullptr)
+                            WindowScrollToLocation(*mainWindow, subjectLoc.value());
+                    }
+                }
+                return;
+            }
 
             auto* mainWindow = WindowGetMain();
             auto widx = static_cast<TopToolbarWIDX>(code);
