@@ -13,13 +13,17 @@
 namespace OpenRCT2::Ui
 {
     /**
-     * Single policy gate for desktop toolbars / info panels that the native
-     * Liquid Glass park chrome replaces on iOS. Prefer this over scattered
+     * Single policy gate for desktop toolbars / info panels that native Liquid
+     * Glass park chrome replaces. Prefer this over scattered
      * `#if TARGET_OS_IOS return nullptr` blocks.
+     *
+     * research/mac-liquid-glass: on macOS the AppKit/SwiftUI glass toolbar
+     * replaces engine TopToolbar / info panels (same product intent as iOS
+     * Touch, but a separate Mac-native host — not Catalyst).
      */
     constexpr bool ShouldCreateDesktopChromeWindows()
     {
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
+#if defined(__APPLE__) && defined(__MACH__) && (TARGET_OS_IOS || TARGET_OS_OSX)
         return false;
 #else
         return true;

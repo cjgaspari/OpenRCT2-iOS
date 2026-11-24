@@ -7,7 +7,7 @@
 import AppKit
 import SwiftUI
 
-/// Action codes mirror the Touch chrome enum for future engine wiring.
+/// Action codes aligned with park chrome roles (status / pause / view / rotate / build).
 enum MacChromeAction: Int32 {
     case pause = 23
     case zoomIn = 25
@@ -40,35 +40,65 @@ final class MacParkChromeModel: ObservableObject {
     }
 }
 
-/// Full park HUD roles: status, pause, view/rotate, build — Mac-native SwiftUI.
+/// Mac desktop chrome: floating Liquid Glass pill under the title bar.
+/// Same roles as Touch conceptually; layout is a centered desktop accessory
+/// panel (not iPhone corner HUD, not a harsh edge-to-edge strip).
 struct MacParkChromeOverlay: View {
     @ObservedObject var model: MacParkChromeModel
 
     var body: some View {
-        ZStack {
-            Color.clear
-            VStack {
-                HStack(alignment: .top, spacing: 12) {
-                    statusCluster
-                    Spacer(minLength: 8)
-                    pauseControl
-                }
-                .padding(.top, 12)
-                .padding(.horizontal, 16)
-
-                Spacer(minLength: 0)
-
-                HStack(alignment: .bottom, spacing: 16) {
-                    viewRotateCluster
-                    Spacer(minLength: 8)
-                    buildControl
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-            }
+        VStack(spacing: 0) {
+            floatingToolbar
+                .padding(.top, 14)
+                .padding(.horizontal, 48)
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .allowsHitTesting(true)
+    }
+
+    private var floatingToolbar: some View {
+        HStack(spacing: 12) {
+            statusCluster
+
+            toolbarGlyph(
+                model.isPaused ? "play.fill" : "pause.fill",
+                label: model.isPaused ? "Resume" : "Pause"
+            ) {
+                model.queue(.pause)
+            }
+            .accessibilityIdentifier("openrct2.mac.pause")
+
+            Divider()
+                .frame(height: 16)
+
+            HStack(spacing: 6) {
+                toolbarGlyph("eye", label: "View") { model.queue(.viewMenu) }
+                toolbarGlyph("arrow.triangle.2.circlepath", label: "Rotate") { model.queue(.rotateCW) }
+                toolbarGlyph("plus.magnifyingglass", label: "Zoom in") { model.queue(.zoomIn) }
+                toolbarGlyph("minus.magnifyingglass", label: "Zoom out") { model.queue(.zoomOut) }
+            }
+
+            Spacer(minLength: 10)
+
+            Button {
+                model.queue(.buildNewRide)
+            } label: {
+                Label("Build", systemImage: "hammer.fill")
+                    .font(.callout.weight(.semibold))
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.orange)
+            .controlSize(.regular)
+            .accessibilityIdentifier("openrct2.mac.build")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .fixedSize(horizontal: true, vertical: true)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("openrct2.mac.desktopToolbar")
     }
 
     private var statusCluster: some View {
@@ -77,109 +107,42 @@ struct MacParkChromeOverlay: View {
             Button("Finances") { model.queue(.viewMenu, extra: 11) }
             Button("Guests") { model.queue(.viewMenu, extra: 10) }
         } label: {
-            HStack(spacing: 10) {
-                labeledMetric("banknote", model.statusCash, .green)
-                labeledMetric("person.2.fill", model.statusGuests, .purple)
-                labeledMetric("star.fill", model.statusRating, .yellow)
-                labeledMetric("calendar", model.statusDate, .primary)
+            HStack(spacing: 12) {
+                labeledMetric("banknote", model.statusCash)
+                labeledMetric("person.2.fill", model.statusGuests)
+                labeledMetric("star.fill", model.statusRating)
+                labeledMetric("calendar", model.statusDate)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.capsule)
+        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
         .accessibilityLabel("Park status")
         .accessibilityIdentifier("openrct2.mac.status")
     }
 
-    private func labeledMetric(_ symbol: String, _ text: String, _ tint: Color) -> some View {
+    private func labeledMetric(_ symbol: String, _ text: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: symbol)
-                .foregroundStyle(tint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
             Text(text)
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
+                .font(.caption.weight(.medium).monospacedDigit())
         }
     }
 
-    private var pauseControl: some View {
-        Button {
-            model.queue(.pause)
-        } label: {
-            Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
+    private func toolbarGlyph(
+        _ systemImage: String,
+        label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
                 .font(.body.weight(.semibold))
+                .frame(width: 26, height: 22)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
-        .controlSize(.large)
-        .accessibilityLabel(model.isPaused ? "Resume" : "Pause")
-        .accessibilityIdentifier("openrct2.mac.pause")
-    }
-
-    private var viewRotateCluster: some View {
-        GlassEffectContainer(spacing: 12) {
-            HStack(spacing: 12) {
-                Button {
-                    model.queue(.viewMenu)
-                } label: {
-                    Image(systemName: "eye")
-                        .font(.body.weight(.semibold))
-                }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .controlSize(.large)
-                .accessibilityLabel("View options")
-                .accessibilityIdentifier("openrct2.mac.view")
-
-                Button {
-                    model.queue(.rotateCW)
-                } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.body.weight(.semibold))
-                }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .controlSize(.large)
-                .accessibilityLabel("Rotate view")
-                .accessibilityIdentifier("openrct2.mac.rotate")
-
-                Button {
-                    model.queue(.zoomIn)
-                } label: {
-                    Image(systemName: "plus.magnifyingglass")
-                        .font(.body.weight(.semibold))
-                }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .controlSize(.large)
-                .accessibilityLabel("Zoom in")
-
-                Button {
-                    model.queue(.zoomOut)
-                } label: {
-                    Image(systemName: "minus.magnifyingglass")
-                        .font(.body.weight(.semibold))
-                }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .controlSize(.large)
-                .accessibilityLabel("Zoom out")
-            }
-        }
-    }
-
-    private var buildControl: some View {
-        Button {
-            model.queue(.buildNewRide)
-        } label: {
-            Image(systemName: "hammer.fill")
-                .font(.title3.weight(.semibold))
-        }
-        .buttonStyle(.glassProminent)
-        .tint(.orange)
-        .buttonBorderShape(.circle)
-        .controlSize(.large)
-        .accessibilityLabel("Build")
-        .accessibilityIdentifier("openrct2.mac.build")
+        .buttonStyle(.borderless)
+        .help(label)
+        .accessibilityLabel(label)
     }
 }
