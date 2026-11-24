@@ -21,6 +21,13 @@
 #include <openrct2/localisation/Formatting.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     static constexpr StringId kWindowTitle = STR_CUSTOM_CURRENCY_WINDOW_TITLE;
@@ -223,6 +230,10 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* CustomCurrencyOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeCustomCurrencyPresent())
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         return windowMgr->FocusOrCreate<CustomCurrencyWindow>(
             WindowClass::customCurrencyConfig, kWindowSize, WindowFlag::centreScreen);

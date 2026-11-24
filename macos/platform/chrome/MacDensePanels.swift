@@ -204,3 +204,91 @@ func OpenRCT2MacNativeDebugPaintShow() -> Bool {
 func OpenRCT2MacNativeTransparencyShow() -> Bool {
     MainActor.assumeIsolated { MacTransparencyPanel.show() }
 }
+
+// MARK: - Custom Currency (2.4)
+
+@_silgen_name("OpenRCT2MacNativeCustomCurrencyGetRate")
+func OpenRCT2MacNativeCustomCurrencyGetRate() -> Int32
+@_silgen_name("OpenRCT2MacNativeCustomCurrencySetRate")
+func OpenRCT2MacNativeCustomCurrencySetRate(_ rate: Int32)
+@_silgen_name("OpenRCT2MacNativeCustomCurrencyGetSymbol")
+func OpenRCT2MacNativeCustomCurrencyGetSymbol(_ out: UnsafeMutablePointer<CChar>, _ outLen: Int)
+@_silgen_name("OpenRCT2MacNativeCustomCurrencySetSymbol")
+func OpenRCT2MacNativeCustomCurrencySetSymbol(_ symbol: UnsafePointer<CChar>?)
+@_silgen_name("OpenRCT2MacNativeCustomCurrencyGetAffix")
+func OpenRCT2MacNativeCustomCurrencyGetAffix() -> Int32
+@_silgen_name("OpenRCT2MacNativeCustomCurrencySetAffix")
+func OpenRCT2MacNativeCustomCurrencySetAffix(_ affix: Int32)
+
+enum MacCustomCurrencyPanel {
+    @MainActor private static var panel: NSPanel?
+
+    @MainActor
+    static func show() -> Bool {
+        if let panel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            return true
+        }
+        panel = MacDensePanelHost.present(
+            title: "Custom Currency",
+            size: NSSize(width: 360, height: 160),
+            root: CustomCurrencyView()
+        )
+        return true
+    }
+}
+
+private struct CustomCurrencyView: View {
+    @State private var rate: Double = Double(OpenRCT2MacNativeCustomCurrencyGetRate())
+    @State private var symbol: String = {
+        var buf = [CChar](repeating: 0, count: 32)
+        OpenRCT2MacNativeCustomCurrencyGetSymbol(&buf, buf.count)
+        return String(cString: buf)
+    }()
+    @State private var affix: Int = Int(OpenRCT2MacNativeCustomCurrencyGetAffix())
+
+    var body: some View {
+        Form {
+            Section {
+                HStack {
+                    Text("Rate")
+                    Spacer()
+                    Stepper(value: $rate, in: 1...9999, step: 1) {
+                        Text("\(Int(rate))")
+                            .monospacedDigit()
+                            .frame(minWidth: 40, alignment: .trailing)
+                    }
+                    .controlSize(.small)
+                    .onChange(of: rate) { _, newValue in
+                        OpenRCT2MacNativeCustomCurrencySetRate(Int32(newValue))
+                    }
+                }
+                TextField("Symbol", text: $symbol)
+                    .controlSize(.small)
+                    .onSubmit {
+                        OpenRCT2MacNativeCustomCurrencySetSymbol(symbol)
+                    }
+                    .onChange(of: symbol) { _, newValue in
+                        OpenRCT2MacNativeCustomCurrencySetSymbol(newValue)
+                    }
+                Picker("Affix", selection: $affix) {
+                    Text("Prefix").tag(0)
+                    Text("Suffix").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .controlSize(.small)
+                .onChange(of: affix) { _, newValue in
+                    OpenRCT2MacNativeCustomCurrencySetAffix(Int32(newValue))
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeCustomCurrencyShow")
+func OpenRCT2MacNativeCustomCurrencyShow() -> Bool {
+    MainActor.assumeIsolated { MacCustomCurrencyPanel.show() }
+}

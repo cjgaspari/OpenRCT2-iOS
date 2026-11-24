@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -73,6 +74,14 @@ int32_t OpenRCT2MacNativeAlertConfirm(
 bool OpenRCT2MacNativeSavePromptPresent(void);
 bool OpenRCT2MacNativeFireStaffPresent(uint16_t peepId);
 bool OpenRCT2MacNativeDemolishRidePresent(uint16_t rideId, bool refurbish);
+
+bool OpenRCT2MacNativeCustomCurrencyPresent(void);
+int32_t OpenRCT2MacNativeCustomCurrencyGetRate(void);
+void OpenRCT2MacNativeCustomCurrencySetRate(int32_t rate);
+void OpenRCT2MacNativeCustomCurrencyGetSymbol(char* out, size_t outLen);
+void OpenRCT2MacNativeCustomCurrencySetSymbol(const char* symbol);
+int32_t OpenRCT2MacNativeCustomCurrencyGetAffix(void); // 0=prefix, 1=suffix
+void OpenRCT2MacNativeCustomCurrencySetAffix(int32_t affix);
 
 #ifdef __cplusplus
 }

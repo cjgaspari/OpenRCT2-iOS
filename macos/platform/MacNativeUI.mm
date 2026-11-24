@@ -25,8 +25,11 @@
 #include <openrct2/actions/peep/StaffFireAction.h>
 #include <openrct2/audio/Audio.h>
 #include <openrct2/config/Config.h>
+#include <openrct2/core/EnumUtils.hpp>
 #include <openrct2/drawing/Drawing.h>
 #include <openrct2/entity/Peep.h>
+#include <openrct2/localisation/Currency.h>
+#include <openrct2/ui/WindowManager.h>
 #include <openrct2/interface/Viewport.h>
 #include <openrct2/network/Network.h>
 #include <openrct2/paint/Paint.h>
@@ -365,5 +368,59 @@ bool OpenRCT2MacNativeDemolishRidePresent(uint16_t rideId, bool refurbish)
 }
 
 // OpenRCT2MacNativeAlertConfirm is implemented in MacNativeAlerts.swift.
+
+extern "C" bool OpenRCT2MacNativeCustomCurrencyShow(void);
+
+bool OpenRCT2MacNativeCustomCurrencyPresent(void)
+{
+    return OpenRCT2MacNativeCustomCurrencyShow();
+}
+
+int32_t OpenRCT2MacNativeCustomCurrencyGetRate(void)
+{
+    return CurrencyDescriptors[EnumValue(CurrencyType::custom)].rate;
+}
+
+void OpenRCT2MacNativeCustomCurrencySetRate(int32_t rate)
+{
+    if (rate < 1)
+        rate = 1;
+    CurrencyDescriptors[EnumValue(CurrencyType::custom)].rate = static_cast<int16_t>(rate);
+    Config::Get().general.customCurrencyRate = CurrencyDescriptors[EnumValue(CurrencyType::custom)].rate;
+    Config::Save();
+    GetWindowManager()->InvalidateAll();
+}
+
+void OpenRCT2MacNativeCustomCurrencyGetSymbol(char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    std::snprintf(out, outLen, "%s", CurrencyDescriptors[EnumValue(CurrencyType::custom)].symbol_unicode);
+}
+
+void OpenRCT2MacNativeCustomCurrencySetSymbol(const char* symbol)
+{
+    if (symbol == nullptr)
+        return;
+    auto& desc = CurrencyDescriptors[EnumValue(CurrencyType::custom)];
+    std::snprintf(desc.symbol_unicode, sizeof(desc.symbol_unicode), "%s", symbol);
+    Config::Get().general.customCurrencySymbol = symbol;
+    Config::Save();
+    GetWindowManager()->InvalidateAll();
+}
+
+int32_t OpenRCT2MacNativeCustomCurrencyGetAffix(void)
+{
+    return CurrencyDescriptors[EnumValue(CurrencyType::custom)].affix_unicode == CurrencyAffix::prefix ? 0 : 1;
+}
+
+void OpenRCT2MacNativeCustomCurrencySetAffix(int32_t affix)
+{
+    const auto value = affix == 0 ? CurrencyAffix::prefix : CurrencyAffix::suffix;
+    CurrencyDescriptors[EnumValue(CurrencyType::custom)].affix_unicode = value;
+    Config::Get().general.customCurrencyAffix = value;
+    Config::Save();
+    GetWindowManager()->InvalidateAll();
+}
 
 #endif // TARGET_OS_OSX

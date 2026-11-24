@@ -24,6 +24,13 @@
 #include <openrct2/localisation/StringIds.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 using namespace OpenRCT2::Drawing;
 
 namespace OpenRCT2::Ui::Windows
@@ -621,6 +628,21 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* ResetShortcutKeysPromptOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        {
+            const int32_t choice = OpenRCT2MacNativeAlertConfirm(
+                "Reset Shortcuts", "Reset all shortcuts on the active tab to defaults?", "Reset", "Cancel", nullptr);
+            if (choice == 0)
+            {
+                auto* windowMgr = GetWindowManager();
+                if (auto* w = windowMgr->FindByClass(WindowClass::keyboardShortcutList); w != nullptr)
+                {
+                    static_cast<ShortcutKeysWindow*>(w)->ResetAllOnActiveTab();
+                }
+            }
+            return nullptr;
+        }
+#endif
         auto* windowMgr = GetWindowManager();
         return windowMgr->FocusOrCreate<ResetShortcutKeysPrompt>(
             WindowClass::resetShortcutKeysPrompt, kWindowSizeReset, { WindowFlag::centreScreen, WindowFlag::transparent });

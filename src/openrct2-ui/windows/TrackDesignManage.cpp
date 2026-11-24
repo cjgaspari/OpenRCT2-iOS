@@ -7,6 +7,7 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 
+#include <cstdio>
 #include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2-ui/windows/Windows.h>
@@ -16,6 +17,13 @@
 #include <openrct2/platform/Platform.h>
 #include <openrct2/ride/TrackDesignRepository.h>
 #include <openrct2/ui/WindowManager.h>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
 
 namespace OpenRCT2::Ui::Windows
 {
@@ -226,6 +234,32 @@ namespace OpenRCT2::Ui::Windows
     {
         auto* windowMgr = GetWindowManager();
         windowMgr->CloseByClass(WindowClass::trackDeletePrompt);
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (tdFileRef != nullptr)
+        {
+            char message[512];
+            std::snprintf(
+                message, sizeof(message),
+                "Are you sure you want to permanently delete \"%s\"?", tdFileRef->name.c_str());
+            const int32_t choice = OpenRCT2MacNativeAlertConfirm(
+                "Delete File", message, "Delete", "Cancel", nullptr);
+            if (choice == 0)
+            {
+                const auto tdPath = tdFileRef->path;
+                if (TrackRepositoryDelete(tdPath))
+                {
+                    windowMgr->CloseByClass(WindowClass::manageTrackDesign);
+                    WindowTrackDesignListReloadTracks();
+                }
+                else
+                {
+                    ContextShowError(STR_CANT_DELETE_TRACK_DESIGN, STR_FILE_IS_WRITE_PROTECTED_OR_LOCKED, {});
+                }
+            }
+            return;
+        }
+#endif
 
         auto trackDeletePromptWindow = std::make_unique<TrackDeletePromptWindow>(tdFileRef);
 

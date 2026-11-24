@@ -8,6 +8,7 @@
  *****************************************************************************/
 
 #include <SDL_keycode.h>
+#include <cstdio>
 #include <openrct2-ui/interface/FileBrowser.h>
 #include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
@@ -16,6 +17,13 @@
 #include <openrct2/localisation/StringIds.h>
 #include <openrct2/ui/WindowManager.h>
 #include <string>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
 
 struct TrackDesign;
 
@@ -106,6 +114,21 @@ namespace OpenRCT2::Ui::Windows
     {
         auto* windowMgr = GetWindowManager();
         windowMgr->CloseByClass(WindowClass::loadsaveOverwritePrompt);
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        {
+            char message[512];
+            std::snprintf(
+                message, sizeof(message), "\"%.*s\" already exists. Overwrite it?", static_cast<int>(name.size()), name.data());
+            const int32_t choice = OpenRCT2MacNativeAlertConfirm(
+                "Overwrite File", message, "Overwrite", "Cancel", nullptr);
+            if (choice == 0)
+            {
+                FileBrowser::Select(std::string(path).c_str(), action, type, trackDesignPtr);
+            }
+            return nullptr;
+        }
+#endif
 
         return windowMgr->Create<OverwritePromptWindow>(
             WindowClass::loadsaveOverwritePrompt, kWindowSize,
