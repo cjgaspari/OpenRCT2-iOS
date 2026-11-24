@@ -39,31 +39,29 @@ private struct AboutPanelView: View {
     let onClose: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("OpenRCT2")
-                .font(.title.weight(.semibold))
-                .foregroundStyle(MacGlassPanelStyle.primaryLabel)
-            Text("An open-source re-implementation of RollerCoaster Tycoon 2.")
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
-                .padding(.horizontal)
-            Text(version)
-                .font(.caption.monospaced())
-                .foregroundStyle(MacGlassPanelStyle.primaryLabel)
-                .textSelection(.enabled)
-            HStack(spacing: 12) {
-                Button("Copy Version") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(version, forType: .string)
+        MacGlassContentSurface(padding: 24, cornerRadius: 14) {
+            VStack(spacing: 16) {
+                MacGlassPrimaryText(text: "OpenRCT2", size: 22, weight: .semibold)
+                Text("An open-source re-implementation of RollerCoaster Tycoon 2.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                    .padding(.horizontal)
+                Text(version)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
+                    .textSelection(.enabled)
+                HStack(spacing: 12) {
+                    Button("Copy Version") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(version, forType: .string)
+                    }
+                    .buttonStyle(.glass)
+                    Button("Close", action: onClose)
+                        .buttonStyle(.glassProminent)
                 }
-                .buttonStyle(.glass)
-                Button("Close", action: onClose)
-                    .buttonStyle(.glassProminent)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(MacGlassPanelStyle.textPlate(cornerRadius: 14).padding(8))
     }
 }

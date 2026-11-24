@@ -139,6 +139,133 @@ struct MacGlassSelectionBackground: View {
     }
 }
 
+// MARK: - Shared Lab-default surfaces (reuse across all native screens)
+
+/// Standard content plate + padding — one place for Lab dimming/frost defaults.
+struct MacGlassContentSurface<Content: View>: View {
+    var padding: CGFloat = 8
+    var platePadding: CGFloat = 4
+    var cornerRadius: CGFloat? = nil
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        content()
+            .padding(padding)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(
+                MacGlassTextPlate(cornerRadius: cornerRadius)
+                    .padding(platePadding)
+            )
+    }
+}
+
+struct MacGlassPrimaryText: View {
+    let text: String
+    var size: CGFloat = 12
+    var weight: Font.Weight = .semibold
+    @Bindable private var knobs = MacGlassStyleKnobs.shared
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: size, weight: weight))
+            .foregroundStyle(knobs.primaryLabel)
+    }
+}
+
+struct MacGlassSecondaryText: View {
+    let text: String
+    var size: CGFloat = 10
+    @Bindable private var knobs = MacGlassStyleKnobs.shared
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: size))
+            .foregroundStyle(knobs.secondaryLabel)
+    }
+}
+
+/// Compact glass chip (Options, Exit, Refresh, etc.).
+struct MacGlassChipButton: View {
+    let title: String
+    var systemImage: String? = nil
+    var prominent: Bool = false
+    let action: () -> Void
+    @Bindable private var knobs = MacGlassStyleKnobs.shared
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(knobs.primaryLabel)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(MacGlassTextPlate(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+}
+
+/// Large title-menu tile (~classic 82×82) with glass plate.
+struct MacGlassIconTile: View {
+    let title: String
+    var systemImage: String
+    var nsImage: NSImage? = nil
+    let action: () -> Void
+    @Bindable private var knobs = MacGlassStyleKnobs.shared
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Group {
+                    if let nsImage {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .interpolation(.none)
+                            .scaledToFit()
+                    } else {
+                        Image(systemName: systemImage)
+                            .font(.system(size: 28, weight: .semibold))
+                    }
+                }
+                .frame(width: 36, height: 36)
+                .foregroundStyle(knobs.primaryLabel)
+
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(knobs.primaryLabel)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(width: 82, height: 82)
+            .background(MacGlassTextPlate(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+}
+
+/// Clear footer strip — no material plate (Lab lock: footers stay clear).
+struct MacGlassClearFooter<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        HStack(spacing: 8) {
+            content()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.clear)
+    }
+}
+
 private final class MacGlassPanelEntry {
     weak var panel: NSPanel?
     weak var glass: NSGlassEffectView?

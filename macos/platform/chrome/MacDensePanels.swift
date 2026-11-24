@@ -31,9 +31,8 @@ enum MacDensePanelHost {
             size: size,
             minSize: NSSize(width: min(size.width, 280), height: min(size.height, 180)),
             resizable: true,
-            root: root
-                .padding(8)
-                .background(MacGlassPanelStyle.textPlate(cornerRadius: 12).padding(4))
+            // Views own their padding; this only applies the Lab plate once.
+            root: MacGlassContentSurface(padding: 0, platePadding: 4, cornerRadius: 12) { root }
         )
     }
 }

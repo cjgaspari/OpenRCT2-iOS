@@ -450,10 +450,8 @@ private struct LoadParkView: View {
             .background(MacGlassTextPlate())
             .padding(.horizontal, 10)
 
-            HStack(spacing: 8) {
-                Text(saveCountLabel)
-                    .font(.system(size: 10))
-                    .foregroundStyle(knobs.secondaryLabel)
+            MacGlassClearFooter {
+                MacGlassSecondaryText(text: saveCountLabel)
                 Button {
                     OpenRCT2MacNativeSaveFileRefresh()
                     reload()
@@ -474,10 +472,6 @@ private struct LoadParkView: View {
                 .controlSize(.regular)
                 .disabled(selected == nil)
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 6)
-            .padding(.bottom, 10)
-            // Footer: no material plate — clear over glass only.
         }
         .background(Color.clear)
         .onAppear { reload() }

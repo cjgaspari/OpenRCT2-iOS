@@ -46,6 +46,9 @@
     #include <openrct2/ui/WindowManager.h>
     #include <openrct2/management/NewsItem.h>
     #include <openrct2/world/Weather.h>
+    #include <openrct2/PlatformEnvironment.h>
+    #include <openrct2/scenes/SceneManager.h>
+    #include <openrct2/scenes/editor/EditorScene.h>
 
     #import <AppKit/AppKit.h>
     #import <Foundation/Foundation.h>
@@ -75,6 +78,9 @@ namespace
     constexpr int32_t kMacTitleLoadGameAction = 10011;
     constexpr int32_t kMacTitleOptionsAction = 10012;
     constexpr int32_t kMacTitleQuitAction = 10013;
+    constexpr int32_t kMacTitleNetworkAction = 10014;
+    constexpr int32_t kMacTitleToolsAction = 10015;
+    constexpr int32_t kMacTitleAboutAction = 10016;
     constexpr int32_t kMacMenuCloseTopAction = 10020;
     constexpr int32_t kMacMenuCloseAllAction = 10021;
     constexpr int32_t kMacMenuKeyboardShortcutsAction = 10022;
@@ -517,6 +523,50 @@ namespace OpenRCT2::Ui
             if (code == kMacTitleQuitAction)
             {
                 HandleFileMenu(DDIDX_EXIT_OPENRCT2);
+                return;
+            }
+            if (code == kMacTitleNetworkAction)
+            {
+#ifndef DISABLE_NETWORK
+                ContextOpenWindow(WindowClass::serverList);
+#endif
+                return;
+            }
+            if (code == kMacTitleAboutAction)
+            {
+                HandleFileMenu(DDIDX_ABOUT);
+                return;
+            }
+            if (code == kMacTitleToolsAction)
+            {
+                // Match TitleMenu.cpp Game Tools dropdown indices.
+                auto* sceneMgr = GetContext()->GetSceneManager();
+                switch (extra)
+                {
+                    case 0: // Scenario Editor
+                        sceneMgr->setActiveScene(sceneMgr->getScenarioEditorScene());
+                        break;
+                    case 1: // Convert Saved Game to Scenario
+                    {
+                        auto* editorScene = static_cast<EditorScene*>(sceneMgr->getScenarioEditorScene());
+                        editorScene->ConvertSaveToScenario();
+                        break;
+                    }
+                    case 2: // Track Designer
+                        sceneMgr->setActiveScene(sceneMgr->getTrackDesignerScene());
+                        break;
+                    case 3: // Track Designs Manager
+                        sceneMgr->setActiveScene(sceneMgr->getTrackManagerScene());
+                        break;
+                    case 4: // Open User Content Folder
+                    {
+                        auto& env = GetContext()->GetPlatformEnvironment();
+                        GetContext()->GetUiContext().OpenFolder(env.GetDirectoryPath(DirBase::user));
+                        break;
+                    }
+                    default:
+                        break;
+                }
                 return;
             }
             if (code == kMacMenuCloseTopAction)

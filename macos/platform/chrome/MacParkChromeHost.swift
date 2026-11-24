@@ -91,7 +91,7 @@ final class MacParkChromeSession: NSObject {
     }
 
     func setVersion(_ version: String) {
-        MacAboutPanel.versionString = version
+        model.setVersion(version)
     }
 
     func setStatus(
