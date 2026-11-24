@@ -1356,6 +1356,14 @@ namespace
                     break;
             }
         }
+        // Leaked `{NEWLINE}` tokens after format strip.
+        for (;;)
+        {
+            const auto pos = s.find("NEWLINE");
+            if (pos == std::string::npos)
+                break;
+            s.replace(pos, 7, "\n");
+        }
         return s;
     }
 

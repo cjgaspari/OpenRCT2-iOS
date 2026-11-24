@@ -134,14 +134,13 @@ private struct GlassStyleLabView: View {
                     .padding(6)
                 }
 
+                // Close = traffic lights only.
                 HStack {
                     Button("Reset defaults") {
                         knobs.resetDefaults()
                     }
                     .buttonStyle(.bordered)
                     Spacer()
-                    Button("Close", action: onClose)
-                        .buttonStyle(.borderedProminent)
                 }
             }
             .padding(14)

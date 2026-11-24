@@ -51,15 +51,12 @@ private struct AboutPanelView: View {
                     .font(.caption.monospaced())
                     .foregroundStyle(MacGlassPanelStyle.primaryLabel)
                     .textSelection(.enabled)
-                HStack(spacing: 12) {
-                    Button("Copy Version") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(version, forType: .string)
-                    }
-                    .buttonStyle(.glass)
-                    Button("Close", action: onClose)
-                        .buttonStyle(.glassProminent)
+                // Close = traffic lights only.
+                Button("Copy Version") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(version, forType: .string)
                 }
+                .buttonStyle(.glass)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

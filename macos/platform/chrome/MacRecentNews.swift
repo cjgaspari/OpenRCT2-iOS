@@ -53,77 +53,87 @@ private struct RecentNewsView: View {
     let onClose: () -> Void
     @State private var selected: Int?
     @State private var items: [NewsRow] = []
+    @Bindable private var knobs = MacGlassStyleKnobs.shared
+
+    private var messageCountLabel: String {
+        let count = items.count
+        if count == 0 { return "No messages" }
+        if count == 1 { return "1 message" }
+        return "\(count) messages"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Recent Messages")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
-                Spacer()
-                Button("Refresh") {
-                    OpenRCT2MacNativeNewsRefresh()
-                    reload()
-                }
-                .buttonStyle(.glass)
-                .controlSize(.small)
-                Button("Close", action: onClose)
-                    .buttonStyle(.glass)
-                    .controlSize(.small)
-            }
-            .padding(.horizontal, 14)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            // Title in NSPanel titlebar; Close = traffic lights only.
+            Color.clear
+                .frame(height: 18)
 
-            List(selection: $selected) {
+            List {
                 ForEach(items) { item in
                     VStack(alignment: .leading, spacing: 3) {
                         Text(item.date)
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                            .foregroundStyle(knobs.secondaryLabel)
                         Text(item.text)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(MacGlassPanelStyle.primaryLabel)
+                            .foregroundStyle(knobs.primaryLabel)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.vertical, 4)
-                    .tag(item.index)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .listRowInsets(EdgeInsets(top: 1, leading: 4, bottom: 1, trailing: 4))
+                    .listRowSeparator(.hidden)
                     .listRowBackground(
-                        selected == item.index
-                            ? Color.accentColor.opacity(0.28)
-                            : Color.clear
+                        MacGlassSelectionBackground(selected: selected == item.index)
                     )
+                    .onTapGesture {
+                        selected = item.index
+                    }
                 }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .padding(8)
-            .background(MacGlassPanelStyle.textPlate())
-            .padding(.horizontal, 12)
+            .environment(\.defaultMinListRowHeight, 28)
+            .padding(4)
+            .background(MacGlassTextPlate())
+            .padding(.horizontal, 10)
 
-            HStack(spacing: 8) {
-                Text(items.isEmpty ? "No messages yet." : "\(items.count) message(s)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+            MacGlassClearFooter {
+                MacGlassSecondaryText(text: messageCountLabel)
+                Button {
+                    OpenRCT2MacNativeNewsRefresh()
+                    reload()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.glass)
+                .controlSize(.small)
+                .help("Refresh")
+                .accessibilityLabel("Refresh")
                 Spacer()
                 if let selected, let item = items.first(where: { $0.index == selected }) {
                     if item.hasSubject {
-                        Button("Open") {
+                        Button {
                             OpenRCT2MacNativeNewsOpenSubject(Int32(item.index))
+                        } label: {
+                            Label("Open", systemImage: "info.circle")
                         }
                         .buttonStyle(.glass)
                         .controlSize(.small)
                     }
                     if item.hasLocation {
-                        Button("Locate") {
+                        Button {
                             OpenRCT2MacNativeNewsLocate(Int32(item.index))
+                        } label: {
+                            Label("Locate", systemImage: "location.viewfinder")
                         }
                         .buttonStyle(.glass)
                         .controlSize(.small)
                     }
                 }
             }
-            .padding(12)
         }
         .background(Color.clear)
         .onAppear { reload() }
@@ -141,13 +151,26 @@ private struct RecentNewsView: View {
                 NewsRow(
                     index: i,
                     date: String(cString: date),
-                    text: String(cString: text),
+                    text: Self.cleanNewsText(String(cString: text)),
                     hasSubject: OpenRCT2MacNativeNewsHasSubject(Int32(i)),
                     hasLocation: OpenRCT2MacNativeNewsHasLocation(Int32(i))
                 )
             )
         }
         items = next
+        if selected == nil, let first = items.first {
+            selected = first.index
+        } else if let selected, !items.contains(where: { $0.index == selected }) {
+            self.selected = items.first?.index
+        }
+    }
+
+    /// Format leftovers like `{NEWLINE}` / literal "NEWLINE".
+    private static func cleanNewsText(_ raw: String) -> String {
+        raw
+            .replacingOccurrences(of: "NEWLINE", with: "\n")
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

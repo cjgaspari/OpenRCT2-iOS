@@ -431,22 +431,20 @@ struct MacParkChromeOverlay: View {
                         VStack(spacing: 6) {
                             if toastEdge == .top {
                                 toastBar(edge: .top)
+                                    .frame(maxWidth: .infinity)
                             }
                             topChrome
                         }
-                        .scaleEffect(chromeScale, anchor: .top)
-                        // scaleEffect doesn't expand layout — pad so hits/park stay clear.
-                        .padding(.bottom, max(0, (chromeScale - 1) * 52))
                         .padding(.top, 4)
                         .padding(.horizontal, 14)
+                        .frame(maxWidth: .infinity, alignment: .top)
                     }
                     Spacer(minLength: 0)
                     if model.showParkChrome {
                         bottomChrome
-                            .scaleEffect(chromeScale, anchor: .bottom)
-                            .padding(.top, max(0, (chromeScale - 1) * 90))
                             .padding(.horizontal, 14)
                             .padding(.bottom, 12)
+                            .frame(maxWidth: .infinity, alignment: .bottom)
                     }
                 }
                 .animation(.snappy, value: model.toastVisible)
@@ -469,80 +467,48 @@ struct MacParkChromeOverlay: View {
         return CGFloat(MacUILabPrefs.shared.glassChromeScale)
     }
 
-    /// Four capsules matching classic left/right groups + internal separators.
-    /// No full-span clear glass across the top. Icons honor Options → Interface.
+    /// In-bounds top toolbar: scales button metrics, overflows into `…` menus.
     private var topChrome: some View {
         let _ = model.prefsEpoch
-        return HStack(alignment: .center, spacing: 10) {
-            toolGroup(
-                MacToolbarWIDX.playback,
-                unionID: "playback",
-                tint: GlassChrome.session,
-                opacity: 0.20
-            )
-            toolGroup(
-                MacToolbarWIDX.camera,
-                unionID: "camera",
-                tint: GlassChrome.session,
-                opacity: 0.12
-            )
-            Spacer(minLength: 12)
-            toolGroup(
-                MacToolbarWIDX.construct,
-                unionID: "construct",
-                tint: GlassChrome.construct,
-                opacity: 0.18
-            )
-            toolGroup(
-                MacToolbarWIDX.manage,
-                unionID: "manage",
-                tint: GlassChrome.manage,
-                opacity: 0.14
-            )
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("openrct2.mac.desktopToolbar")
-    }
-
-    @ViewBuilder
-    private func toolGroup(
-        _ items: [MacToolbarWIDX],
-        unionID: String,
-        tint: Color,
-        opacity: Double
-    ) -> some View {
-        let visible = items.filter(\.isShownByConfig)
-        if !visible.isEmpty {
-            GlassToolGroup(
-                items: visible,
-                unionID: unionID,
-                plateTint: tint,
-                plateOpacity: opacity,
+        return GeometryReader { geo in
+            OverflowGlassToolbar(
+                availableWidth: geo.size.width,
+                scale: chromeScale,
                 model: model
             )
         }
+        .frame(height: 36 * chromeScale + 16)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("openrct2.mac.desktopToolbar")
     }
 
     private var bottomChrome: some View {
         VStack(spacing: 10) {
             if toastEdge == .bottom {
                 toastBar(edge: .bottom)
+                    .frame(maxWidth: .infinity)
             }
-            GlassEffectContainer(spacing: 24) {
-                HStack(alignment: .bottom) {
-                    StatusPanel(
-                        cash: model.statusCash,
-                        guests: model.statusGuests,
-                        rating: model.statusRating
-                    )
-                    Spacer()
-                    DateWeatherPanel(
-                        date: model.statusDate,
-                        temp: model.statusTemp,
-                        weather: model.statusWeather
-                    )
+            GeometryReader { geo in
+                let scale = min(chromeScale, max(1.0, geo.size.width / 520))
+                GlassEffectContainer(spacing: 24 * scale) {
+                    HStack(alignment: .bottom, spacing: 12) {
+                        StatusPanel(
+                            cash: model.statusCash,
+                            guests: model.statusGuests,
+                            rating: model.statusRating,
+                            scale: scale
+                        )
+                        Spacer(minLength: 8)
+                        DateWeatherPanel(
+                            date: model.statusDate,
+                            temp: model.statusTemp,
+                            weather: model.statusWeather,
+                            scale: scale
+                        )
+                    }
                 }
             }
+            .frame(height: 72 * chromeScale)
         }
     }
 
@@ -566,27 +532,206 @@ struct MacParkChromeOverlay: View {
 
 // MARK: - Glass primitives
 
+/// Left / right tool capsules that stay inside `availableWidth`. Excess icons go in `…`.
+struct OverflowGlassToolbar: View {
+    let availableWidth: CGFloat
+    let scale: CGFloat
+    @ObservedObject var model: MacParkChromeModel
+
+    private struct GroupSpec {
+        let items: [MacToolbarWIDX]
+        let unionID: String
+        let tint: Color
+        let opacity: Double
+    }
+
+    private var leftGroups: [GroupSpec] {
+        [
+            GroupSpec(
+                items: MacToolbarWIDX.playback.filter(\.isShownByConfig),
+                unionID: "playback",
+                tint: GlassChrome.session,
+                opacity: 0.20
+            ),
+            GroupSpec(
+                items: MacToolbarWIDX.camera.filter(\.isShownByConfig),
+                unionID: "camera",
+                tint: GlassChrome.session,
+                opacity: 0.12
+            ),
+        ].filter { !$0.items.isEmpty }
+    }
+
+    private var rightGroups: [GroupSpec] {
+        [
+            GroupSpec(
+                items: MacToolbarWIDX.construct.filter(\.isShownByConfig),
+                unionID: "construct",
+                tint: GlassChrome.construct,
+                opacity: 0.18
+            ),
+            GroupSpec(
+                items: MacToolbarWIDX.manage.filter(\.isShownByConfig),
+                unionID: "manage",
+                tint: GlassChrome.manage,
+                opacity: 0.14
+            ),
+        ].filter { !$0.items.isEmpty }
+    }
+
+    /// Approx width of one glass circle + spacing at the given scale.
+    private var buttonPitch: CGFloat { 34 * scale }
+    private var groupChrome: CGFloat { 28 * scale }
+    private var gap: CGFloat { 10 * scale }
+    private var overflowSlot: CGFloat { 40 * scale }
+
+    var body: some View {
+        let plan = fitPlan(width: availableWidth)
+        return HStack(alignment: .center, spacing: gap) {
+            ForEach(Array(plan.left.enumerated()), id: \.offset) { _, group in
+                GlassToolGroup(
+                    items: group.visible,
+                    unionID: group.spec.unionID,
+                    plateTint: group.spec.tint,
+                    plateOpacity: group.spec.opacity,
+                    scale: scale,
+                    model: model
+                )
+            }
+            if !plan.leftOverflow.isEmpty {
+                overflowMenu(plan.leftOverflow, scale: scale)
+            }
+            Spacer(minLength: 8)
+            if !plan.rightOverflow.isEmpty {
+                overflowMenu(plan.rightOverflow, scale: scale)
+            }
+            ForEach(Array(plan.right.enumerated()), id: \.offset) { _, group in
+                GlassToolGroup(
+                    items: group.visible,
+                    unionID: group.spec.unionID,
+                    plateTint: group.spec.tint,
+                    plateOpacity: group.spec.opacity,
+                    scale: scale,
+                    model: model
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+
+    private struct FittedGroup {
+        let spec: GroupSpec
+        let visible: [MacToolbarWIDX]
+    }
+
+    private struct FitPlan {
+        var left: [FittedGroup] = []
+        var right: [FittedGroup] = []
+        var leftOverflow: [MacToolbarWIDX] = []
+        var rightOverflow: [MacToolbarWIDX] = []
+    }
+
+    private func groupWidth(itemCount: Int) -> CGFloat {
+        guard itemCount > 0 else { return 0 }
+        return groupChrome + CGFloat(itemCount) * buttonPitch
+    }
+
+    private func fitPlan(width: CGFloat) -> FitPlan {
+        var plan = FitPlan()
+        // Budget half the row for each side (minus spacer / padding).
+        let sideBudget = max(80, (width - 40) / 2)
+
+        func pack(groups: [GroupSpec]) -> (fitted: [FittedGroup], overflow: [MacToolbarWIDX]) {
+            var fitted: [FittedGroup] = []
+            var overflow: [MacToolbarWIDX] = []
+            var used: CGFloat = 0
+            for (index, spec) in groups.enumerated() {
+                var visible: [MacToolbarWIDX] = []
+                for item in spec.items {
+                    let nextCount = visible.count + 1
+                    let widthIfAdded = groupWidth(itemCount: nextCount)
+                    let groupDelta = widthIfAdded - groupWidth(itemCount: visible.count)
+                    let gapCost: CGFloat = (fitted.isEmpty && visible.isEmpty) ? 0 : (visible.isEmpty ? gap : 0)
+                    if used + gapCost + groupDelta <= sideBudget - (overflow.isEmpty ? 0 : overflowSlot) {
+                        if visible.isEmpty { used += gapCost }
+                        visible.append(item)
+                        used += groupDelta
+                    } else {
+                        overflow.append(item)
+                    }
+                }
+                if !visible.isEmpty {
+                    fitted.append(FittedGroup(spec: spec, visible: visible))
+                } else if index == 0, !spec.items.isEmpty {
+                    // Always keep at least the first icon of the first group if possible.
+                    let first = spec.items[0]
+                    if groupWidth(itemCount: 1) <= sideBudget {
+                        fitted.append(FittedGroup(spec: spec, visible: [first]))
+                        used += groupWidth(itemCount: 1)
+                        overflow.append(contentsOf: spec.items.dropFirst())
+                    } else {
+                        overflow.append(contentsOf: spec.items)
+                    }
+                } else {
+                    overflow.append(contentsOf: spec.items)
+                }
+            }
+            return (fitted, overflow)
+        }
+
+        let leftPacked = pack(groups: leftGroups)
+        let rightPacked = pack(groups: rightGroups)
+        plan.left = leftPacked.fitted
+        plan.leftOverflow = leftPacked.overflow
+        plan.right = rightPacked.fitted
+        plan.rightOverflow = rightPacked.overflow
+        return plan
+    }
+
+    @ViewBuilder
+    private func overflowMenu(_ items: [MacToolbarWIDX], scale: CGFloat) -> some View {
+        Menu {
+            ForEach(items) { widx in
+                Button(widx.help) {
+                    model.handleToolbarClick(widx, buttonView: nil)
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 14 * scale, weight: .semibold))
+                .frame(width: 18 * scale, height: 18 * scale)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .controlSize(scale >= 1.5 ? .large : .regular)
+        .help("More tools")
+        .accessibilityLabel("More tools")
+    }
+}
+
 struct GlassToolGroup: View {
     let items: [MacToolbarWIDX]
     let unionID: String
     var plateTint: Color
     var plateOpacity: Double
     var spacing: CGFloat = 6
+    var scale: CGFloat = 1
     @ObservedObject var model: MacParkChromeModel
 
     @Namespace private var glassNS
 
     var body: some View {
-        // Outer scale lives on the chrome stack; keep intrinsic button metrics at 1× here.
-        GlassEffectContainer(spacing: spacing + 18) {
-            HStack(spacing: spacing) {
+        let pitch = spacing * scale
+        GlassEffectContainer(spacing: pitch + 18) {
+            HStack(spacing: pitch) {
                 ForEach(items) { widx in
-                    GlassToolbarButton(widx: widx, model: model)
+                    GlassToolbarButton(widx: widx, scale: scale, model: model)
                         .glassEffectUnion(id: unionID, namespace: glassNS)
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 10 * scale)
+            .padding(.vertical, 8 * scale)
             .background(GlassChrome.clearDimming, in: Capsule())
             .glassEffect(
                 GlassChrome.clearPlate(tint: plateTint, opacity: plateOpacity),
@@ -598,6 +743,7 @@ struct GlassToolGroup: View {
 
 struct GlassToolbarButton: View {
     let widx: MacToolbarWIDX
+    var scale: CGFloat = 1
     @ObservedObject var model: MacParkChromeModel
     @State private var anchor = ToolbarButtonAnchor()
 
@@ -606,14 +752,14 @@ struct GlassToolbarButton: View {
             model.handleToolbarClick(widx, buttonView: anchor.view)
         } label: {
             toolbarGlyph
-                .frame(width: 18, height: 18)
+                .frame(width: 18 * scale, height: 18 * scale)
         }
         .help(widx.help)
         .accessibilityLabel(widx.help)
         .accessibilityIdentifier("openrct2.mac.widx.\(widx.rawValue)")
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
-        .controlSize(.regular)
+        .controlSize(scale >= 1.5 ? .large : .regular)
         .background(ToolbarButtonAnchorReader(anchor: anchor))
     }
 
@@ -665,20 +811,21 @@ struct StatusPanel: View {
     let cash: String
     let guests: String
     let rating: String
+    var scale: CGFloat = 1
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 4 * scale) {
             Label(cash, systemImage: "banknote")
             Label(guests, systemImage: "person.2.fill")
             Label(rating, systemImage: "star.fill")
         }
-        .font(.caption.weight(.semibold).monospacedDigit())
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .font(.system(size: 11 * scale, weight: .semibold).monospacedDigit())
+        .padding(.horizontal, 14 * scale)
+        .padding(.vertical, 10 * scale)
+        .background(Color.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 14 * scale, style: .continuous))
         .glassEffect(
             GlassChrome.statusPlate(tint: GlassChrome.money, opacity: 0.32),
-            in: .rect(cornerRadius: 14)
+            in: .rect(cornerRadius: 14 * scale)
         )
         .accessibilityIdentifier("openrct2.mac.status")
     }
@@ -688,20 +835,21 @@ struct DateWeatherPanel: View {
     let date: String
     let temp: String
     let weather: String
+    var scale: CGFloat = 1
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 4) {
+        VStack(alignment: .trailing, spacing: 4 * scale) {
             Label(date, systemImage: "calendar")
             Label(temp, systemImage: "thermometer.medium")
             Label(weather, systemImage: "sun.max.fill")
         }
-        .font(.caption.weight(.semibold))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .font(.system(size: 11 * scale, weight: .semibold))
+        .padding(.horizontal, 14 * scale)
+        .padding(.vertical, 10 * scale)
+        .background(Color.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 14 * scale, style: .continuous))
         .glassEffect(
             GlassChrome.statusPlate(tint: GlassChrome.weather, opacity: 0.30),
-            in: .rect(cornerRadius: 14)
+            in: .rect(cornerRadius: 14 * scale)
         )
         .accessibilityIdentifier("openrct2.mac.date")
     }

@@ -352,14 +352,13 @@ private struct UILabView: View {
                     }
                 }
 
+                // Close = traffic lights only.
                 HStack {
                     Button("Reset defaults") { prefs.resetDefaults() }
                         .buttonStyle(.bordered)
                     Spacer()
                     Button("Glass Style Lab…") { _ = MacGlassStyleLab.show() }
                         .buttonStyle(.bordered)
-                    Button("Close", action: onClose)
-                        .buttonStyle(.borderedProminent)
                 }
             }
             .padding(14)
