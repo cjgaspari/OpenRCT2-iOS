@@ -304,8 +304,8 @@ struct MacParkChromeOverlay: View {
     var body: some View {
         VStack(spacing: 0) {
             topChrome
-                // Clear traffic lights under immersive titlebar (tight).
-                .padding(.top, 22)
+                // Sit just under traffic lights (immersive titlebar).
+                .padding(.top, 4)
                 .padding(.horizontal, 14)
             Spacer(minLength: 0)
             bottomChrome

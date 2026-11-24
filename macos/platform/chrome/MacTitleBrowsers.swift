@@ -197,11 +197,12 @@ private struct ScenarioSelectView: View {
                 }
                 .pickerStyle(.segmented)
                 .controlSize(.mini)
-                .padding(.horizontal, 12)
-                .padding(6)
+                .padding(.horizontal, 10)
+                .padding(4)
                 .background(MacGlassTextPlate(cornerRadius: 8))
-                .padding(.horizontal, 12)
-                .padding(.top, 28) // under transparent titlebar
+                .padding(.horizontal, 10)
+                .padding(.top, 18) // tight under titlebar title
+                .padding(.bottom, 4)
                 .onChange(of: tab) { _, newValue in
                     OpenRCT2MacNativeScenarioSetActiveTab(Int32(newValue))
                     selectedRow = nil
@@ -210,7 +211,7 @@ private struct ScenarioSelectView: View {
                 }
             }
 
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
                 List(selection: $selectedRow) {
                     ForEach(rows) { row in
                         if row.kind == 0 {
@@ -234,16 +235,15 @@ private struct ScenarioSelectView: View {
                             .tag(row.index)
                             .opacity(row.locked ? 0.55 : 1)
                             .listRowBackground(
-                                selectedRow == row.index
-                                    ? Color.accentColor.opacity(0.28)
-                                    : Color.clear
+                                MacGlassSelectionBackground(selected: selectedRow == row.index)
                             )
                         }
                     }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .padding(8)
+                .listRowInsets(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
+                .padding(4)
                 .background(MacGlassTextPlate())
                 .frame(minWidth: 340)
                 .onChange(of: selectedRow) { _, newValue in
@@ -262,11 +262,13 @@ private struct ScenarioSelectView: View {
                 }
 
                 detailPane
-                    .padding(12)
+                    .padding(10)
                     .frame(width: 260, alignment: .topLeading)
                     .background(MacGlassTextPlate())
             }
-            .padding(12)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 10)
+            .padding(.top, 2)
         }
         .background(Color.clear)
         .onAppear {
@@ -398,9 +400,9 @@ private struct LoadParkView: View {
                 .help("Refresh")
                 .accessibilityLabel("Refresh")
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 28)
-            .padding(.bottom, 6)
+            .padding(.horizontal, 12)
+            .padding(.top, 18) // tight under titlebar title
+            .padding(.bottom, 2)
 
             List(selection: $selected) {
                 ForEach(files) { file in
@@ -416,9 +418,7 @@ private struct LoadParkView: View {
                     .tag(file.index)
                     .contentShape(Rectangle())
                     .listRowBackground(
-                        selected == file.index
-                            ? Color.accentColor.opacity(0.28)
-                            : Color.clear
+                        MacGlassSelectionBackground(selected: selected == file.index)
                     )
                     .onTapGesture(count: 2) {
                         if OpenRCT2MacNativeSaveFileLoad(Int32(file.index)) {
@@ -429,9 +429,10 @@ private struct LoadParkView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .padding(8)
+            .listRowInsets(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
+            .padding(4)
             .background(MacGlassTextPlate())
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 10)
 
             HStack {
                 Text(files.isEmpty ? "No saved games found." : "\(files.count) save(s)")
@@ -447,8 +448,9 @@ private struct LoadParkView: View {
                 .controlSize(.regular)
                 .disabled(selected == nil)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .padding(.top, 6)
+            .padding(.bottom, 10)
             // Footer: no material plate — clear over glass only.
         }
         .background(Color.clear)

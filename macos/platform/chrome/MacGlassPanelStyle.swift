@@ -125,6 +125,24 @@ struct MacGlassFullWash: View {
     }
 }
 
+/// Rounded selection fill, inset so corners stay concentric with list plates.
+struct MacGlassSelectionBackground: View {
+    var selected: Bool
+    var cornerRadius: CGFloat = 8
+
+    var body: some View {
+        Group {
+            if selected {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.28))
+                    .padding(3)
+            } else {
+                Color.clear
+            }
+        }
+    }
+}
+
 private final class MacGlassPanelEntry {
     weak var panel: NSPanel?
     weak var glass: NSGlassEffectView?
