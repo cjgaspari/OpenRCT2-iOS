@@ -12,21 +12,28 @@ import AppKit
 import SwiftUI
 
 enum MacGlassPanelStyle {
-    /// HIG Materials: dark dimming ~35% under clear glass over rich media.
-    /// Tunable after eye-test (~0.20…0.45).
-    static var dimmingOpacity: CGFloat = 0.35
+    /// Clear glass over bright park media (water/sky): eye-test bump to ~0.50
+    /// (CJ: 0.45–0.55). Still localized under list/detail — not full opaque wash.
+    static var dimmingOpacity: CGFloat = 0.50
 
     static let cornerRadius: CGFloat = 18
     static let glassStyle: NSGlassEffectView.Style = .clear
 
-    /// Localized text plate — prefer under list/detail columns, not a full wash.
+    /// Localized frosted + dark plate under text columns so park still shows
+    /// through clear glass around the plates.
     static func textPlate(cornerRadius: CGFloat = 10) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(Color.black.opacity(dimmingOpacity))
+            .fill(.thinMaterial)
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.black.opacity(dimmingOpacity))
+            }
     }
 
-    static var primaryLabel: Color { Color(nsColor: .labelColor) }
-    static var secondaryLabel: Color { Color(nsColor: .secondaryLabelColor) }
+    /// Explicit high-contrast light labels — system labelColor can stay dark
+    /// over bright park water even with preferredColorScheme(.dark).
+    static var primaryLabel: Color { Color.white }
+    static var secondaryLabel: Color { Color.white.opacity(0.78) }
 }
 
 /// Clear NSPanel + NSGlassEffectView.contentView — shared host for title browsers
@@ -61,11 +68,14 @@ enum MacGlassPanelHost {
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.minSize = minSize
+        // Force dark aqua so controls/vibrant bits stay light on clear glass.
+        panel.appearance = NSAppearance(named: .darkAqua)
 
         let sizedRoot = AnyView(
             root
                 .frame(minWidth: size.width, minHeight: size.height)
                 .preferredColorScheme(.dark)
+                .environment(\.colorScheme, .dark)
         )
         let host = NSHostingView(rootView: sizedRoot)
         host.wantsLayer = true
