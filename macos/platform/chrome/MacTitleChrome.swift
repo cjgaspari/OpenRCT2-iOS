@@ -115,30 +115,38 @@ struct MacTitleChromeLayout: View {
         .background(ToolbarButtonAnchorReader(anchor: toolsAnchor))
     }
 
-    /// Classic OpenRCT2 logo TL: blue diamond + yellow Open / red RCT2 badge.
+    /// Classic OpenRCT2 logo TL: diamond + title text with original overlap
+    /// (`TitleLogo.cpp`: SPR_G2_TITLE at +{104, 18} on a 128px diamond).
     private var logoButton: some View {
         Button {
             MacAboutPanel.show()
         } label: {
-            HStack(spacing: 8) {
-                if let logo = MacToolbarIconStore.titleLogoImage() {
-                    Image(nsImage: logo)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(height: 72)
-                }
-                if let wordmark = MacToolbarIconStore.titleWordmarkImage() {
-                    Image(nsImage: wordmark)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(height: 56)
-                }
-            }
+            classicLogoMark
         }
         .buttonStyle(.plain)
         .accessibilityLabel("About OpenRCT2")
+    }
+
+    private var classicLogoMark: some View {
+        // Much larger than the prior ~72pt mark; keep classic 128-based layout ratios.
+        let diamond: CGFloat = 168
+        let scale = diamond / 128
+        return ZStack(alignment: .topLeading) {
+            if let logo = MacToolbarIconStore.titleLogoImage() {
+                Image(nsImage: logo)
+                    .resizable()
+                    .interpolation(.none)
+                    .frame(width: diamond, height: diamond)
+            }
+            if let wordmark = MacToolbarIconStore.titleWordmarkImage() {
+                Image(nsImage: wordmark)
+                    .resizable()
+                    .interpolation(.none)
+                    .frame(width: 126 * scale, height: 116 * scale)
+                    .offset(x: 104 * scale, y: 18 * scale)
+            }
+        }
+        .frame(width: (104 + 126) * scale, height: diamond, alignment: .topLeading)
     }
 
     private func popToolsMenu() {
