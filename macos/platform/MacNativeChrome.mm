@@ -602,6 +602,15 @@ namespace OpenRCT2::Ui
         }
     } // namespace
 
+    static void MacApplyImmersiveTitlebar(NSWindow* nsWindow)
+    {
+        // Park fills the full window under traffic lights (CJ).
+        nsWindow.styleMask |= NSWindowStyleMaskFullSizeContentView;
+        nsWindow.titlebarAppearsTransparent = YES;
+        nsWindow.titleVisibility = NSWindowTitleHidden;
+        // Keep standard traffic lights; do not hide close/miniaturize/zoom.
+    }
+
     void MacNativeChromeAttach(SDL_Window* window)
     {
         @autoreleasepool
@@ -614,6 +623,8 @@ namespace OpenRCT2::Ui
                 LOG_WARNING("MacNativeChromeAttach: could not resolve NSWindow from SDL");
                 return;
             }
+
+            MacApplyImmersiveTitlebar(nsWindow);
 
             NSView* contentView = nsWindow.contentView;
             if (contentView == nil)
