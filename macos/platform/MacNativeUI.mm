@@ -16,8 +16,11 @@
 #include <openrct2-ui/windows/Windows.h>
 #include <openrct2/AssetPack.h>
 #include <openrct2/AssetPackManager.h>
+#include <openrct2-ui/UiContext.h>
+#include <openrct2-ui/input/ShortcutManager.h>
 #include <openrct2/Cheats.h>
 #include <openrct2/Context.h>
+#include <openrct2/localisation/Language.h>
 #include <openrct2/Game.h>
 #include <openrct2/GameState.h>
 #include <openrct2/OpenRCT2.h>
@@ -47,13 +50,18 @@
 #include <openrct2/world/MapSelection.h>
 #include <openrct2/world/Park.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <memory>
 #include <pthread.h>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #import <Foundation/Foundation.h>
 
 using namespace OpenRCT2;
+using namespace OpenRCT2::Ui;
 using namespace OpenRCT2::Ui::Windows;
 
 extern "C" bool OpenRCT2MacNativeDebugPaintShow(void);
@@ -882,6 +890,130 @@ void OpenRCT2MacNativeCheatToggle(int32_t type)
 void OpenRCT2MacNativeCheatRun(int32_t type, int64_t p1, int64_t p2)
 {
     CheatsSet(static_cast<CheatType>(type), p1, p2);
+}
+
+extern "C" bool OpenRCT2MacNativeObjectLoadErrorShow(const char* path, const char* rows);
+extern "C" bool OpenRCT2MacNativeShortcutKeysShow(void);
+extern "C" bool OpenRCT2MacNativeShortcutChangeShow(const char* id);
+
+bool OpenRCT2MacNativeObjectLoadErrorPresent(const char* path, const char* rows)
+{
+    return OpenRCT2MacNativeObjectLoadErrorShow(path != nullptr ? path : "", rows != nullptr ? rows : "");
+}
+
+static std::vector<std::string> gMacShortcutIds;
+
+static void MacShortcutRebuildIndex()
+{
+    gMacShortcutIds.clear();
+    auto& mgr = GetShortcutManager();
+    for (auto& pair : mgr.shortcuts)
+    {
+        gMacShortcutIds.emplace_back(pair.second.id);
+    }
+    std::sort(gMacShortcutIds.begin(), gMacShortcutIds.end());
+}
+
+bool OpenRCT2MacNativeShortcutKeysPresent(void)
+{
+    MacShortcutRebuildIndex();
+    return OpenRCT2MacNativeShortcutKeysShow();
+}
+
+int32_t OpenRCT2MacNativeShortcutCount(void)
+{
+    if (gMacShortcutIds.empty())
+        MacShortcutRebuildIndex();
+    return static_cast<int32_t>(gMacShortcutIds.size());
+}
+
+void OpenRCT2MacNativeShortcutGetId(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (index < 0 || static_cast<size_t>(index) >= gMacShortcutIds.size())
+        return;
+    std::snprintf(out, outLen, "%s", gMacShortcutIds[static_cast<size_t>(index)].c_str());
+}
+
+void OpenRCT2MacNativeShortcutGetName(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (index < 0 || static_cast<size_t>(index) >= gMacShortcutIds.size())
+        return;
+    auto* sc = GetShortcutManager().getShortcut(gMacShortcutIds[static_cast<size_t>(index)]);
+    if (sc == nullptr)
+        return;
+    if (sc->localisedName != kStringIdNone)
+    {
+        if (const char* s = LanguageGetString(sc->localisedName); s != nullptr)
+        {
+            std::snprintf(out, outLen, "%s", s);
+            return;
+        }
+    }
+    std::snprintf(out, outLen, "%s", sc->customName.c_str());
+}
+
+void OpenRCT2MacNativeShortcutGetChord(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (index < 0 || static_cast<size_t>(index) >= gMacShortcutIds.size())
+        return;
+    auto* sc = GetShortcutManager().getShortcut(gMacShortcutIds[static_cast<size_t>(index)]);
+    if (sc == nullptr || sc->current.empty())
+        return;
+    std::snprintf(out, outLen, "%s", sc->current[0].toString().c_str());
+}
+
+void OpenRCT2MacNativeShortcutRemove(const char* id)
+{
+    if (id == nullptr)
+        return;
+    auto* sc = GetShortcutManager().getShortcut(id);
+    if (sc == nullptr)
+        return;
+    sc->current.clear();
+    GetShortcutManager().saveUserBindings();
+}
+
+void OpenRCT2MacNativeShortcutResetAll(void)
+{
+    auto& mgr = GetShortcutManager();
+    for (auto& pair : mgr.shortcuts)
+    {
+        pair.second.current = pair.second.standard;
+    }
+    mgr.saveUserBindings();
+    MacShortcutRebuildIndex();
+}
+
+bool OpenRCT2MacNativeShortcutChangePresent(const char* id)
+{
+    return OpenRCT2MacNativeShortcutChangeShow(id);
+}
+
+extern "C" void OpenRCT2MacNativeShortcutApplyChord(const char* id, const char* chord)
+{
+    if (id == nullptr)
+        return;
+    auto* sc = GetShortcutManager().getShortcut(id);
+    if (sc == nullptr)
+        return;
+    if (chord == nullptr || chord[0] == '\0')
+    {
+        sc->current.clear();
+    }
+    else
+    {
+        sc->current = { ShortcutInput(chord) };
+    }
+    GetShortcutManager().saveUserBindings();
 }
 
 #endif // TARGET_OS_OSX

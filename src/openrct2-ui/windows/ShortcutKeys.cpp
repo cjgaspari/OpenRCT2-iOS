@@ -565,6 +565,10 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* ShortcutKeysOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeShortcutKeysPresent())
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         auto w = windowMgr->BringToFrontByClass(WindowClass::keyboardShortcutList);
         if (w == nullptr)

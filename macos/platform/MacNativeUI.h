@@ -128,6 +128,19 @@ bool OpenRCT2MacNativeCheatGet(int32_t type);
 void OpenRCT2MacNativeCheatToggle(int32_t type);
 void OpenRCT2MacNativeCheatRun(int32_t type, int64_t p1, int64_t p2);
 
+/** Object load error (1.11). path + newline-separated "name\\ttype" rows. */
+bool OpenRCT2MacNativeObjectLoadErrorPresent(const char* path, const char* rows);
+
+bool OpenRCT2MacNativeShortcutKeysPresent(void);
+int32_t OpenRCT2MacNativeShortcutCount(void);
+void OpenRCT2MacNativeShortcutGetId(int32_t index, char* out, size_t outLen);
+void OpenRCT2MacNativeShortcutGetName(int32_t index, char* out, size_t outLen);
+void OpenRCT2MacNativeShortcutGetChord(int32_t index, char* out, size_t outLen);
+void OpenRCT2MacNativeShortcutRemove(const char* id);
+void OpenRCT2MacNativeShortcutResetAll(void);
+bool OpenRCT2MacNativeShortcutChangePresent(const char* id);
+void OpenRCT2MacNativeShortcutApplyChord(const char* id, const char* chord);
+
 #ifdef __cplusplus
 }
 #endif

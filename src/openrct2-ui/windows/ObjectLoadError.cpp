@@ -600,8 +600,34 @@ namespace OpenRCT2::Ui::Windows
         }
     };
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+    #include <openrct2/localisation/Language.h>
+    #include <sstream>
+#endif
+
     WindowBase* ObjectLoadErrorOpen(utf8* path, size_t numMissingObjects, const ObjectEntryDescriptor* missingObjects)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        {
+            std::ostringstream rows;
+            for (size_t i = 0; i < numMissingObjects; i++)
+            {
+                const auto& entry = missingObjects[i];
+                rows << entry.GetName();
+                rows << '\t';
+                const auto typeId = GetStringFromObjectType(entry.GetType());
+                if (const char* typeStr = LanguageGetString(typeId); typeStr != nullptr)
+                    rows << typeStr;
+                rows << '\n';
+            }
+            if (OpenRCT2MacNativeObjectLoadErrorPresent(path != nullptr ? path : "", rows.str().c_str()))
+                return nullptr;
+        }
+#endif
         // Check if window is already open
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->BringToFrontByClass(WindowClass::objectLoadError);

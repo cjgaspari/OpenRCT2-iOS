@@ -663,3 +663,185 @@ private struct AssetPacksView: View {
 func OpenRCT2MacNativeAssetPacksShow() -> Bool {
     MainActor.assumeIsolated { MacAssetPacksPanel.show() }
 }
+
+// MARK: - Object load error (1.11)
+
+enum MacObjectLoadErrorPanel {
+    @MainActor private static var panel: NSPanel?
+
+    @MainActor
+    static func show(path: String, rows: String) -> Bool {
+        if let panel, panel.isVisible {
+            panel.close()
+            self.panel = nil
+        }
+        panel = MacDensePanelHost.present(
+            title: "Object Load Error",
+            size: NSSize(width: 480, height: 360),
+            root: ObjectLoadErrorView(path: path, rows: rows)
+        )
+        return true
+    }
+}
+
+private struct ObjectLoadErrorView: View {
+    let path: String
+    let rows: String
+
+    private var lines: [String] {
+        rows.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Missing objects — the park could not load all required objects.")
+                .font(.system(size: 11))
+            Text(path)
+                .font(.system(size: 10, design: .monospaced))
+                .lineLimit(2)
+                .foregroundStyle(.secondary)
+            List(lines, id: \.self) { line in
+                Text(line)
+                    .font(.system(size: 11, design: .monospaced))
+                    .textSelection(.enabled)
+            }
+            .listStyle(.bordered(alternatesRowBackgrounds: true))
+            HStack {
+                Button("Copy All") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(rows, forType: .string)
+                }
+                .controlSize(.small)
+                Spacer()
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeObjectLoadErrorShow")
+func OpenRCT2MacNativeObjectLoadErrorShow(_ path: UnsafePointer<CChar>?, _ rows: UnsafePointer<CChar>?) -> Bool {
+    let p = path.map { String(cString: $0) } ?? ""
+    let r = rows.map { String(cString: $0) } ?? ""
+    return MainActor.assumeIsolated { MacObjectLoadErrorPanel.show(path: p, rows: r) }
+}
+
+// MARK: - Shortcut keys list (2.2)
+
+@_silgen_name("OpenRCT2MacNativeShortcutCount")
+func OpenRCT2MacNativeShortcutCount() -> Int32
+@_silgen_name("OpenRCT2MacNativeShortcutGetId")
+func OpenRCT2MacNativeShortcutGetId(_ index: Int32, _ out: UnsafeMutablePointer<CChar>, _ outLen: Int)
+@_silgen_name("OpenRCT2MacNativeShortcutGetName")
+func OpenRCT2MacNativeShortcutGetName(_ index: Int32, _ out: UnsafeMutablePointer<CChar>, _ outLen: Int)
+@_silgen_name("OpenRCT2MacNativeShortcutGetChord")
+func OpenRCT2MacNativeShortcutGetChord(_ index: Int32, _ out: UnsafeMutablePointer<CChar>, _ outLen: Int)
+@_silgen_name("OpenRCT2MacNativeShortcutRemove")
+func OpenRCT2MacNativeShortcutRemove(_ id: UnsafePointer<CChar>?)
+@_silgen_name("OpenRCT2MacNativeShortcutResetAll")
+func OpenRCT2MacNativeShortcutResetAll()
+@_silgen_name("OpenRCT2MacNativeShortcutChangePresent")
+func OpenRCT2MacNativeShortcutChangePresent(_ id: UnsafePointer<CChar>?) -> Bool
+
+enum MacShortcutKeysPanel {
+    @MainActor private static var panel: NSPanel?
+
+    @MainActor
+    static func show() -> Bool {
+        if let panel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            return true
+        }
+        panel = MacDensePanelHost.present(
+            title: "Shortcut Keys",
+            size: NSSize(width: 520, height: 360),
+            root: ShortcutKeysView()
+        )
+        return true
+    }
+}
+
+private struct ShortcutKeysView: View {
+    @State private var items: [(id: String, name: String, chord: String)] = []
+    @State private var selected: String?
+
+    var body: some View {
+        VStack(spacing: 6) {
+            List(selection: $selected) {
+                ForEach(items, id: \.id) { item in
+                    HStack {
+                        Text(item.name)
+                            .font(.system(size: 11))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(item.chord)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    .tag(item.id)
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+                        _ = OpenRCT2MacNativeShortcutChangePresent(item.id)
+                        reload()
+                    }
+                }
+            }
+            .listStyle(.bordered(alternatesRowBackgrounds: true))
+            HStack {
+                Button("Change…") {
+                    if let selected {
+                        _ = OpenRCT2MacNativeShortcutChangePresent(selected)
+                        reload()
+                    }
+                }
+                .controlSize(.small)
+                .disabled(selected == nil)
+                Button("Remove") {
+                    if let selected {
+                        OpenRCT2MacNativeShortcutRemove(selected)
+                        reload()
+                    }
+                }
+                .controlSize(.small)
+                .disabled(selected == nil)
+                Spacer()
+                Button("Reset All…") {
+                    let choice = MacNativeAlerts.confirm(
+                        title: "Reset Shortcuts",
+                        message: "Reset all shortcuts to defaults?",
+                        button0: "Reset",
+                        button1: "Cancel",
+                        button2: nil
+                    )
+                    if choice == 0 {
+                        OpenRCT2MacNativeShortcutResetAll()
+                        reload()
+                    }
+                }
+                .controlSize(.small)
+            }
+        }
+        .padding(8)
+        .onAppear { reload() }
+    }
+
+    private func reload() {
+        let count = Int(OpenRCT2MacNativeShortcutCount())
+        var next: [(id: String, name: String, chord: String)] = []
+        for i in 0..<count {
+            var idBuf = [CChar](repeating: 0, count: 128)
+            var nameBuf = [CChar](repeating: 0, count: 256)
+            var chordBuf = [CChar](repeating: 0, count: 128)
+            OpenRCT2MacNativeShortcutGetId(Int32(i), &idBuf, idBuf.count)
+            OpenRCT2MacNativeShortcutGetName(Int32(i), &nameBuf, nameBuf.count)
+            OpenRCT2MacNativeShortcutGetChord(Int32(i), &chordBuf, chordBuf.count)
+            next.append((String(cString: idBuf), String(cString: nameBuf), String(cString: chordBuf)))
+        }
+        items = next
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeShortcutKeysShow")
+func OpenRCT2MacNativeShortcutKeysShow() -> Bool {
+    MainActor.assumeIsolated { MacShortcutKeysPanel.show() }
+}

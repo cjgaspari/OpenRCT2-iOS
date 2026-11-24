@@ -111,3 +111,62 @@ func OpenRCT2MacNativeTextInput(
         MacNativeTextInput.prompt(title: t, message: m, initial: i, out: out, outLen: outLen)
     }
 }
+
+// MARK: - Change keyboard shortcut (1.10)
+
+@_silgen_name("OpenRCT2MacNativeShortcutApplyChord")
+func OpenRCT2MacNativeShortcutApplyChord(_ id: UnsafePointer<CChar>?, _ chord: UnsafePointer<CChar>?)
+
+enum MacChangeShortcutAlert {
+    @MainActor
+    static func present(id: String) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "Change Shortcut"
+        alert.informativeText = "Press the new key combination, or click Remove."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Remove")
+        alert.addButton(withTitle: "Cancel")
+
+        var monitor: Any?
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "." {
+                return event // allow cancel chord through
+            }
+            var parts: [String] = []
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags.contains(.control) { parts.append("CTRL") }
+            if flags.contains(.option) { parts.append("ALT") }
+            if flags.contains(.shift) { parts.append("SHIFT") }
+            if flags.contains(.command) { parts.append("GUI") }
+            if let chars = event.charactersIgnoringModifiers?.uppercased(), !chars.isEmpty {
+                parts.append(chars)
+            }
+            let chord = parts.joined(separator: "+")
+            if !chord.isEmpty {
+                OpenRCT2MacNativeShortcutApplyChord(id, chord)
+                if let monitor {
+                    NSEvent.removeMonitor(monitor)
+                }
+                NSApp.abortModal()
+            }
+            return nil
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        if let monitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        if response == .alertFirstButtonReturn {
+            OpenRCT2MacNativeShortcutApplyChord(id, "")
+        }
+        return true
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeShortcutChangeShow")
+func OpenRCT2MacNativeShortcutChangeShow(_ id: UnsafePointer<CChar>?) -> Bool {
+    let sid = id.map { String(cString: $0) } ?? ""
+    guard !sid.isEmpty else { return false }
+    return MainActor.assumeIsolated { MacChangeShortcutAlert.present(id: sid) }
+}
