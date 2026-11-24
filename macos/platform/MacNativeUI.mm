@@ -1186,4 +1186,368 @@ void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int
     GameActions::Execute(&gameAction, getGameState());
 }
 
+// ---------------------------------------------------------------------------
+// Title browsers: scenario select + load park (Liquid Glass)
+// ---------------------------------------------------------------------------
+
+#include <openrct2-ui/UiStringIds.h>
+#include <openrct2-ui/interface/FileBrowser.h>
+#include <openrct2-ui/interface/Objective.h>
+#include <openrct2/core/FileScanner.h>
+#include <openrct2/core/Path.hpp>
+#include <openrct2/localisation/Formatting.h>
+#include <openrct2/platform/Platform.h>
+#include <openrct2/rct12/RCT12.h>
+#include <openrct2/scenario/ScenarioCategory.h>
+#include <openrct2/scenario/ScenarioObjective.h>
+#include <openrct2/scenario/ScenarioRepository.h>
+#include <openrct2/scenario/ScenarioSources.h>
+#include <functional>
+#include <optional>
+
+extern "C" bool OpenRCT2MacNativeScenarioSelectShow(void);
+extern "C" bool OpenRCT2MacNativeLoadParkShow(void);
+
+namespace
+{
+    constexpr int32_t kMacScenarioTabCount = 10;
+    constexpr int32_t kMacInitialUnlocked = 5;
+
+    constexpr StringId kMacScenarioOriginStringIds[] = {
+        STR_SCENARIO_CATEGORY_RCT1,        STR_SCENARIO_CATEGORY_RCT1_AA,    STR_SCENARIO_CATEGORY_RCT1_LL,
+        STR_SCENARIO_CATEGORY_RCT2,        STR_SCENARIO_CATEGORY_RCT2_WW,    STR_SCENARIO_CATEGORY_RCT2_TT,
+        STR_SCENARIO_CATEGORY_UCES,        STR_SCENARIO_CATEGORY_REAL_PARKS, STR_SCENARIO_CATEGORY_EXTRAS_PARKS,
+        STR_SCENARIO_CATEGORY_OTHER_PARKS,
+    };
+
+    enum class MacScenarioRowKind : int32_t
+    {
+        heading = 0,
+        scenario = 1,
+    };
+
+    struct MacScenarioRow
+    {
+        MacScenarioRowKind kind{};
+        std::string name;
+        std::string details;
+        std::string path;
+        bool locked{};
+    };
+
+    struct MacSaveFileRow
+    {
+        std::string name;
+        std::string path;
+        std::string date;
+        time_t modified{};
+    };
+
+    std::function<void(std::string_view)> gMacScenarioCallback;
+    int32_t gMacScenarioActiveTab = 0;
+    uint32_t gMacScenarioVisibleTabs = 0;
+    std::vector<MacScenarioRow> gMacScenarioRows;
+
+    std::vector<MacSaveFileRow> gMacSaveFiles;
+
+    std::string MacPlain(std::string_view text)
+    {
+        return RCT12RemoveFormattingUTF8(text);
+    }
+
+    std::string MacStringId(StringId id)
+    {
+        if (const char* s = LanguageGetString(id); s != nullptr)
+            return MacPlain(s);
+        return {};
+    }
+
+    std::string MacScenarioObjective(const ScenarioIndexEntry& scenario)
+    {
+        const auto objectiveIndex = EnumValue(scenario.ObjectiveType);
+        if (objectiveIndex >= static_cast<int32_t>(std::size(kObjectiveNames)))
+            return {};
+        Scenario::Objective objective = {
+            .Type = scenario.ObjectiveType,
+            .Year = scenario.ObjectiveArg1,
+            .NumGuests = static_cast<uint16_t>(scenario.ObjectiveArg3),
+            .Currency = scenario.ObjectiveArg2,
+        };
+        Formatter ft;
+        formatObjective(ft, objective);
+        return MacPlain(FormatStringIDLegacy(kObjectiveNames[objectiveIndex], ft.Data()));
+    }
+
+    void MacScenarioRebuildTabs()
+    {
+        gMacScenarioVisibleTabs = 0;
+        const size_t count = ScenarioRepositoryGetCount();
+        for (size_t i = 0; i < count; i++)
+        {
+            if (const auto* sc = ScenarioRepositoryGetByIndex(i); sc != nullptr)
+                gMacScenarioVisibleTabs |= 1u << static_cast<uint8_t>(sc->SourceGame);
+        }
+        if (gMacScenarioVisibleTabs & (1u << Config::Get().interface.scenarioSelectLastTab))
+            gMacScenarioActiveTab = Config::Get().interface.scenarioSelectLastTab;
+        else
+        {
+            for (int32_t i = 0; i < kMacScenarioTabCount; i++)
+            {
+                if (gMacScenarioVisibleTabs & (1u << i))
+                {
+                    gMacScenarioActiveTab = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    bool MacScenarioLockingEnabled()
+    {
+        return Config::Get().general.scenarioUnlockingEnabled && gMacScenarioActiveTab < 6;
+    }
+
+    void MacScenarioRebuildRows()
+    {
+        gMacScenarioRows.clear();
+        const size_t count = ScenarioRepositoryGetCount();
+        int32_t numUnlocks = kMacInitialUnlocked;
+        const uint32_t rct1Required = (1u << SC_MEGA_PARK) - 1;
+        uint32_t rct1Completed = 0;
+        std::optional<size_t> megaIdx;
+        std::optional<Scenario::Category> currentHeading;
+
+        for (size_t i = 0; i < count; i++)
+        {
+            const ScenarioIndexEntry* scenario = ScenarioRepositoryGetByIndex(i);
+            if (scenario == nullptr || static_cast<uint8_t>(scenario->SourceGame) != gMacScenarioActiveTab)
+                continue;
+
+            if (gMacScenarioActiveTab != EnumValue(ScenarioSource::real)
+                && (!currentHeading.has_value() || currentHeading.value() != scenario->Category))
+            {
+                currentHeading = scenario->Category;
+                MacScenarioRow header;
+                header.kind = MacScenarioRowKind::heading;
+                header.name = MacStringId(Scenario::kScenarioCategoryStringIds[EnumValue(scenario->Category)]);
+                gMacScenarioRows.push_back(std::move(header));
+            }
+
+            MacScenarioRow row;
+            row.kind = MacScenarioRowKind::scenario;
+            row.name = scenario->Name.empty() ? scenario->InternalName : scenario->Name;
+            row.details = MacScenarioObjective(*scenario);
+            if (!scenario->Details.empty())
+            {
+                if (!row.details.empty())
+                    row.details += "\n";
+                row.details += MacPlain(scenario->Details);
+            }
+            row.path = scenario->Path;
+            if (MacScenarioLockingEnabled())
+            {
+                row.locked = numUnlocks <= 0;
+                if (scenario->Highscore == nullptr)
+                    numUnlocks--;
+                else if (scenario->ScenarioId < SC_MEGA_PARK)
+                    rct1Completed |= 1u << scenario->ScenarioId;
+                if (scenario->ScenarioId == SC_MEGA_PARK)
+                    megaIdx = gMacScenarioRows.size();
+            }
+            gMacScenarioRows.push_back(std::move(row));
+        }
+
+        if (megaIdx.has_value() && megaIdx.value() < gMacScenarioRows.size())
+        {
+            const bool megaLocked = (rct1Completed & rct1Required) != rct1Required;
+            gMacScenarioRows[*megaIdx].locked = megaLocked;
+            if (megaLocked && Config::Get().general.scenarioHideMegaPark)
+                gMacScenarioRows.erase(gMacScenarioRows.begin() + static_cast<std::ptrdiff_t>(*megaIdx));
+        }
+    }
+
+    void MacSaveRebuildList()
+    {
+        gMacSaveFiles.clear();
+        const auto dir = FileBrowser::GetDir(LoadSaveType::park);
+        if (dir.empty() || !Path::DirectoryExists(dir))
+            return;
+
+        const auto pattern = Path::Combine(dir, "*.park");
+        auto scanner = Path::ScanDirectory(pattern, false);
+        while (scanner->Next())
+        {
+            MacSaveFileRow row;
+            row.path = scanner->GetPath();
+            row.name = Path::GetFileNameWithoutExtension(row.path);
+            row.modified = Platform::FileGetModifiedTime(row.path.c_str());
+            row.date = Platform::FormatShortDate(row.modified) + " " + Platform::FormatTime(row.modified);
+            gMacSaveFiles.push_back(std::move(row));
+        }
+
+        std::sort(gMacSaveFiles.begin(), gMacSaveFiles.end(), [](const MacSaveFileRow& a, const MacSaveFileRow& b) {
+            return a.modified > b.modified;
+        });
+    }
+} // namespace
+
+bool OpenRCT2MacNativeScenarioSelectPresent(void)
+{
+    if (!MacNativeIsMainThread())
+        return false;
+    ScenarioRepositoryScan();
+    MacScenarioRebuildTabs();
+    MacScenarioRebuildRows();
+    return OpenRCT2MacNativeScenarioSelectShow();
+}
+
+bool OpenRCT2::Ui::MacNativeScenarioSelectOpen(std::function<void(std::string_view)> callback)
+{
+    gMacScenarioCallback = std::move(callback);
+    return OpenRCT2MacNativeScenarioSelectPresent();
+}
+
+extern "C" int32_t OpenRCT2MacNativeScenarioTabCount(void)
+{
+    return kMacScenarioTabCount;
+}
+
+extern "C" bool OpenRCT2MacNativeScenarioTabVisible(int32_t tab)
+{
+    if (tab < 0 || tab >= kMacScenarioTabCount)
+        return false;
+    return (gMacScenarioVisibleTabs & (1u << tab)) != 0;
+}
+
+extern "C" void OpenRCT2MacNativeScenarioTabName(int32_t tab, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (tab < 0 || tab >= kMacScenarioTabCount)
+        return;
+    std::snprintf(out, outLen, "%s", MacStringId(kMacScenarioOriginStringIds[tab]).c_str());
+}
+
+extern "C" int32_t OpenRCT2MacNativeScenarioGetActiveTab(void)
+{
+    return gMacScenarioActiveTab;
+}
+
+extern "C" void OpenRCT2MacNativeScenarioSetActiveTab(int32_t tab)
+{
+    if (tab < 0 || tab >= kMacScenarioTabCount)
+        return;
+    if ((gMacScenarioVisibleTabs & (1u << tab)) == 0)
+        return;
+    gMacScenarioActiveTab = tab;
+    Config::Get().interface.scenarioSelectLastTab = tab;
+    Config::Save();
+    MacScenarioRebuildRows();
+}
+
+extern "C" int32_t OpenRCT2MacNativeScenarioRowCount(void)
+{
+    return static_cast<int32_t>(gMacScenarioRows.size());
+}
+
+extern "C" int32_t OpenRCT2MacNativeScenarioRowKind(int32_t row)
+{
+    if (row < 0 || static_cast<size_t>(row) >= gMacScenarioRows.size())
+        return 0;
+    return static_cast<int32_t>(gMacScenarioRows[static_cast<size_t>(row)].kind);
+}
+
+extern "C" void OpenRCT2MacNativeScenarioRowName(int32_t row, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (row < 0 || static_cast<size_t>(row) >= gMacScenarioRows.size())
+        return;
+    std::snprintf(out, outLen, "%s", gMacScenarioRows[static_cast<size_t>(row)].name.c_str());
+}
+
+extern "C" void OpenRCT2MacNativeScenarioRowDetails(int32_t row, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (row < 0 || static_cast<size_t>(row) >= gMacScenarioRows.size())
+        return;
+    std::snprintf(out, outLen, "%s", gMacScenarioRows[static_cast<size_t>(row)].details.c_str());
+}
+
+extern "C" bool OpenRCT2MacNativeScenarioRowLocked(int32_t row)
+{
+    if (row < 0 || static_cast<size_t>(row) >= gMacScenarioRows.size())
+        return true;
+    return gMacScenarioRows[static_cast<size_t>(row)].locked;
+}
+
+extern "C" bool OpenRCT2MacNativeScenarioSelectRow(int32_t row)
+{
+    if (row < 0 || static_cast<size_t>(row) >= gMacScenarioRows.size())
+        return false;
+    const auto& item = gMacScenarioRows[static_cast<size_t>(row)];
+    if (item.kind != MacScenarioRowKind::scenario || item.locked || item.path.empty())
+        return false;
+    if (gMacScenarioCallback)
+        gMacScenarioCallback(item.path);
+    return true;
+}
+
+bool OpenRCT2MacNativeLoadParkPresent(void)
+{
+    if (!MacNativeIsMainThread())
+        return false;
+    MacSaveRebuildList();
+    return OpenRCT2MacNativeLoadParkShow();
+}
+
+bool OpenRCT2::Ui::MacNativeLoadParkOpen(
+    std::function<void(OpenRCT2::ModalResult, std::string_view)> callback, bool isJsCallback)
+{
+    FileBrowser::RegisterCallback(std::move(callback), isJsCallback);
+    return OpenRCT2MacNativeLoadParkPresent();
+}
+
+extern "C" void OpenRCT2MacNativeSaveFileRefresh(void)
+{
+    MacSaveRebuildList();
+}
+
+extern "C" int32_t OpenRCT2MacNativeSaveFileCount(void)
+{
+    return static_cast<int32_t>(gMacSaveFiles.size());
+}
+
+extern "C" void OpenRCT2MacNativeSaveFileGetName(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (index < 0 || static_cast<size_t>(index) >= gMacSaveFiles.size())
+        return;
+    std::snprintf(out, outLen, "%s", gMacSaveFiles[static_cast<size_t>(index)].name.c_str());
+}
+
+extern "C" void OpenRCT2MacNativeSaveFileGetDate(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (index < 0 || static_cast<size_t>(index) >= gMacSaveFiles.size())
+        return;
+    std::snprintf(out, outLen, "%s", gMacSaveFiles[static_cast<size_t>(index)].date.c_str());
+}
+
+extern "C" bool OpenRCT2MacNativeSaveFileLoad(int32_t index)
+{
+    if (index < 0 || static_cast<size_t>(index) >= gMacSaveFiles.size())
+        return false;
+    FileBrowser::Select(gMacSaveFiles[static_cast<size_t>(index)].path.c_str(), LoadSaveAction::load, LoadSaveType::park, nullptr);
+    return true;
+}
+
 #endif // TARGET_OS_OSX

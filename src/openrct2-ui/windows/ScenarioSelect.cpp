@@ -48,6 +48,8 @@
     #include <TargetConditionals.h>
     #if TARGET_OS_IOS
         #include "NativeScenarioPicker.iOS.h"
+    #elif TARGET_OS_OSX
+        #include "MacNativeUI.h"
     #endif
 #endif
 
@@ -883,7 +885,10 @@ namespace OpenRCT2::Ui::Windows
     {
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
         return OpenRCT2::Ui::NativeScenarioPickerOpen(std::move(callback));
-#else
+#elif defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2::Ui::MacNativeScenarioSelectOpen(callback))
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         auto* window = static_cast<ScenarioSelectWindow*>(windowMgr->BringToFrontByClass(WindowClass::scenarioSelect));
         if (window != nullptr)
@@ -894,6 +899,5 @@ namespace OpenRCT2::Ui::Windows
         window = windowMgr->Create<ScenarioSelectWindow>(
             WindowClass::scenarioSelect, {}, kWindowSize, { WindowFlag::autoPosition, WindowFlag::centreScreen }, callback);
         return window;
-#endif
     }
 } // namespace OpenRCT2::Ui::Windows

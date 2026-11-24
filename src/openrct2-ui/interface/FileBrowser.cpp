@@ -37,6 +37,8 @@
     #include <TargetConditionals.h>
     #if TARGET_OS_IOS
         #include "NativeLoadSave.iOS.h"
+    #elif TARGET_OS_OSX
+        #include "MacNativeUI.h"
     #endif
 #endif
 
@@ -58,6 +60,14 @@ namespace OpenRCT2::Ui::FileBrowser
     {
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
         if (OpenRCT2::Ui::NativeLoadSaveOpen(action, type, defaultPath, callback, isJsCallback, trackDesign))
+        {
+            return nullptr;
+        }
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        // Title + in-game load park → Liquid Glass dense browser (CJ).
+        if (action == LoadSaveAction::load && type == LoadSaveType::park
+            && OpenRCT2::Ui::MacNativeLoadParkOpen(callback, isJsCallback))
         {
             return nullptr;
         }

@@ -154,8 +154,43 @@ int32_t OpenRCT2MacNativeCampaignRideCount(int16_t campaignType);
 void OpenRCT2MacNativeCampaignRideName(int16_t campaignType, int32_t index, char* out, size_t outLen);
 void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int32_t weeks);
 
+/** Title / Tier-3 browsers — Liquid Glass chrome, dense lists. */
+bool OpenRCT2MacNativeScenarioSelectPresent(void);
+bool OpenRCT2MacNativeLoadParkPresent(void);
+
+int32_t OpenRCT2MacNativeScenarioTabCount(void);
+bool OpenRCT2MacNativeScenarioTabVisible(int32_t tab);
+void OpenRCT2MacNativeScenarioTabName(int32_t tab, char* out, size_t outLen);
+int32_t OpenRCT2MacNativeScenarioGetActiveTab(void);
+void OpenRCT2MacNativeScenarioSetActiveTab(int32_t tab);
+int32_t OpenRCT2MacNativeScenarioRowCount(void);
+int32_t OpenRCT2MacNativeScenarioRowKind(int32_t row);
+void OpenRCT2MacNativeScenarioRowName(int32_t row, char* out, size_t outLen);
+void OpenRCT2MacNativeScenarioRowDetails(int32_t row, char* out, size_t outLen);
+bool OpenRCT2MacNativeScenarioRowLocked(int32_t row);
+bool OpenRCT2MacNativeScenarioSelectRow(int32_t row);
+
+void OpenRCT2MacNativeSaveFileRefresh(void);
+int32_t OpenRCT2MacNativeSaveFileCount(void);
+void OpenRCT2MacNativeSaveFileGetName(int32_t index, char* out, size_t outLen);
+void OpenRCT2MacNativeSaveFileGetDate(int32_t index, char* out, size_t outLen);
+bool OpenRCT2MacNativeSaveFileLoad(int32_t index);
+
 #ifdef __cplusplus
 }
+
+#include <functional>
+#include <string_view>
+
+#include <openrct2/interface/WindowTypes.h>
+
+namespace OpenRCT2::Ui
+{
+    /** Store scenario-select callback then present Mac glass picker. */
+    bool MacNativeScenarioSelectOpen(std::function<void(std::string_view)> callback);
+    /** Present Mac glass load-park browser (registers FileBrowser callback). */
+    bool MacNativeLoadParkOpen(std::function<void(ModalResult, std::string_view)> callback, bool isJsCallback);
+} // namespace OpenRCT2::Ui
 #endif
 
 #endif // TARGET_OS_OSX
