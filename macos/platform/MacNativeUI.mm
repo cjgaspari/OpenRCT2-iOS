@@ -1667,4 +1667,130 @@ extern "C" bool OpenRCT2MacNativeSaveFileLoad(int32_t index)
     return true;
 }
 
+// ---------------------------------------------------------------------------
+// Recent news (3.1)
+// ---------------------------------------------------------------------------
+
+#include <openrct2/localisation/Localisation.Date.h>
+#include <openrct2/management/NewsItem.h>
+#include <openrct2/ui/WindowManager.h>
+#include <openrct2-ui/windows/Windows.h>
+
+extern "C" bool OpenRCT2MacNativeRecentNewsShow(void);
+
+namespace
+{
+    struct MacNewsRow
+    {
+        std::string date;
+        std::string text;
+        News::ItemType type{};
+        uint32_t assoc{};
+        bool hasSubject{};
+        bool hasLocation{};
+        bool hasButton{};
+    };
+
+    std::vector<MacNewsRow> gMacNewsRows;
+
+    void MacNewsRebuild()
+    {
+        gMacNewsRows.clear();
+        for (const auto& newsItem : getGameState().newsItems.getArchived())
+        {
+            MacNewsRow row;
+            Formatter ft;
+            if (newsItem.day >= 1 && newsItem.day <= 31)
+            {
+                ft.Add<StringId>(DateDayNames[newsItem.day - 1]);
+                ft.Add<StringId>(DateGameMonthNames[DateGetMonth(newsItem.monthYear)]);
+                row.date = MacPlain(FormatStringIDLegacy(STR_NEWS_DATE_FORMAT, ft.Data()));
+            }
+            row.text = MacPlain(newsItem.text);
+            row.type = newsItem.type;
+            row.assoc = newsItem.assoc;
+            row.hasSubject = newsItem.typeHasSubject() && !newsItem.hasButton();
+            row.hasLocation = newsItem.typeHasLocation() && !newsItem.hasButton();
+            row.hasButton = newsItem.hasButton();
+            gMacNewsRows.push_back(std::move(row));
+        }
+    }
+} // namespace
+
+bool OpenRCT2MacNativeRecentNewsPresent(void)
+{
+    if (!MacNativeIsMainThread())
+        return false;
+    MacNewsRebuild();
+    return OpenRCT2MacNativeRecentNewsShow();
+}
+
+extern "C" void OpenRCT2MacNativeNewsRefresh(void)
+{
+    MacNewsRebuild();
+}
+
+extern "C" int32_t OpenRCT2MacNativeNewsCount(void)
+{
+    return static_cast<int32_t>(gMacNewsRows.size());
+}
+
+extern "C" void OpenRCT2MacNativeNewsGetDate(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (index < 0 || static_cast<size_t>(index) >= gMacNewsRows.size())
+        return;
+    std::snprintf(out, outLen, "%s", gMacNewsRows[static_cast<size_t>(index)].date.c_str());
+}
+
+extern "C" void OpenRCT2MacNativeNewsGetText(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    if (index < 0 || static_cast<size_t>(index) >= gMacNewsRows.size())
+        return;
+    std::snprintf(out, outLen, "%s", gMacNewsRows[static_cast<size_t>(index)].text.c_str());
+}
+
+extern "C" bool OpenRCT2MacNativeNewsHasSubject(int32_t index)
+{
+    if (index < 0 || static_cast<size_t>(index) >= gMacNewsRows.size())
+        return false;
+    return gMacNewsRows[static_cast<size_t>(index)].hasSubject;
+}
+
+extern "C" bool OpenRCT2MacNativeNewsHasLocation(int32_t index)
+{
+    if (index < 0 || static_cast<size_t>(index) >= gMacNewsRows.size())
+        return false;
+    return gMacNewsRows[static_cast<size_t>(index)].hasLocation;
+}
+
+extern "C" void OpenRCT2MacNativeNewsOpenSubject(int32_t index)
+{
+    if (index < 0 || static_cast<size_t>(index) >= gMacNewsRows.size())
+        return;
+    const auto& row = gMacNewsRows[static_cast<size_t>(index)];
+    if (!row.hasSubject)
+        return;
+    News::OpenSubject(row.type, static_cast<int32_t>(row.assoc));
+}
+
+extern "C" void OpenRCT2MacNativeNewsLocate(int32_t index)
+{
+    if (index < 0 || static_cast<size_t>(index) >= gMacNewsRows.size())
+        return;
+    const auto& row = gMacNewsRows[static_cast<size_t>(index)];
+    if (!row.hasLocation)
+        return;
+    auto subjectLoc = News::GetSubjectLocation(row.type, static_cast<int32_t>(row.assoc));
+    if (!subjectLoc.has_value())
+        return;
+    if (auto* mainWindow = WindowGetMain(); mainWindow != nullptr)
+        WindowScrollToLocation(*mainWindow, subjectLoc.value());
+}
+
 #endif // TARGET_OS_OSX

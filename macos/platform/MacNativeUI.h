@@ -177,6 +177,17 @@ void OpenRCT2MacNativeSaveFileGetName(int32_t index, char* out, size_t outLen);
 void OpenRCT2MacNativeSaveFileGetDate(int32_t index, char* out, size_t outLen);
 bool OpenRCT2MacNativeSaveFileLoad(int32_t index);
 
+/** Recent news (3.1) — glass dense archive list. */
+bool OpenRCT2MacNativeRecentNewsPresent(void);
+void OpenRCT2MacNativeNewsRefresh(void);
+int32_t OpenRCT2MacNativeNewsCount(void);
+void OpenRCT2MacNativeNewsGetDate(int32_t index, char* out, size_t outLen);
+void OpenRCT2MacNativeNewsGetText(int32_t index, char* out, size_t outLen);
+bool OpenRCT2MacNativeNewsHasSubject(int32_t index);
+bool OpenRCT2MacNativeNewsHasLocation(int32_t index);
+void OpenRCT2MacNativeNewsOpenSubject(int32_t index);
+void OpenRCT2MacNativeNewsLocate(int32_t index);
+
 #ifdef __cplusplus
 }
 

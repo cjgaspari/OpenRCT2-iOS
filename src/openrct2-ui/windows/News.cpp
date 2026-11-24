@@ -30,6 +30,13 @@
 #include <openrct2/object/PeepAnimationsObject.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+    #if TARGET_OS_OSX
+        #include "MacNativeUI.h"
+    #endif
+#endif
+
 using namespace OpenRCT2::Drawing;
 
 namespace OpenRCT2::Ui::Windows
@@ -611,6 +618,10 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* NewsOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeRecentNewsPresent())
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         return windowMgr->FocusOrCreate<NewsWindow>(WindowClass::recentNews, kWindowSize, {});
     }
