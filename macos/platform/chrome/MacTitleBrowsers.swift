@@ -154,6 +154,7 @@ private struct ScenarioSelectView: View {
     @State private var selectedRow: Int?
     @State private var tick = 0
     @State private var preview = MacScenarioPreviewStore.shared
+    @Bindable private var knobs = MacGlassStyleKnobs.shared
 
     private var visibleTabs: [(id: Int, name: String)] {
         let count = Int(OpenRCT2MacNativeScenarioTabCount())
@@ -190,7 +191,7 @@ private struct ScenarioSelectView: View {
             HStack {
                 Text("Select Scenario")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
+                    .foregroundStyle(knobs.primaryLabel)
                 Spacer()
                 Button("Close", action: onClose)
                     .buttonStyle(.glass)
@@ -210,7 +211,7 @@ private struct ScenarioSelectView: View {
                 .controlSize(.mini)
                 .padding(.horizontal, 12)
                 .padding(6)
-                .background(MacGlassPanelStyle.textPlate(cornerRadius: 8))
+                .background(MacGlassTextPlate(cornerRadius: 8))
                 .padding(.horizontal, 12)
                 .onChange(of: tab) { _, newValue in
                     OpenRCT2MacNativeScenarioSetActiveTab(Int32(newValue))
@@ -226,18 +227,18 @@ private struct ScenarioSelectView: View {
                         if row.kind == 0 {
                             Text(row.name)
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                                .foregroundStyle(knobs.secondaryLabel)
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                         } else {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(row.name)
                                     .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
+                                    .foregroundStyle(knobs.primaryLabel)
                                 if !row.details.isEmpty {
                                     Text(row.details)
                                         .font(.system(size: 10))
-                                        .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                                        .foregroundStyle(knobs.secondaryLabel)
                                         .lineLimit(2)
                                 }
                             }
@@ -254,7 +255,7 @@ private struct ScenarioSelectView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .padding(8)
-                .background(MacGlassPanelStyle.textPlate())
+                .background(MacGlassTextPlate())
                 .frame(minWidth: 340)
                 .onChange(of: selectedRow) { _, newValue in
                     guard let newValue else {
@@ -274,7 +275,7 @@ private struct ScenarioSelectView: View {
                 detailPane
                     .padding(12)
                     .frame(width: 260, alignment: .topLeading)
-                    .background(MacGlassPanelStyle.textPlate())
+                    .background(MacGlassTextPlate())
             }
             .padding(12)
         }
@@ -291,14 +292,14 @@ private struct ScenarioSelectView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text(row.name)
                     .font(.headline)
-                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
+                    .foregroundStyle(knobs.primaryLabel)
 
                 previewArt
 
                 if !row.details.isEmpty {
                     Text(row.details)
                         .font(.system(size: 11))
-                        .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                        .foregroundStyle(knobs.secondaryLabel)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if row.locked {
@@ -319,7 +320,7 @@ private struct ScenarioSelectView: View {
         } else {
             Text("Choose a scenario")
                 .font(.system(size: 12))
-                .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                .foregroundStyle(knobs.secondaryLabel)
             Spacer(minLength: 0)
         }
     }
@@ -390,13 +391,14 @@ private struct LoadParkView: View {
     let onClose: () -> Void
     @State private var selected: Int?
     @State private var files: [SaveFileRow] = []
+    @Bindable private var knobs = MacGlassStyleKnobs.shared
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Text("Load Saved Game")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
+                    .foregroundStyle(knobs.primaryLabel)
                 Spacer()
                 Button("Refresh") {
                     OpenRCT2MacNativeSaveFileRefresh()
@@ -417,11 +419,11 @@ private struct LoadParkView: View {
                     HStack {
                         Text(file.name)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(MacGlassPanelStyle.primaryLabel)
+                            .foregroundStyle(knobs.primaryLabel)
                         Spacer()
                         Text(file.date)
                             .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                            .foregroundStyle(knobs.secondaryLabel)
                     }
                     .tag(file.index)
                     .contentShape(Rectangle())
@@ -440,13 +442,13 @@ private struct LoadParkView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .padding(8)
-            .background(MacGlassPanelStyle.textPlate())
+            .background(MacGlassTextPlate())
             .padding(.horizontal, 12)
 
             HStack {
                 Text(files.isEmpty ? "No saved games found." : "\(files.count) save(s)")
                     .font(.system(size: 10))
-                    .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                    .foregroundStyle(knobs.secondaryLabel)
                 Spacer()
                 Button("Load") {
                     if let selected, OpenRCT2MacNativeSaveFileLoad(Int32(selected)) {
@@ -458,7 +460,7 @@ private struct LoadParkView: View {
                 .disabled(selected == nil)
             }
             .padding(12)
-            .background(MacGlassPanelStyle.textPlate(cornerRadius: 8).padding(.horizontal, 12))
+            .background(MacGlassTextPlate(cornerRadius: 8).padding(.horizontal, 12))
         }
         .background(Color.clear)
         .onAppear { reload() }

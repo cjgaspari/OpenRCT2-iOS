@@ -72,13 +72,21 @@ private struct DebugPaintView: View {
     ]
 
     var body: some View {
-        Form {
-            ForEach(labels.indices, id: \.self) { i in
-                Toggle(labels[i], isOn: binding(i))
-                    .controlSize(.small)
+        VStack(alignment: .leading, spacing: 8) {
+            Form {
+                ForEach(labels.indices, id: \.self) { i in
+                    Toggle(labels[i], isOn: binding(i))
+                        .controlSize(.small)
+                }
             }
+            .formStyle(.grouped)
+            Button("Glass Style Lab…") {
+                _ = MacGlassStyleLab.show()
+            }
+            .buttonStyle(.glass)
+            .controlSize(.small)
+            .padding(.horizontal, 8)
         }
-        .formStyle(.grouped)
         .padding(8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }

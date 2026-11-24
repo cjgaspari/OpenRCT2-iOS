@@ -76,8 +76,17 @@ extern "C" bool OpenRCT2MacNativeTransparencyShow(void);
 extern "C" int32_t OpenRCT2MacNativeAlertConfirm(
     const char* title, const char* message, const char* button0, const char* button1, const char* button2);
 
+extern "C" bool OpenRCT2MacNativeGlassStyleLabShow(void);
+
+bool OpenRCT2MacNativeGlassStyleLabPresent(void)
+{
+    return OpenRCT2MacNativeGlassStyleLabShow();
+}
+
 bool OpenRCT2MacNativeDebugPaintPresent(void)
 {
+    // Offer the Glass Style Lab alongside Debug Paint for live retests.
+    OpenRCT2MacNativeGlassStyleLabPresent();
     return OpenRCT2MacNativeDebugPaintShow();
 }
 

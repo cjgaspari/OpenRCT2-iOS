@@ -86,6 +86,7 @@ if (APPLE)
             "${ROOT_DIR}/macos/platform/chrome/MacNativeAlerts.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacDensePanels.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacGlassPanelStyle.swift"
+            "${ROOT_DIR}/macos/platform/chrome/MacGlassStyleLab.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacOptionsCheats.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacRecentNews.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacTitleBrowsers.swift"

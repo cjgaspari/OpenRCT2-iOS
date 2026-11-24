@@ -177,6 +177,9 @@ void OpenRCT2MacNativeSaveFileGetName(int32_t index, char* out, size_t outLen);
 void OpenRCT2MacNativeSaveFileGetDate(int32_t index, char* out, size_t outLen);
 bool OpenRCT2MacNativeSaveFileLoad(int32_t index);
 
+/** Live Glass Style Lab — knobs for clear/regular, dimming, frost, tint. */
+bool OpenRCT2MacNativeGlassStyleLabPresent(void);
+
 /** Recent news (3.1) — glass dense archive list. */
 bool OpenRCT2MacNativeRecentNewsPresent(void);
 void OpenRCT2MacNativeNewsRefresh(void);
