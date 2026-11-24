@@ -1,6 +1,10 @@
 # OpenRCT2 Touch chrome mockups
 
-A standalone SwiftUI app for iterating native iPhone portrait chrome **without rebuilding the game**.
+> **Non-shipping design sandbox.** This Xcode project is **not** part of the
+> `openrct2-touch` product build, TestFlight packages, or release-safety
+> audits. It exists only for iterating Liquid Glass chrome layouts without
+> rebuilding the game. Live product chrome lives under
+> `ios/platform/chrome/`.
 
 Open `OpenRCT2TouchChrome.xcodeproj` in Xcode 26+, choose an iPhone Simulator, and Run.
 

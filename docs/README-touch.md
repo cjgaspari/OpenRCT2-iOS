@@ -5,6 +5,12 @@ OpenRCT2 Touch is an unofficial, independent iPadOS fork of
 with finger controls and retains attached keyboard, mouse, and trackpad input.
 It is not affiliated with, endorsed by, or supported by the OpenRCT2 team.
 
+**This is a public fork showcase, not an upstream OpenRCT2 contribution.** Do
+not open pull requests against `OpenRCT2/OpenRCT2` for Touch / Liquid Glass /
+Duo chrome work. Coordinate with maintainers before any future, narrowly
+scoped engine plumbing. The SwiftUI Liquid Glass park HUD, Duo-aware layout
+hooks, TestFlight branding, and fork CI are product UX for this fork only.
+
 The canonical user-facing description, requirements, physical-device build
 instructions, Files import walkthrough, controls, troubleshooting, and known
 limitations are maintained in the repository's [root README](../readme.md).

@@ -5,13 +5,17 @@
  *****************************************************************************/
 
 #include "NativeChromeActionRouting.iOS.h"
+
 #include "NativeChromeParkState.iOS.h"
 #include "chrome/ParkChromeActions.h"
+
 #include <TargetConditionals.h>
 
 #if TARGET_OS_IOS
 
     #include <algorithm>
+    #include <openrct2-ui/interface/Window.h>
+    #include <openrct2-ui/windows/Windows.h>
     #include <openrct2/Context.h>
     #include <openrct2/Game.h>
     #include <openrct2/GameState.h>
@@ -25,8 +29,6 @@
     #include <openrct2/network/Network.h>
     #include <openrct2/ui/WindowManager.h>
     #include <openrct2/windows/Intent.h>
-    #include <openrct2-ui/interface/Window.h>
-    #include <openrct2-ui/windows/Windows.h>
 
 namespace OpenRCT2::Ui
 {

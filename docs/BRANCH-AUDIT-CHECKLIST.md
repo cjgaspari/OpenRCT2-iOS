@@ -397,8 +397,13 @@ reintroduced version of that file.
 
 ## Top simplification targets
 
-1. `ios/platform/NativeChrome.iOS.mm`
-2. `ios/platform/chrome/ParkChromeHost.swift`
+1. `ios/platform/NativeChrome.iOS.mm` — **partially done:** park-state capture and
+   action routing extracted to `NativeChromeParkState.iOS.*` and
+   `NativeChromeActionRouting.iOS.*`. Remaining: overlay attach/detach and
+   modal presentation ownership.
+2. `ios/platform/chrome/ParkChromeHost.swift` — **started:** modal host type and
+   full-screen constraint helper extracted; host vs layout vs modal hosting
+   still share one file (~700 lines).
 3. `ios/platform/NativeScenarioPicker.iOS.mm`
 4. `ios/platform/NativeLoadSave.iOS.mm`
 5. `src/openrct2-ui/interface/FileBrowser.cpp`

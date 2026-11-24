@@ -337,3 +337,8 @@ discord-rpc
 
 # CMake
 cmake-build-*/
+
+#########################
+## Cursor / agent local
+#########################
+.cursor/
