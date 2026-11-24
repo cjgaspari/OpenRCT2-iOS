@@ -203,9 +203,8 @@ private struct ScenarioSelectView: View {
                 .padding(.bottom, 6)
                 .onChange(of: tab) { _, newValue in
                     OpenRCT2MacNativeScenarioSetActiveTab(Int32(newValue))
-                    selectedRow = nil
-                    preview.clear()
                     tick &+= 1
+                    selectFirstScenario()
                 }
             }
 
@@ -248,15 +247,7 @@ private struct ScenarioSelectView: View {
                                 MacGlassSelectionBackground(selected: selectedRow == row.index)
                             )
                             .onTapGesture {
-                                selectedRow = row.index
-                                let idx = Int32(row.index)
-                                if OpenRCT2MacNativeScenarioRowKind(idx) == 1,
-                                   !OpenRCT2MacNativeScenarioRowLocked(idx)
-                                {
-                                    OpenRCT2MacNativeScenarioRequestPreview(idx)
-                                } else {
-                                    preview.clear()
-                                }
+                                applyScenarioSelection(row.index)
                             }
                         }
                     }
@@ -281,6 +272,29 @@ private struct ScenarioSelectView: View {
         .onAppear {
             tab = Int(OpenRCT2MacNativeScenarioGetActiveTab())
             tick &+= 1
+            selectFirstScenario()
+        }
+    }
+
+    /// First scenario row (kind == 1) — never leave the list empty/unselected.
+    private func selectFirstScenario() {
+        guard let first = rows.first(where: { $0.kind == 1 }) else {
+            selectedRow = nil
+            preview.clear()
+            return
+        }
+        applyScenarioSelection(first.index)
+    }
+
+    private func applyScenarioSelection(_ index: Int) {
+        selectedRow = index
+        let idx = Int32(index)
+        if OpenRCT2MacNativeScenarioRowKind(idx) == 1,
+           !OpenRCT2MacNativeScenarioRowLocked(idx)
+        {
+            OpenRCT2MacNativeScenarioRequestPreview(idx)
+        } else {
+            preview.clear()
         }
     }
 

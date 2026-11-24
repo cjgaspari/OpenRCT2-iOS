@@ -184,41 +184,42 @@ struct MacGlassSecondaryText: View {
     }
 }
 
-/// Compact glass chip (Options, Exit, Refresh, etc.).
+/// Compact chip — real Liquid Glass (`.buttonStyle(.glass)`).
 struct MacGlassChipButton: View {
     let title: String
     var systemImage: String? = nil
     var prominent: Bool = false
     let action: () -> Void
-    @Bindable private var knobs = MacGlassStyleKnobs.shared
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                if let systemImage {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                Text(title)
+        let label = HStack(spacing: 6) {
+            if let systemImage {
+                Image(systemName: systemImage)
                     .font(.system(size: 12, weight: .semibold))
             }
-            .foregroundStyle(knobs.primaryLabel)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(MacGlassTextPlate(cornerRadius: 10))
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
         }
-        .buttonStyle(.plain)
+        Group {
+            if prominent {
+                Button(action: action) { label }
+                    .buttonStyle(.glassProminent)
+            } else {
+                Button(action: action) { label }
+                    .buttonStyle(.glass)
+            }
+        }
+        .controlSize(.regular)
         .accessibilityLabel(title)
     }
 }
 
-/// Large title-menu tile (~classic 82×82) with glass plate.
+/// Large title-menu tile (~classic 82×82) — real Liquid Glass.
 struct MacGlassIconTile: View {
     let title: String
     var systemImage: String
     var nsImage: NSImage? = nil
     let action: () -> Void
-    @Bindable private var knobs = MacGlassStyleKnobs.shared
 
     var body: some View {
         Button(action: action) {
@@ -235,18 +236,17 @@ struct MacGlassIconTile: View {
                     }
                 }
                 .frame(width: 36, height: 36)
-                .foregroundStyle(knobs.primaryLabel)
 
                 Text(title)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(knobs.primaryLabel)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             }
             .frame(width: 82, height: 82)
-            .background(MacGlassTextPlate(cornerRadius: 14))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.roundedRectangle(radius: 14))
+        .controlSize(.large)
         .accessibilityLabel(title)
     }
 }

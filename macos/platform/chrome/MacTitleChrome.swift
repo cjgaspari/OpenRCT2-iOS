@@ -79,7 +79,7 @@ struct MacTitleChromeLayout: View {
     }
 
     private var centerActions: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             MacGlassIconTile(title: "New Game", systemImage: "plus.square.fill") {
                 model.queueTitle(.newGame)
             }
@@ -91,8 +91,6 @@ struct MacTitleChromeLayout: View {
             }
             toolsTile
         }
-        .padding(12)
-        .background(MacGlassTextPlate(cornerRadius: 18))
     }
 
     private var toolsTile: some View {
@@ -102,6 +100,7 @@ struct MacTitleChromeLayout: View {
         .background(ToolbarButtonAnchorReader(anchor: toolsAnchor))
     }
 
+    /// Classic title logo TL — asset only, no glass chrome / invented logo UI.
     private var logoButton: some View {
         Button {
             MacAboutPanel.show()
@@ -125,14 +124,8 @@ struct MacTitleChromeLayout: View {
                         .interpolation(.high)
                         .scaledToFit()
                         .frame(height: 48)
-                } else {
-                    Text("OpenRCT2")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(knobs.primaryLabel)
                 }
             }
-            .padding(10)
-            .background(MacGlassTextPlate(cornerRadius: 16))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("About OpenRCT2")
