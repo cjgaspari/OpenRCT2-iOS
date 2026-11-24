@@ -12,6 +12,7 @@
 
 #include "MacNativeUI.h"
 
+#include <cmath>
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2-ui/windows/Windows.h>
 #include <openrct2/AssetPack.h>
@@ -765,6 +766,7 @@ enum MacConfigBoolKey : int32_t
     MacConfig_ShowRealNamesOfStaff = 30,
     MacConfig_ConfirmationPrompt = 31,
     MacConfig_AllowEarlyCompletion = 32,
+    MacConfig_ToolbarShowRotateAnticlockwise = 33,
 };
 
 static bool* MacConfigBoolPtr(int32_t key)
@@ -816,6 +818,8 @@ static bool* MacConfigBoolPtr(int32_t key)
             return &cfg.interface.toolbarShowChat;
         case MacConfig_ToolbarShowZoom:
             return &cfg.interface.toolbarShowZoom;
+        case MacConfig_ToolbarShowRotateAnticlockwise:
+            return &cfg.interface.toolbarShowRotateAnticlockwise;
         case MacConfig_MasterSoundEnabled:
             return &cfg.sound.masterSoundEnabled;
         case MacConfig_SoundEnabled:
@@ -1906,7 +1910,15 @@ extern "C" int32_t OpenRCT2MacLiquidGlassChromeTopInset(void)
         NSUserDefaults* defaults = NSUserDefaults.standardUserDefaults;
         NSString* key = @"openrct2.mac.ui.native.parkChrome";
         const bool nativePark = ([defaults objectForKey:key] == nil) || [defaults boolForKey:key];
-        return nativePark ? 72 : 0;
+        if (!nativePark)
+            return 0;
+        // Glass chrome scale (1.0 = current default / minimum). Independent of window_scale.
+        double scale = [defaults doubleForKey:@"openrct2.mac.ui.glassChromeScale"];
+        if (scale < 1.0)
+            scale = 1.0;
+        if (scale > 2.0)
+            scale = 2.0;
+        return static_cast<int32_t>(std::lround(72.0 * scale));
     }
 }
 

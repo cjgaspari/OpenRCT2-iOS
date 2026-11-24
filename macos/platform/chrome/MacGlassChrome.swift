@@ -60,8 +60,26 @@ enum MacToolbarWIDX: Int32, CaseIterable, Identifiable {
         .finances, .research, .rides, .park, .staff, .guests, .news,
     ]
 
-    /// Same gates as `TopToolbar::HideDisabledButtons` (Options → Interface).
+    /// Options order: left groups then right groups (every glass toolbar icon).
+    static var optionsList: [MacToolbarWIDX] {
+        playback + camera + construct + manage
+    }
+
+    private var visibilityDefaultsKey: String {
+        "openrct2.mac.ui.toolbar.visible.\(rawValue)"
+    }
+
+    /// Glass visibility: UserDefaults override, else classic config seed / on.
     var isShownByConfig: Bool {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: visibilityDefaultsKey) != nil {
+            return defaults.bool(forKey: visibilityDefaultsKey)
+        }
+        return classicSeedVisible
+    }
+
+    /// Classic Options seeds for optional buttons; everything else defaults on.
+    private var classicSeedVisible: Bool {
         switch self {
         case .mute:
             return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowMute.rawValue)
@@ -75,6 +93,8 @@ enum MacToolbarWIDX: Int32, CaseIterable, Identifiable {
             return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowNews.rawValue)
         case .zoomIn, .zoomOut:
             return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowZoom.rawValue)
+        case .rotateAntiClockwise:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowRotateAnticlockwise.rawValue)
         case .finances:
             return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowFinances.rawValue)
         case .debug:
@@ -82,6 +102,45 @@ enum MacToolbarWIDX: Int32, CaseIterable, Identifiable {
         default:
             return true
         }
+    }
+
+    private var classicConfigKey: MacConfigKey? {
+        switch self {
+        case .mute: return .toolbarShowMute
+        case .chat: return .toolbarShowChat
+        case .research: return .toolbarShowResearch
+        case .cheats: return .toolbarShowCheats
+        case .news: return .toolbarShowNews
+        case .zoomIn, .zoomOut: return .toolbarShowZoom
+        case .rotateAntiClockwise: return .toolbarShowRotateAnticlockwise
+        case .finances: return .toolbarShowFinances
+        case .debug: return .debuggingTools
+        default: return nil
+        }
+    }
+
+    func setShownByConfig(_ shown: Bool) {
+        let defaults = UserDefaults.standard
+        switch self {
+        case .zoomIn, .zoomOut:
+            // Classic zoom is one flag for both buttons.
+            defaults.set(shown, forKey: MacToolbarWIDX.zoomIn.visibilityDefaultsKey)
+            defaults.set(shown, forKey: MacToolbarWIDX.zoomOut.visibilityDefaultsKey)
+        default:
+            defaults.set(shown, forKey: visibilityDefaultsKey)
+        }
+        if let classicConfigKey {
+            OpenRCT2MacNativeConfigSetBool(classicConfigKey.rawValue, shown)
+            OpenRCT2MacNativeConfigSave()
+        }
+        NotificationCenter.default.post(name: .openRCT2MacChromePrefsDidChange, object: nil)
+    }
+
+    var shownBinding: Binding<Bool> {
+        Binding(
+            get: { self.isShownByConfig },
+            set: { self.setShownByConfig($0) }
+        )
     }
 
     var help: String {
@@ -369,24 +428,30 @@ struct MacParkChromeOverlay: View {
             } else {
                 VStack(spacing: 0) {
                     if model.showParkChrome {
-                        if toastEdge == .top {
-                            toastBar(edge: .top)
-                                .padding(.top, 4)
-                                .padding(.horizontal, 14)
+                        VStack(spacing: 6) {
+                            if toastEdge == .top {
+                                toastBar(edge: .top)
+                            }
+                            topChrome
                         }
-                        topChrome
-                            .padding(.top, toastEdge == .top ? 6 : 4)
-                            .padding(.horizontal, 14)
+                        .scaleEffect(chromeScale, anchor: .top)
+                        // scaleEffect doesn't expand layout — pad so hits/park stay clear.
+                        .padding(.bottom, max(0, (chromeScale - 1) * 52))
+                        .padding(.top, 4)
+                        .padding(.horizontal, 14)
                     }
                     Spacer(minLength: 0)
                     if model.showParkChrome {
                         bottomChrome
+                            .scaleEffect(chromeScale, anchor: .bottom)
+                            .padding(.top, max(0, (chromeScale - 1) * 90))
                             .padding(.horizontal, 14)
                             .padding(.bottom, 12)
                     }
                 }
                 .animation(.snappy, value: model.toastVisible)
                 .animation(.snappy, value: toastEdge)
+                .animation(.snappy, value: chromeScale)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -396,6 +461,12 @@ struct MacParkChromeOverlay: View {
     private var toastEdge: MacNewsToastEdge {
         _ = model.prefsEpoch
         return MacUILabPrefs.shared.newsToastEdge
+    }
+
+    /// 1.0 = default smallest glass HUD; independent of classic `window_scale`.
+    private var chromeScale: CGFloat {
+        _ = model.prefsEpoch
+        return CGFloat(MacUILabPrefs.shared.glassChromeScale)
     }
 
     /// Four capsules matching classic left/right groups + internal separators.
@@ -506,6 +577,7 @@ struct GlassToolGroup: View {
     @Namespace private var glassNS
 
     var body: some View {
+        // Outer scale lives on the chrome stack; keep intrinsic button metrics at 1× here.
         GlassEffectContainer(spacing: spacing + 18) {
             HStack(spacing: spacing) {
                 ForEach(items) { widx in

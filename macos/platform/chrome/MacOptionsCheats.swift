@@ -64,6 +64,7 @@ enum MacConfigKey: Int32 {
     case showRealNamesOfStaff = 30
     case confirmationPrompt = 31
     case allowEarlyCompletion = 32
+    case toolbarShowRotateAnticlockwise = 33
 }
 
 // CheatType raw values — must match Cheats.h
@@ -164,14 +165,21 @@ private struct OptionsView: View {
                     configToggle("Ride music", .rideMusicEnabled)
                     configToggle("Audio focus", .audioFocus)
                 case .interface:
-                    configToggle("Toolbar: Finances", .toolbarShowFinances)
-                    configToggle("Toolbar: Research", .toolbarShowResearch)
-                    configToggle("Toolbar: Cheats", .toolbarShowCheats)
-                    configToggle("Toolbar: News", .toolbarShowNews)
-                    configToggle("Toolbar: Mute", .toolbarShowMute)
-                    configToggle("Toolbar: Chat", .toolbarShowChat)
-                    configToggle("Toolbar: Zoom", .toolbarShowZoom)
+                    glassScaleControls
                     newsToastEdgePicker
+                    Section("Toolbar buttons") {
+                        ForEach(MacToolbarWIDX.optionsList) { widx in
+                            if widx == .zoomOut {
+                                EmptyView()
+                            } else if widx == .zoomIn {
+                                Toggle("Zoom", isOn: widx.shownBinding)
+                                    .controlSize(.small)
+                            } else {
+                                Toggle(widx.help, isOn: widx.shownBinding)
+                                    .controlSize(.small)
+                            }
+                        }
+                    }
                 case .controls:
                     configToggle("Edge scrolling", .edgeScrolling)
                     configToggle("Invert viewport drag", .invertViewportDrag)
@@ -218,6 +226,30 @@ private struct OptionsView: View {
         }
         .pickerStyle(.segmented)
         .controlSize(.small)
+    }
+
+    private var glassScaleControls: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Glass UI size")
+                Spacer()
+                Text("\(Int((MacUILabPrefs.shared.glassChromeScale * 100).rounded()))%")
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            Slider(
+                value: Binding(
+                    get: { MacUILabPrefs.shared.glassChromeScale },
+                    set: { MacUILabPrefs.shared.glassChromeScale = $0 }
+                ),
+                in: 1.0...2.0,
+                step: 0.25
+            )
+            .controlSize(.small)
+            Text("Default 100% is the smallest glass HUD. Separate from classic window scale.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

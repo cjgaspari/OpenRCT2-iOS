@@ -126,7 +126,26 @@ final class MacUILabPrefs {
         }
     }
 
+    /// Liquid Glass HUD size. 1.0 = current default (smallest); independent of classic `window_scale`.
+    var glassChromeScale: Double {
+        didSet {
+            let clamped = Self.clampGlassScale(glassChromeScale)
+            if clamped != glassChromeScale {
+                glassChromeScale = clamped
+                return
+            }
+            defaults.set(glassChromeScale, forKey: glassScaleKey)
+            NotificationCenter.default.post(name: .openRCT2MacChromePrefsDidChange, object: nil)
+        }
+    }
+
+    private let glassScaleKey = "openrct2.mac.ui.glassChromeScale"
+
     private var nativeBySurface: [String: Bool]
+
+    static func clampGlassScale(_ value: Double) -> Double {
+        min(2.0, max(1.0, (value * 4.0).rounded() / 4.0))
+    }
 
     init() {
         var map: [String: Bool] = [:]
@@ -148,6 +167,11 @@ final class MacUILabPrefs {
             newsToastEdge = edge
         } else {
             newsToastEdge = .bottom
+        }
+        if defaults.object(forKey: glassScaleKey) == nil {
+            glassChromeScale = 1.0
+        } else {
+            glassChromeScale = Self.clampGlassScale(defaults.double(forKey: glassScaleKey))
         }
     }
 
@@ -180,6 +204,7 @@ final class MacUILabPrefs {
         }
         preferClassicProgress = true
         newsToastEdge = .bottom
+        glassChromeScale = 1.0
     }
 }
 
@@ -253,6 +278,28 @@ private struct UILabView: View {
         }
     }
 
+    private var glassScaleControls: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Glass UI size")
+                Spacer()
+                Text("\(Int((prefs.glassChromeScale * 100).rounded()))%")
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .font(.caption)
+            Slider(
+                value: $prefs.glassChromeScale,
+                in: 1.0...2.0,
+                step: 0.25
+            )
+            .controlSize(.small)
+            Text("1.0× is the default (smallest). Independent of classic window scale.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
@@ -284,10 +331,8 @@ private struct UILabView: View {
                         }
                         .pickerStyle(.segmented)
                         .controlSize(.small)
-                        Text("Toolbar icon visibility stays in Options → Interface (same as classic).")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text("Glass size is not tied to classic window_scale; see docs plan.")
+                        glassScaleControls
+                        Text("Toolbar icons: Options → Interface (full list). Scale is separate from classic window_scale.")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
