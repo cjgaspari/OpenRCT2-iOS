@@ -23,10 +23,9 @@ namespace OpenRCT2::Ui
      */
     constexpr bool ShouldCreateDesktopChromeWindows()
     {
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        return false;
-#elif defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX && defined(OPENRCT2_MAC_GLASS_REPLACE_TOOLBARS)
-        // Opt-in: research glass replaces engine toolbars when this define is set.
+#if defined(__APPLE__) && defined(__MACH__) && (TARGET_OS_IOS || TARGET_OS_OSX)
+        // research/mac-liquid-glass: hide engine toolbars so glass (or clean
+        // park screenshots for mockups) owns the chrome surface.
         return false;
 #else
         return true;
