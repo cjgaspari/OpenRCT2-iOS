@@ -304,9 +304,8 @@ struct MacParkChromeOverlay: View {
     var body: some View {
         VStack(spacing: 0) {
             topChrome
-                // Clear macOS traffic lights once the main window uses
-                // fullSizeContentView + transparent titlebar (~28pt + gap).
-                .padding(.top, 36)
+                // Clear traffic lights under immersive titlebar (tight).
+                .padding(.top, 22)
                 .padding(.horizontal, 14)
             Spacer(minLength: 0)
             bottomChrome

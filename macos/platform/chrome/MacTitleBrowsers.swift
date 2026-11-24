@@ -188,19 +188,7 @@ private struct ScenarioSelectView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Select Scenario")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(knobs.primaryLabel)
-                Spacer()
-                Button("Close", action: onClose)
-                    .buttonStyle(.glass)
-                    .controlSize(.small)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
-
+            // Title lives in the NSPanel titlebar; Close = traffic lights only.
             if !visibleTabs.isEmpty {
                 Picker("", selection: $tab) {
                     ForEach(visibleTabs, id: \.id) { t in
@@ -213,6 +201,7 @@ private struct ScenarioSelectView: View {
                 .padding(6)
                 .background(MacGlassTextPlate(cornerRadius: 8))
                 .padding(.horizontal, 12)
+                .padding(.top, 28) // under transparent titlebar
                 .onChange(of: tab) { _, newValue in
                     OpenRCT2MacNativeScenarioSetActiveTab(Int32(newValue))
                     selectedRow = nil
@@ -395,24 +384,23 @@ private struct LoadParkView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Title in NSPanel titlebar; Close = traffic lights only.
             HStack {
-                Text("Load Saved Game")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(knobs.primaryLabel)
                 Spacer()
-                Button("Refresh") {
+                Button {
                     OpenRCT2MacNativeSaveFileRefresh()
                     reload()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.glass)
                 .controlSize(.small)
-                Button("Close", action: onClose)
-                    .buttonStyle(.glass)
-                    .controlSize(.small)
+                .help("Refresh")
+                .accessibilityLabel("Refresh")
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 14)
+            .padding(.top, 28)
+            .padding(.bottom, 6)
 
             List(selection: $selected) {
                 ForEach(files) { file in
@@ -459,8 +447,9 @@ private struct LoadParkView: View {
                 .controlSize(.regular)
                 .disabled(selected == nil)
             }
-            .padding(12)
-            .background(MacGlassTextPlate(cornerRadius: 8).padding(.horizontal, 12))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            // Footer: no material plate — clear over glass only.
         }
         .background(Color.clear)
         .onAppear { reload() }

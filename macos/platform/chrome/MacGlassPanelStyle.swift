@@ -15,8 +15,8 @@ import SwiftUI
 final class MacGlassStyleKnobs {
     static let shared = MacGlassStyleKnobs()
 
-    // Glass chrome
-    var useClearGlass: Bool = true
+    // Glass chrome — locked CJ Lab defaults (2026-11-24)
+    var useClearGlass: Bool = false // Regular glass
     var cornerRadius: Double = 18
     var tintEnabled: Bool = false
     var tintHue: Double = 0.55
@@ -25,11 +25,11 @@ final class MacGlassStyleKnobs {
     var tintOpacity: Double = 0.30
 
     // Text plates
-    var dimmingOpacity: Double = 0.50
+    var dimmingOpacity: Double = 0.15
     var localizedFrost: Bool = true
     var useThinMaterial: Bool = true
-    var materialOpacity: Double = 1.0
-    var plateCornerRadius: Double = 10
+    var materialOpacity: Double = 0.00
+    var plateCornerRadius: Double = 20
 
     // Labels
     var primaryWhite: Double = 1.0
@@ -52,18 +52,18 @@ final class MacGlassStyleKnobs {
     }
 
     func resetDefaults() {
-        useClearGlass = true
+        useClearGlass = false
         cornerRadius = 18
         tintEnabled = false
         tintHue = 0.55
         tintSaturation = 0.20
         tintBrightness = 0.35
         tintOpacity = 0.30
-        dimmingOpacity = 0.50
+        dimmingOpacity = 0.15
         localizedFrost = true
         useThinMaterial = true
-        materialOpacity = 1.0
-        plateCornerRadius = 10
+        materialOpacity = 0.00
+        plateCornerRadius = 20
         primaryWhite = 1.0
         secondaryWhite = 0.78
         forceDarkAqua = true
@@ -154,7 +154,8 @@ enum MacGlassPanelHost {
         )
         panel.title = title
         panel.titlebarAppearsTransparent = true
-        panel.titleVisibility = .hidden
+        // Show title in the transparent titlebar; Close = traffic lights only.
+        panel.titleVisibility = .visible
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true

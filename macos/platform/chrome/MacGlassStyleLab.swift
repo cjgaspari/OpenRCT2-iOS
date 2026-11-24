@@ -80,7 +80,7 @@ private struct GlassStyleLabView: View {
 
                 GroupBox("Glass chrome") {
                     VStack(alignment: .leading, spacing: 10) {
-                        Toggle("Clear glass (off = Regular)", isOn: binding(\.useClearGlass))
+                        Toggle("Clear glass (off = Regular, locked default)", isOn: binding(\.useClearGlass))
                         labeledSlider("Corner radius", value: binding(\.cornerRadius), range: 0...36)
                         Toggle("Tint enabled", isOn: binding(\.tintEnabled))
                         if knobs.tintEnabled {
