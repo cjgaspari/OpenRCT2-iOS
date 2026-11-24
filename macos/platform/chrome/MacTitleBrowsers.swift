@@ -4,13 +4,14 @@
  * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
  *
  * Title-shell browsers: scenario select + load saved game.
- * Liquid Glass chrome; dense Mac lists inside (HIG Materials).
+ * Option A (CJ): clear NSPanel + NSGlassEffectView.contentView (.clear)
+ * so park art shows through — not SwiftUI-only .glassEffect on opaque chrome.
  *****************************************************************************/
 
 import AppKit
 import SwiftUI
 
-// MARK: - Glass browser host
+// MARK: - Clear Liquid Glass browser host (Option A)
 
 enum MacGlassBrowserHost {
     @MainActor
@@ -23,16 +24,31 @@ enum MacGlassBrowserHost {
         )
         panel.title = title
         panel.titlebarAppearsTransparent = true
+        panel.titleVisibility = .hidden
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
         panel.isFloatingPanel = true
         panel.level = .floating
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.minSize = NSSize(width: 480, height: 320)
 
-        let host = NSHostingView(rootView: root)
-        host.frame = panel.contentView?.bounds ?? .zero
-        host.autoresizingMask = [.width, .height]
-        panel.contentView = host
+        // Content lives *inside* glass (WWDC25 310). Clear style samples park behind the window.
+        let sizedRoot = root.frame(minWidth: size.width, minHeight: size.height)
+        let host = NSHostingView(rootView: sizedRoot)
+        host.wantsLayer = true
+        host.layer?.backgroundColor = NSColor.clear.cgColor
+
+        let glass = NSGlassEffectView()
+        glass.style = .clear
+        glass.cornerRadius = 18
+        glass.contentView = host
+        glass.frame = NSRect(origin: .zero, size: size)
+        glass.autoresizingMask = [.width, .height]
+        glass.wantsLayer = true
+
+        panel.contentView = glass
         panel.center()
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -173,24 +189,31 @@ private struct ScenarioSelectView: View {
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.secondary)
                                 .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
                         } else {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(row.name)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(row.locked ? .secondary : .primary)
                                 if !row.details.isEmpty {
                                     Text(row.details)
                                         .font(.system(size: 10))
-                                        .foregroundStyle(.tertiary)
+                                        .foregroundStyle(.secondary)
                                         .lineLimit(2)
                                 }
                             }
                             .tag(row.index)
                             .opacity(row.locked ? 0.55 : 1)
+                            .listRowBackground(
+                                selectedRow == row.index
+                                    ? Color.accentColor.opacity(0.22)
+                                    : Color.white.opacity(0.06)
+                            )
                         }
                     }
                 }
-                .listStyle(.inset(alternatesRowBackgrounds: true))
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
                 .frame(minWidth: 360)
 
                 VStack(alignment: .leading, spacing: 10) {
@@ -229,11 +252,8 @@ private struct ScenarioSelectView: View {
             }
             .padding(.top, 8)
         }
-        .background {
-            if #available(macOS 26.0, *) {
-                Rectangle().fill(.clear).glassEffect(.regular, in: .rect)
-            }
-        }
+        // Glass is AppKit NSGlassEffectView (.clear); keep SwiftUI chrome transparent.
+        .background(Color.clear)
         .onAppear {
             tab = Int(OpenRCT2MacNativeScenarioGetActiveTab())
             tick &+= 1
@@ -308,7 +328,7 @@ private struct LoadParkView: View {
                 ForEach(files) { file in
                     HStack {
                         Text(file.name)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 12, weight: .semibold))
                         Spacer()
                         Text(file.date)
                             .font(.system(size: 10, design: .monospaced))
@@ -316,6 +336,11 @@ private struct LoadParkView: View {
                     }
                     .tag(file.index)
                     .contentShape(Rectangle())
+                    .listRowBackground(
+                        selected == file.index
+                            ? Color.accentColor.opacity(0.22)
+                            : Color.white.opacity(0.06)
+                    )
                     .onTapGesture(count: 2) {
                         if OpenRCT2MacNativeSaveFileLoad(Int32(file.index)) {
                             onClose()
@@ -323,7 +348,8 @@ private struct LoadParkView: View {
                     }
                 }
             }
-            .listStyle(.inset(alternatesRowBackgrounds: true))
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
             .padding(.horizontal, 8)
 
             HStack {
@@ -342,11 +368,7 @@ private struct LoadParkView: View {
             }
             .padding(12)
         }
-        .background {
-            if #available(macOS 26.0, *) {
-                Rectangle().fill(.clear).glassEffect(.regular, in: .rect)
-            }
-        }
+        .background(Color.clear)
         .onAppear { reload() }
     }
 
