@@ -53,6 +53,32 @@ func OpenRCT2MacChromeSetIconPath(
     }
 }
 
+@_cdecl("OpenRCT2MacChromeSetCleanedSpritePath")
+func OpenRCT2MacChromeSetCleanedSpritePath(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ path: UnsafePointer<CChar>?
+) {
+    guard let sessionPtr, let path else { return }
+    let pathStr = String(cString: path)
+    MainActor.assumeIsolated {
+        Unmanaged<MacParkChromeSession>.fromOpaque(sessionPtr).takeUnretainedValue()
+            .setCleanedSpriteDirectory(pathStr)
+    }
+}
+
+@_cdecl("OpenRCT2MacChromeSetVersion")
+func OpenRCT2MacChromeSetVersion(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ version: UnsafePointer<CChar>?
+) {
+    guard let sessionPtr, let version else { return }
+    let versionStr = String(cString: version)
+    MainActor.assumeIsolated {
+        Unmanaged<MacParkChromeSession>.fromOpaque(sessionPtr).takeUnretainedValue()
+            .setVersion(versionStr)
+    }
+}
+
 @_cdecl("OpenRCT2MacChromeSetStatus")
 func OpenRCT2MacChromeSetStatus(
     _ sessionPtr: UnsafeMutableRawPointer?,

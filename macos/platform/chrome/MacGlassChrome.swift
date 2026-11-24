@@ -161,14 +161,29 @@ enum GlassChrome {
     }
 }
 
-/// Loads `resources/g2/icons/<name>.png` when asset path is set from C++.
+/// Loads cleaned toolbar sprites / g2 icons from directories set by C++.
 enum MacToolbarIconStore {
     static var iconDirectory: URL?
+    static var cleanedSpriteDirectory: URL?
 
     static func image(named name: String) -> NSImage? {
+        if let cleaned = cleanedSpriteDirectory {
+            let url = cleaned.appendingPathComponent("\(name).png")
+            if let img = NSImage(contentsOf: url) { return img }
+        }
         guard let dir = iconDirectory else { return nil }
-        let url = dir.appendingPathComponent("\(name).png")
-        return NSImage(contentsOf: url)
+        return NSImage(contentsOf: dir.appendingPathComponent("\(name).png"))
+    }
+
+    /// Prefer WIDX-named cleaned sprite, then g2 alias.
+    static func image(for widx: MacToolbarWIDX, muted: Bool) -> NSImage? {
+        if widx == .mute {
+            if muted, let u = image(named: "unmute") ?? image(named: "widx_mute_off") { return u }
+            if let m = image(named: "mute") ?? image(named: "widx_mute") { return m }
+        }
+        if let named = image(named: "widx_\(widx.rawValue)") { return named }
+        if let g2 = widx.g2IconName, let img = image(named: g2) { return img }
+        return nil
     }
 }
 
@@ -183,11 +198,15 @@ final class MacParkChromeModel: ObservableObject {
     @Published var isPaused = false
     @Published var isMuted = false
     @Published var speed: UInt8 = 1
+    @Published var iconMode: MacToolbarIconMode = MacToolbarIconMode.current
 
     private let onAction: (Int32, Int32) -> Void
 
     init(onAction: @escaping (Int32, Int32) -> Void) {
         self.onAction = onAction
+        MenuTarget.shared.onIconModeChanged = { [weak self] in
+            self?.iconMode = MacToolbarIconMode.current
+        }
     }
 
     func queue(_ widx: MacToolbarWIDX, extra: Int32 = 0) {
@@ -198,6 +217,21 @@ final class MacParkChromeModel: ObservableObject {
         if widx == .mute {
             isMuted.toggle()
         }
+    }
+
+    func handleToolbarClick(_ widx: MacToolbarWIDX, buttonView: NSView?) {
+        if MacToolbarMenus.isMenuWidget(widx) {
+            MacToolbarMenus.popUp(for: widx, relativeTo: buttonView) { [weak self] index in
+                guard let self else { return }
+                if widx == .fileMenu, index == 9 {
+                    MacAboutPanel.show()
+                    return
+                }
+                self.queue(widx, extra: index)
+            }
+            return
+        }
+        queue(widx)
     }
 }
 
@@ -310,10 +344,11 @@ struct GlassToolGroup: View {
 struct GlassToolbarButton: View {
     let widx: MacToolbarWIDX
     @ObservedObject var model: MacParkChromeModel
+    @State private var anchor = ToolbarButtonAnchor()
 
     var body: some View {
         Button {
-            model.queue(widx)
+            model.handleToolbarClick(widx, buttonView: anchor.view)
         } label: {
             toolbarGlyph
                 .frame(width: 18, height: 18)
@@ -324,11 +359,13 @@ struct GlassToolbarButton: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .controlSize(.regular)
+        .background(ToolbarButtonAnchorReader(anchor: anchor))
     }
 
     @ViewBuilder
     private var toolbarGlyph: some View {
-        if let nsImage = resolvedNSImage {
+        let preferNative = model.iconMode == .nativeInGame
+        if preferNative, let nsImage = MacToolbarIconStore.image(for: widx, muted: model.isMuted) {
             Image(nsImage: nsImage)
                 .resizable()
                 .interpolation(.none)
@@ -339,17 +376,6 @@ struct GlassToolbarButton: View {
         }
     }
 
-    private var resolvedNSImage: NSImage? {
-        if widx == .mute, model.isMuted {
-            return MacToolbarIconStore.image(named: "unmute")
-                ?? MacToolbarIconStore.image(named: "mute")
-        }
-        if let name = widx.g2IconName {
-            return MacToolbarIconStore.image(named: name)
-        }
-        return nil
-    }
-
     private var resolvedSFSymbol: String {
         if widx == .pause {
             return model.isPaused ? "play.fill" : "pause.fill"
@@ -358,6 +384,25 @@ struct GlassToolbarButton: View {
             return model.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill"
         }
         return widx.sfSymbol
+    }
+}
+
+/// Captures the AppKit view under a glass button so NSMenu can pop up relative to it.
+final class ToolbarButtonAnchor {
+    weak var view: NSView?
+}
+
+private struct ToolbarButtonAnchorReader: NSViewRepresentable {
+    let anchor: ToolbarButtonAnchor
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async { anchor.view = view }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { anchor.view = nsView }
     }
 }
 

@@ -79,6 +79,8 @@ if (APPLE)
             "${ROOT_DIR}/macos/platform/MacNativeChrome.mm")
         set(OPENRCT2_UI_SWIFT_SOURCES
             "${ROOT_DIR}/macos/platform/chrome/MacGlassChrome.swift"
+            "${ROOT_DIR}/macos/platform/chrome/MacToolbarMenus.swift"
+            "${ROOT_DIR}/macos/platform/chrome/MacAboutPanel.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacParkChromeHost.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacParkChromeBridges.swift")
     endif ()

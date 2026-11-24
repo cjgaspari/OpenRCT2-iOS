@@ -76,6 +76,14 @@ final class MacParkChromeSession: NSObject {
         MacToolbarIconStore.iconDirectory = URL(fileURLWithPath: path, isDirectory: true)
     }
 
+    func setCleanedSpriteDirectory(_ path: String) {
+        MacToolbarIconStore.cleanedSpriteDirectory = URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    func setVersion(_ version: String) {
+        MacAboutPanel.versionString = version
+    }
+
     func setStatus(
         cash: String,
         guests: String,

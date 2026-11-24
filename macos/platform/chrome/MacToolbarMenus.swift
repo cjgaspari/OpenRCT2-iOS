@@ -1,0 +1,193 @@
+/*****************************************************************************
+ * Copyright (c) 2026 OpenRCT2 Touch contributors
+ *
+ * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
+ *
+ * NSMenu mirrors of classic TopToolbar dropdowns — same items / indices as
+ * TopToolbar.cpp (FileMenuDdidx, ViewMenu, etc.). Labels are English stand-ins
+ * for STR_* until localization bridge lands; order/indices stay 1:1.
+ *****************************************************************************/
+
+import AppKit
+
+enum MacToolbarIconMode: String {
+    case systemSF = "sf"
+    case nativeInGame = "native"
+
+    static let defaultsKey = "openrct2.mac.glass.iconMode"
+
+    static var current: MacToolbarIconMode {
+        get {
+            let raw = UserDefaults.standard.string(forKey: defaultsKey) ?? MacToolbarIconMode.nativeInGame.rawValue
+            return MacToolbarIconMode(rawValue: raw) ?? .nativeInGame
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: defaultsKey)
+        }
+    }
+}
+
+@MainActor
+enum MacToolbarMenus {
+    /// Dropdown-bearing classic widgets — show NSMenu instead of a primary shortcut.
+    static func isMenuWidget(_ widx: MacToolbarWIDX) -> Bool {
+        switch widx {
+        case .fileMenu, .fastForward, .viewMenu, .map, .cheats, .debug, .network:
+            return true
+        default:
+            return false
+        }
+    }
+
+    static func popUp(
+        for widx: MacToolbarWIDX,
+        relativeTo view: NSView?,
+        onSelect: @escaping (Int32) -> Void
+    ) {
+        let menu = buildMenu(for: widx, onSelect: onSelect)
+        if let view {
+            let point = NSPoint(x: 0, y: view.bounds.height)
+            menu.popUp(positioning: nil, at: point, in: view)
+        } else if let event = NSApp.currentEvent {
+            NSMenu.popUpContextMenu(menu, with: event, for: NSApp.keyWindow?.contentView ?? NSView())
+        }
+    }
+
+    private static func buildMenu(for widx: MacToolbarWIDX, onSelect: @escaping (Int32) -> Void) -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+
+        func item(_ title: String, index: Int32, enabled: Bool = true, state: NSControl.StateValue = .off) {
+            let it = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            it.isEnabled = enabled
+            it.state = state
+            it.representedObject = index
+            it.target = MenuTarget.shared
+            it.action = #selector(MenuTarget.selected(_:))
+            MenuTarget.shared.handler = onSelect
+            menu.addItem(it)
+        }
+
+        func sep() { menu.addItem(.separator()) }
+
+        switch widx {
+        case .fileMenu:
+            // FileMenuDdidx — normal game
+            item("New Game", index: 0)
+            item("Load Game", index: 1)
+            sep()
+            item("Save Game", index: 3)
+            item("Save Game As…", index: 4)
+            sep()
+            item("Screenshot", index: 6)
+            item("Giant Screenshot", index: 7)
+            sep()
+            item("About OpenRCT2", index: 9)
+            item("File Bug on GitHub", index: 10)
+            item("Options…", index: 12)
+            sep()
+            item("Quit to Menu", index: 14)
+            item("Exit OpenRCT2", index: 15)
+
+        case .fastForward:
+            item("Normal Speed", index: 0)
+            item("Quick Speed", index: 1)
+            item("Fast Speed", index: 2)
+            item("Turbo Speed", index: 3)
+            sep()
+            item("Hyper Speed", index: 5)
+
+        case .viewMenu:
+            // TopToolbarViewMenuDdidx
+            item("Underground View", index: 0)
+            item("Transparent Water", index: 1)
+            item("Remove Base Land", index: 2)
+            item("Remove Vertical Faces", index: 3)
+            sep()
+            item("See-through Rides", index: 5)
+            item("See-through Vehicles", index: 6)
+            item("See-through Vegetation", index: 7)
+            item("See-through Scenery", index: 8)
+            item("See-through Paths", index: 9)
+            item("See-through Supports", index: 10)
+            item("See-through Guests", index: 11)
+            item("See-through Staff", index: 12)
+            sep()
+            item("Height Marks on Land", index: 14)
+            item("Height Marks on Tracks", index: 15)
+            item("Height Marks on Paths", index: 16)
+            sep()
+            item("View Clipping…", index: 18)
+            item("Highlight Path Issues", index: 19)
+            sep()
+            item("Transparency Options…", index: 21)
+
+        case .map:
+            item("Show Map", index: 0)
+            item("Extra Viewport", index: 1)
+
+        case .cheats:
+            item("Cheats…", index: 0)
+            item("Tile Inspector…", index: 1)
+            item("Object Selection…", index: 2)
+            item("Inventions List…", index: 3)
+            item("Scenario Options…", index: 4)
+            sep()
+            item("Enable Sandbox Mode", index: 6)
+            item("Disable Clearance Checks", index: 7)
+            item("Disable Support Limits", index: 8)
+
+        case .debug:
+            item("Console", index: 0)
+            item("Debug Paint", index: 1)
+
+        case .network:
+            item("Multiplayer…", index: 0)
+            item("Reconnect", index: 1)
+
+        default:
+            break
+        }
+
+        // Icon mode toggle lives under File for discoverability (not a classic item).
+        if widx == .fileMenu {
+            sep()
+            let icons = NSMenu(title: "Toolbar Icons")
+            let sf = NSMenuItem(title: "SF Symbols", action: #selector(MenuTarget.setSFIcons(_:)), keyEquivalent: "")
+            sf.target = MenuTarget.shared
+            sf.state = MacToolbarIconMode.current == .systemSF ? .on : .off
+            let native = NSMenuItem(title: "In-game Icons", action: #selector(MenuTarget.setNativeIcons(_:)), keyEquivalent: "")
+            native.target = MenuTarget.shared
+            native.state = MacToolbarIconMode.current == .nativeInGame ? .on : .off
+            icons.addItem(sf)
+            icons.addItem(native)
+            let iconsParent = NSMenuItem(title: "Toolbar Icons", action: nil, keyEquivalent: "")
+            menu.addItem(iconsParent)
+            menu.setSubmenu(icons, for: iconsParent)
+        }
+
+        return menu
+    }
+}
+
+@MainActor
+final class MenuTarget: NSObject {
+    static let shared = MenuTarget()
+    var handler: ((Int32) -> Void)?
+    var onIconModeChanged: (() -> Void)?
+
+    @objc func selected(_ sender: NSMenuItem) {
+        guard let index = sender.representedObject as? Int32 else { return }
+        handler?(index)
+    }
+
+    @objc func setSFIcons(_ sender: NSMenuItem) {
+        MacToolbarIconMode.current = .systemSF
+        onIconModeChanged?()
+    }
+
+    @objc func setNativeIcons(_ sender: NSMenuItem) {
+        MacToolbarIconMode.current = .nativeInGame
+        onIconModeChanged?()
+    }
+}
