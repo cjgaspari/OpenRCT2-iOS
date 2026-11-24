@@ -77,21 +77,33 @@ extern "C" int32_t OpenRCT2MacNativeAlertConfirm(
     const char* title, const char* message, const char* button0, const char* button1, const char* button2);
 
 extern "C" bool OpenRCT2MacNativeGlassStyleLabShow(void);
+extern "C" bool OpenRCT2MacNativeUILabShow(void);
+extern "C" bool OpenRCT2MacUINativeEnabled(const char* surfaceId);
 
 bool OpenRCT2MacNativeGlassStyleLabPresent(void)
 {
     return OpenRCT2MacNativeGlassStyleLabShow();
 }
 
+bool OpenRCT2MacNativeUILabPresent(void)
+{
+    return OpenRCT2MacNativeUILabShow();
+}
+
 bool OpenRCT2MacNativeDebugPaintPresent(void)
 {
-    // Offer the Glass Style Lab alongside Debug Paint for live retests.
+    if (!OpenRCT2MacUINativeEnabled("debugPaint"))
+        return false;
+    // Offer labs alongside Debug Paint for live retests.
     OpenRCT2MacNativeGlassStyleLabPresent();
+    OpenRCT2MacNativeUILabPresent();
     return OpenRCT2MacNativeDebugPaintShow();
 }
 
 bool OpenRCT2MacNativeTransparencyPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("transparency"))
+        return false;
     return OpenRCT2MacNativeTransparencyShow();
 }
 
@@ -407,6 +419,8 @@ extern "C" bool OpenRCT2MacNativeCustomCurrencyShow(void);
 
 bool OpenRCT2MacNativeCustomCurrencyPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("customCurrency"))
+        return false;
     return OpenRCT2MacNativeCustomCurrencyShow();
 }
 
@@ -497,6 +511,8 @@ extern "C" bool OpenRCT2MacNativeChangelogGetText(int32_t personality, char* out
 
 bool OpenRCT2MacNativeChangelogPresent(int32_t personality)
 {
+    if (!OpenRCT2MacUINativeEnabled("changelog"))
+        return false;
     return OpenRCT2MacNativeChangelogShow(personality);
 }
 
@@ -513,6 +529,9 @@ bool OpenRCT2MacNativeProgressPresent(const char* text)
     // Progress often opens from JobPool workers during load — MainActor.assumeIsolated
     // would SIGTRAP. Keep classic engine window off the main thread.
     if (!MacNativeIsMainThread())
+        return false;
+    // UI Lab: classic in-game progress preferred by default.
+    if (!OpenRCT2MacUINativeEnabled("progress"))
         return false;
     OpenRCT2MacNativeNetworkStatusClose();
     gMacNativeProgressActive = OpenRCT2MacNativeProgressShow(text != nullptr ? text : "");
@@ -536,6 +555,8 @@ void OpenRCT2MacNativeProgressClose(void)
 
 bool OpenRCT2MacNativeNetworkStatusPresent(const char* text)
 {
+    if (!OpenRCT2MacUINativeEnabled("networkStatus"))
+        return false;
     if (!MacNativeIsMainThread())
         return false;
     OpenRCT2MacNativeProgressClose();
@@ -553,6 +574,8 @@ void OpenRCT2MacNativeNetworkStatusClose(void)
 
 bool OpenRCT2MacNativeViewClippingPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("viewClipping"))
+        return false;
     return OpenRCT2MacNativeViewClippingShow();
 }
 
@@ -617,6 +640,8 @@ void OpenRCT2MacNativeViewClippingClearSelection(void)
 
 bool OpenRCT2MacNativeAssetPacksPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("assetPacks"))
+        return false;
     return OpenRCT2MacNativeAssetPacksShow();
 }
 
@@ -684,11 +709,15 @@ extern "C" bool OpenRCT2MacNativeCheatsShow(void);
 
 bool OpenRCT2MacNativeOptionsPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("options"))
+        return false;
     return OpenRCT2MacNativeOptionsShow();
 }
 
 bool OpenRCT2MacNativeCheatsPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("cheats"))
+        return false;
     return OpenRCT2MacNativeCheatsShow();
 }
 
@@ -914,6 +943,8 @@ extern "C" bool OpenRCT2MacNativeShortcutChangeShow(const char* id);
 
 bool OpenRCT2MacNativeObjectLoadErrorPresent(const char* path, const char* rows)
 {
+    if (!OpenRCT2MacUINativeEnabled("objectLoadError"))
+        return false;
     return OpenRCT2MacNativeObjectLoadErrorShow(path != nullptr ? path : "", rows != nullptr ? rows : "");
 }
 
@@ -932,6 +963,8 @@ static void MacShortcutRebuildIndex()
 
 bool OpenRCT2MacNativeShortcutKeysPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("shortcuts"))
+        return false;
     MacShortcutRebuildIndex();
     return OpenRCT2MacNativeShortcutKeysShow();
 }
@@ -1037,6 +1070,8 @@ extern "C" bool OpenRCT2MacNativeNewCampaignShow(int16_t type);
 
 bool OpenRCT2MacNativeThemesPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("themes"))
+        return false;
     return OpenRCT2MacNativeThemesShow();
 }
 
@@ -1127,6 +1162,8 @@ static void MacCampaignRebuildTargets(int16_t campaignType)
 
 bool OpenRCT2MacNativeNewCampaignPresent(int16_t campaignType)
 {
+    if (!OpenRCT2MacUINativeEnabled("newCampaign"))
+        return false;
     MacCampaignRebuildTargets(campaignType);
     return OpenRCT2MacNativeNewCampaignShow(campaignType);
 }
@@ -1220,6 +1257,8 @@ void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int
 #include <openrct2/scenario/ScenarioObjective.h>
 #include <openrct2/scenario/ScenarioRepository.h>
 #include <openrct2/scenario/ScenarioSources.h>
+#include <cctype>
+#include <cstring>
 #include <functional>
 #include <optional>
 
@@ -1275,7 +1314,36 @@ namespace
 
     std::string MacPlain(std::string_view text)
     {
-        return RCT12RemoveFormattingUTF8(text);
+        auto s = RCT12RemoveFormattingUTF8(text);
+        // Strip leftover {BLACK}/{WHITE}/… tags FormatString may leave behind.
+        for (;;)
+        {
+            const auto start = s.find('{');
+            if (start == std::string::npos)
+                break;
+            const auto end = s.find('}', start);
+            if (end == std::string::npos)
+                break;
+            s.erase(start, end - start + 1);
+        }
+        // Leaked colour-name prefixes (e.g. "BLACKTo have 1000 guests…").
+        static constexpr const char* kColourNames[] = {
+            "BLACK", "GREY", "GRAY", "WHITE", "RED",     "GREEN", "YELLOW", "TOPAZ",
+            "CELADON", "BABYBLUE", "PALELAVENDER", "PALEGOLD", "LIGHTPINK", "PEARLAQUA", "PALESILVER",
+        };
+        for (const char* name : kColourNames)
+        {
+            const size_t n = std::strlen(name);
+            while (s.size() >= n && s.compare(0, n, name) == 0)
+            {
+                // Only strip when glued to following text (BLACKTo → To).
+                if (s.size() > n && std::isupper(static_cast<unsigned char>(s[n])))
+                    s.erase(0, n);
+                else
+                    break;
+            }
+        }
+        return s;
     }
 
     std::string MacStringId(StringId id)
@@ -1358,7 +1426,7 @@ namespace
 
             MacScenarioRow row;
             row.kind = MacScenarioRowKind::scenario;
-            row.name = scenario->Name.empty() ? scenario->InternalName : scenario->Name;
+            row.name = MacPlain(scenario->Name.empty() ? scenario->InternalName : scenario->Name);
             row.details = MacScenarioObjective(*scenario);
             if (!scenario->Details.empty())
             {
@@ -1417,6 +1485,8 @@ namespace
 
 bool OpenRCT2MacNativeScenarioSelectPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("scenarioSelect"))
+        return false;
     if (!MacNativeIsMainThread())
         return false;
     ScenarioRepositoryScan();
@@ -1625,6 +1695,8 @@ extern "C" void OpenRCT2MacNativeScenarioRequestPreview(int32_t row)
 
 bool OpenRCT2MacNativeLoadParkPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("loadPark"))
+        return false;
     if (!MacNativeIsMainThread())
         return false;
     MacSaveRebuildList();
@@ -1728,6 +1800,8 @@ namespace
 
 bool OpenRCT2MacNativeRecentNewsPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("news"))
+        return false;
     if (!MacNativeIsMainThread())
         return false;
     MacNewsRebuild();

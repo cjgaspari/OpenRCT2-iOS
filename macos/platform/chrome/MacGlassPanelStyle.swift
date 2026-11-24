@@ -226,6 +226,7 @@ enum MacGlassPanelHost {
         registry.append(entry)
         pruneRegistry()
         MacGlassStyleLab.installHotkeyIfNeeded()
+        MacUILab.installHotkeyIfNeeded()
         return panel
     }
 

@@ -1,0 +1,246 @@
+/*****************************************************************************
+ * Copyright (c) 2026 OpenRCT2 Touch contributors
+ *
+ * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
+ *
+ * UI Lab — per-surface native vs classic engine toggles + loading preference.
+ * Persisted in UserDefaults. Hotkey: ⌥⌘U.
+ *****************************************************************************/
+
+import AppKit
+import SwiftUI
+
+enum MacUISurface: String, CaseIterable, Identifiable {
+    case scenarioSelect
+    case loadPark
+    case options
+    case cheats
+    case progress
+    case news
+    case about
+    case themes
+    case shortcuts
+    case assetPacks
+    case viewClipping
+    case customCurrency
+    case changelog
+    case networkStatus
+    case newCampaign
+    case objectLoadError
+    case debugPaint
+    case transparency
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .scenarioSelect: return "Scenario select"
+        case .loadPark: return "Load saved game"
+        case .options: return "Options"
+        case .cheats: return "Cheats"
+        case .progress: return "Progress / loading"
+        case .news: return "Recent news"
+        case .about: return "About"
+        case .themes: return "Themes"
+        case .shortcuts: return "Shortcut keys"
+        case .assetPacks: return "Asset packs"
+        case .viewClipping: return "View clipping"
+        case .customCurrency: return "Custom currency"
+        case .changelog: return "Changelog"
+        case .networkStatus: return "Network status"
+        case .newCampaign: return "New campaign"
+        case .objectLoadError: return "Object load error"
+        case .debugPaint: return "Debug paint"
+        case .transparency: return "Transparency"
+        }
+    }
+
+    /// Default: native on, except progress prefers classic in-game indicator.
+    var defaultNative: Bool {
+        self != .progress
+    }
+}
+
+@MainActor
+@Observable
+final class MacUILabPrefs {
+    static let shared = MacUILabPrefs()
+
+    private let defaults = UserDefaults.standard
+    private let prefix = "openrct2.mac.ui.native."
+
+    /// When true, ProgressPresent falls back to classic engine window (CJ default).
+    var preferClassicProgress: Bool {
+        didSet { defaults.set(preferClassicProgress, forKey: prefix + "preferClassicProgress") }
+    }
+
+    private var nativeBySurface: [String: Bool]
+
+    init() {
+        var map: [String: Bool] = [:]
+        for surface in MacUISurface.allCases {
+            let key = prefix + surface.rawValue
+            if defaults.object(forKey: key) == nil {
+                defaults.set(surface.defaultNative, forKey: key)
+            }
+            map[surface.rawValue] = defaults.bool(forKey: key)
+        }
+        nativeBySurface = map
+        if defaults.object(forKey: prefix + "preferClassicProgress") == nil {
+            defaults.set(true, forKey: prefix + "preferClassicProgress")
+        }
+        preferClassicProgress = defaults.bool(forKey: prefix + "preferClassicProgress")
+    }
+
+    func isNativeEnabled(_ surface: MacUISurface) -> Bool {
+        if surface == .progress, preferClassicProgress {
+            return false
+        }
+        return nativeBySurface[surface.rawValue] ?? surface.defaultNative
+    }
+
+    func binding(for surface: MacUISurface) -> Binding<Bool> {
+        Binding(
+            get: { self.nativeBySurface[surface.rawValue] ?? surface.defaultNative },
+            set: { newValue in
+                self.nativeBySurface[surface.rawValue] = newValue
+                self.defaults.set(newValue, forKey: self.prefix + surface.rawValue)
+            }
+        )
+    }
+
+    func resetDefaults() {
+        for surface in MacUISurface.allCases {
+            nativeBySurface[surface.rawValue] = surface.defaultNative
+            defaults.set(surface.defaultNative, forKey: prefix + surface.rawValue)
+        }
+        preferClassicProgress = true
+    }
+}
+
+enum MacUILab {
+    @MainActor private static var panel: NSPanel?
+    @MainActor private static var hotkeyInstalled = false
+
+    @MainActor
+    static func show() -> Bool {
+        if let panel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return true
+        }
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 520),
+            styleMask: [.titled, .closable, .resizable, .utilityWindow],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "UI Lab"
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.hidesOnDeactivate = false
+        panel.isReleasedWhenClosed = false
+        panel.minSize = NSSize(width: 320, height: 360)
+
+        let host = NSHostingView(rootView: UILabView {
+            panel.close()
+            Self.panel = nil
+        })
+        host.frame = panel.contentView?.bounds ?? .zero
+        host.autoresizingMask = [.width, .height]
+        panel.contentView = host
+        panel.center()
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        Self.panel = panel
+        installHotkeyIfNeeded()
+        return true
+    }
+
+    @MainActor
+    static func installHotkeyIfNeeded() {
+        guard !hotkeyInstalled else { return }
+        hotkeyInstalled = true
+        MacGlassStyleLab.installHotkeyIfNeeded()
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // ⌥⌘U
+            if event.modifierFlags.contains([.command, .option]),
+               event.charactersIgnoringModifiers?.lowercased() == "u"
+            {
+                _ = show()
+                return nil
+            }
+            return event
+        }
+    }
+}
+
+private struct UILabView: View {
+    let onClose: () -> Void
+    @Bindable private var prefs = MacUILabPrefs.shared
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("UI Lab")
+                        .font(.title3.weight(.semibold))
+                    Text("Native Mac vs classic engine per surface. Persisted. Hotkey ⌥⌘U.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                GroupBox("Loading") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Prefer classic in-game progress (default)", isOn: $prefs.preferClassicProgress)
+                            .controlSize(.small)
+                        Text("When on, Progress/loading uses the engine window instead of the macOS spinner.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(6)
+                }
+
+                GroupBox("Native surfaces") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(MacUISurface.allCases) { surface in
+                            Toggle(surface.title, isOn: prefs.binding(for: surface))
+                                .controlSize(.small)
+                                .disabled(surface == .progress && prefs.preferClassicProgress)
+                        }
+                    }
+                    .padding(6)
+                }
+
+                HStack {
+                    Button("Reset defaults") { prefs.resetDefaults() }
+                        .buttonStyle(.bordered)
+                    Spacer()
+                    Button("Glass Style Lab…") { _ = MacGlassStyleLab.show() }
+                        .buttonStyle(.bordered)
+                    Button("Close", action: onClose)
+                        .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(14)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeUILabShow")
+func OpenRCT2MacNativeUILabShow() -> Bool {
+    MainActor.assumeIsolated { MacUILab.show() }
+}
+
+/// C++ Present gates — return false to use classic engine UI.
+@_cdecl("OpenRCT2MacUINativeEnabled")
+func OpenRCT2MacUINativeEnabled(_ surfaceId: UnsafePointer<CChar>?) -> Bool {
+    guard let surfaceId else { return true }
+    let id = String(cString: surfaceId)
+    return MainActor.assumeIsolated {
+        MacUILab.installHotkeyIfNeeded()
+        guard let surface = MacUISurface(rawValue: id) else { return true }
+        return MacUILabPrefs.shared.isNativeEnabled(surface)
+    }
+}

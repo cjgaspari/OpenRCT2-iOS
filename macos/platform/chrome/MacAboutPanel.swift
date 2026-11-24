@@ -16,6 +16,7 @@ enum MacAboutPanel {
 
     @MainActor
     static func show() {
+        guard MacUILabPrefs.shared.isNativeEnabled(.about) else { return }
         if let panel, panel.isVisible {
             panel.makeKeyAndOrderFront(nil)
             return

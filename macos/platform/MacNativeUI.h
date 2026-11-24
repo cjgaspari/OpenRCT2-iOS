@@ -180,6 +180,11 @@ bool OpenRCT2MacNativeSaveFileLoad(int32_t index);
 /** Live Glass Style Lab — knobs for clear/regular, dimming, frost, tint. */
 bool OpenRCT2MacNativeGlassStyleLabPresent(void);
 
+/** UI Lab — native vs classic per surface (persisted). */
+bool OpenRCT2MacNativeUILabPresent(void);
+/** @return false → Present should fall back to classic engine UI. */
+bool OpenRCT2MacUINativeEnabled(const char* surfaceId);
+
 /** Recent news (3.1) — glass dense archive list. */
 bool OpenRCT2MacNativeRecentNewsPresent(void);
 void OpenRCT2MacNativeNewsRefresh(void);

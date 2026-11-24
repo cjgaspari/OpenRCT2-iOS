@@ -255,6 +255,7 @@ private struct ScenarioSelectView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
                 .padding(4)
                 .background(MacGlassTextPlate())
@@ -384,11 +385,15 @@ private struct LoadParkView: View {
     @Bindable private var knobs = MacGlassStyleKnobs.shared
 
     private var saveCountLabel: String {
-        if files.isEmpty {
-            return String(localized: "No saved games found.")
+        let count = files.count
+        if count == 0 {
+            return "No saved games found."
         }
-        // Automatic inflection: "1 save" / "12 saves" (no save(s)).
-        return String(localized: "^[\(files.count) save](inflect: true)")
+        // Explicit English plural — String inflection markdown was showing raw.
+        if count == 1 {
+            return "1 save"
+        }
+        return "\(count) saves"
     }
 
     var body: some View {

@@ -80,11 +80,18 @@ private struct DebugPaintView: View {
                 }
             }
             .formStyle(.grouped)
-            Button("Glass Style Lab…") {
-                _ = MacGlassStyleLab.show()
+            HStack(spacing: 8) {
+                Button("Glass Style Lab…") {
+                    _ = MacGlassStyleLab.show()
+                }
+                .buttonStyle(.glass)
+                .controlSize(.small)
+                Button("UI Lab…") {
+                    _ = MacUILab.show()
+                }
+                .buttonStyle(.glass)
+                .controlSize(.small)
             }
-            .buttonStyle(.glass)
-            .controlSize(.small)
             .padding(.horizontal, 8)
         }
         .padding(8)
