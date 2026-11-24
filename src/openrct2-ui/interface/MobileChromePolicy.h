@@ -12,6 +12,15 @@
     #include <TargetConditionals.h>
 #endif
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+extern "C" {
+/** UI Lab `parkChrome` — true ⇒ create classic engine toolbars. */
+bool OpenRCT2MacShouldCreateDesktopChromeWindows(void);
+/** Top inset for glass HUD; 0 when classic toolbars are active. */
+int32_t OpenRCT2MacLiquidGlassChromeTopInset(void);
+}
+#endif
+
 namespace OpenRCT2::Ui
 {
     /**
@@ -20,19 +29,17 @@ namespace OpenRCT2::Ui
      * `#if TARGET_OS_IOS return nullptr` blocks.
      *
      * research/mac-liquid-glass: on macOS the AppKit/SwiftUI glass toolbar
-     * replaces engine TopToolbar / info panels (same product intent as iOS
-     * Touch, but a separate Mac-native host — not Catalyst).
+     * replaces engine TopToolbar / info panels unless UI Lab disables parkChrome.
      */
-    constexpr bool ShouldCreateDesktopChromeWindows()
+    inline bool ShouldCreateDesktopChromeWindows()
     {
-#if defined(__APPLE__) && defined(__MACH__) && (TARGET_OS_IOS || TARGET_OS_OSX)
-        // research/mac-liquid-glass: hide engine toolbars so glass (or clean
-        // park screenshots for mockups) owns the chrome surface.
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
         return false;
+#elif defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        return OpenRCT2MacShouldCreateDesktopChromeWindows();
 #else
         return true;
 #endif
-
     }
 
     /**
@@ -40,10 +47,10 @@ namespace OpenRCT2::Ui
      * capsules when engine TopToolbar is suppressed. Must stay in sync with
      * `WindowGetTopToolbarOffset()` on TARGET_OS_OSX.
      */
-    constexpr int32_t MacLiquidGlassChromeTopInset()
+    inline int32_t MacLiquidGlassChromeTopInset()
     {
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
-        return 72;
+        return OpenRCT2MacLiquidGlassChromeTopInset();
 #else
         return 0;
 #endif

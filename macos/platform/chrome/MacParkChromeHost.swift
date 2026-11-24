@@ -120,6 +120,10 @@ final class MacParkChromeSession: NSObject {
         model.showParkChrome = visible
     }
 
+    func setTitleChromeVisible(_ visible: Bool) {
+        model.showTitleChrome = visible
+    }
+
     func setNewsToast(message: String, showSubject: Bool, showLocate: Bool) {
         model.setNewsToast(message: message, showSubject: showSubject, showLocate: showLocate)
     }

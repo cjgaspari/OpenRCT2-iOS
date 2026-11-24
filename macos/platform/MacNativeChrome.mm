@@ -63,6 +63,8 @@ void OpenRCT2MacChromeSetStatus(
 void OpenRCT2MacChromeSetState(void* session, bool paused, bool muted, uint8_t speed);
 void OpenRCT2MacChromeSetNewsToast(void* session, const char* message, bool showSubject, bool showLocate);
 void OpenRCT2MacChromeSetParkChromeVisible(void* session, bool visible);
+void OpenRCT2MacChromeSetTitleChromeVisible(void* session, bool visible);
+void OpenRCT2MacMenuBarSetEnabled(bool enabled);
 }
 
 namespace
@@ -222,10 +224,15 @@ namespace OpenRCT2::Ui
             if (gMacChromeSession == nullptr)
                 return;
 
-            // Title / main before a park: hide in-game HUD (glass toolbar + status).
-            const bool showParkChrome = (gLegacyScene != LegacyScene::titleSequence);
-            OpenRCT2MacChromeSetParkChromeVisible(gMacChromeSession, showParkChrome);
-            if (!showParkChrome)
+            // Title / park chrome gated by UI Lab (every native surface is toggleable).
+            const bool onTitle = (gLegacyScene == LegacyScene::titleSequence);
+            const bool nativeTitle = OpenRCT2MacUINativeEnabled("titleStartup");
+            const bool nativePark = OpenRCT2MacUINativeEnabled("parkChrome");
+            const bool nativeMenuBar = OpenRCT2MacUINativeEnabled("menuBar");
+            OpenRCT2MacMenuBarSetEnabled(nativeMenuBar);
+            OpenRCT2MacChromeSetTitleChromeVisible(gMacChromeSession, onTitle && nativeTitle);
+            OpenRCT2MacChromeSetParkChromeVisible(gMacChromeSession, !onTitle && nativePark);
+            if (onTitle || !nativePark)
             {
                 OpenRCT2MacChromeSetNewsToast(gMacChromeSession, "", false, false);
                 return;

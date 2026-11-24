@@ -140,6 +140,26 @@ func OpenRCT2MacChromeSetParkChromeVisible(
     }
 }
 
+@_cdecl("OpenRCT2MacChromeSetTitleChromeVisible")
+func OpenRCT2MacChromeSetTitleChromeVisible(
+    _ sessionPtr: UnsafeMutableRawPointer?,
+    _ visible: Bool
+) {
+    guard let sessionPtr else { return }
+    MainActor.assumeIsolated {
+        Unmanaged<MacParkChromeSession>.fromOpaque(sessionPtr)
+            .takeUnretainedValue()
+            .setTitleChromeVisible(visible)
+    }
+}
+
+@_cdecl("OpenRCT2MacMenuBarSetEnabled")
+func OpenRCT2MacMenuBarSetEnabled(_ enabled: Bool) {
+    MainActor.assumeIsolated {
+        MacMenuBar.setEnabled(enabled)
+    }
+}
+
 @_cdecl("OpenRCT2MacChromeSetNewsToast")
 func OpenRCT2MacChromeSetNewsToast(
     _ sessionPtr: UnsafeMutableRawPointer?,

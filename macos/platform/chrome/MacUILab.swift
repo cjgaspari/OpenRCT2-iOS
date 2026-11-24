@@ -5,18 +5,27 @@
  *
  * UI Lab — per-surface native vs classic engine toggles + loading preference.
  * Persisted in UserDefaults. Hotkey: ⌥⌘U.
+ * Rule: every native surface MUST have a toggle (incl. title/startup).
  *****************************************************************************/
 
 import AppKit
 import SwiftUI
 
 enum MacUISurface: String, CaseIterable, Identifiable {
-    case scenarioSelect
-    case loadPark
-    case options
-    case cheats
+    // Title & chrome
+    case titleStartup
+    case parkChrome
+    case menuBar
+    // Dialogs / toasts
+    case alerts
     case progress
     case news
+    // Browsers
+    case scenarioSelect
+    case loadPark
+    // Panels / windows
+    case options
+    case cheats
     case about
     case themes
     case shortcuts
@@ -34,12 +43,16 @@ enum MacUISurface: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .titleStartup: return "Title / startup"
+        case .parkChrome: return "Park glass HUD"
+        case .menuBar: return "macOS menu bar"
+        case .alerts: return "Alerts / confirms"
+        case .progress: return "Progress / loading"
+        case .news: return "Recent news"
         case .scenarioSelect: return "Scenario select"
         case .loadPark: return "Load saved game"
         case .options: return "Options"
         case .cheats: return "Cheats"
-        case .progress: return "Progress / loading"
-        case .news: return "Recent news"
         case .about: return "About"
         case .themes: return "Themes"
         case .shortcuts: return "Shortcut keys"
@@ -55,11 +68,27 @@ enum MacUISurface: String, CaseIterable, Identifiable {
         }
     }
 
+    var group: String {
+        switch self {
+        case .titleStartup, .parkChrome, .menuBar:
+            return "Title & chrome"
+        case .alerts, .progress, .news:
+            return "Dialogs"
+        case .scenarioSelect, .loadPark:
+            return "Browsers"
+        default:
+            return "Panels"
+        }
+    }
+
     /// Default: native on, except progress prefers classic in-game indicator.
     var defaultNative: Bool {
         self != .progress
     }
 }
+
+@_silgen_name("OpenRCT2MacUINotifySurfaceChanged")
+func OpenRCT2MacUINotifySurfaceChanged(_ surfaceId: UnsafePointer<CChar>)
 
 @MainActor
 @Observable
@@ -105,6 +134,10 @@ final class MacUILabPrefs {
             set: { newValue in
                 self.nativeBySurface[surface.rawValue] = newValue
                 self.defaults.set(newValue, forKey: self.prefix + surface.rawValue)
+                if surface == .menuBar {
+                    MacMenuBar.setEnabled(newValue)
+                }
+                surface.rawValue.withCString { OpenRCT2MacUINotifySurfaceChanged($0) }
             }
         )
     }
@@ -113,6 +146,7 @@ final class MacUILabPrefs {
         for surface in MacUISurface.allCases {
             nativeBySurface[surface.rawValue] = surface.defaultNative
             defaults.set(surface.defaultNative, forKey: prefix + surface.rawValue)
+            surface.rawValue.withCString { OpenRCT2MacUINotifySurfaceChanged($0) }
         }
         preferClassicProgress = true
     }
@@ -130,7 +164,7 @@ enum MacUILab {
             return true
         }
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
             styleMask: [.titled, .closable, .resizable, .utilityWindow],
             backing: .buffered,
             defer: false
@@ -179,13 +213,22 @@ private struct UILabView: View {
     let onClose: () -> Void
     @Bindable private var prefs = MacUILabPrefs.shared
 
+    private var grouped: [(String, [MacUISurface])] {
+        let order = ["Title & chrome", "Dialogs", "Browsers", "Panels"]
+        let dict = Dictionary(grouping: MacUISurface.allCases, by: \.group)
+        return order.compactMap { key in
+            guard let items = dict[key] else { return nil }
+            return (key, items)
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("UI Lab")
                         .font(.title3.weight(.semibold))
-                    Text("Native Mac vs classic engine per surface. Persisted. Hotkey ⌥⌘U.")
+                    Text("Every native surface can revert to classic. Persisted. ⌥⌘U.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -201,15 +244,17 @@ private struct UILabView: View {
                     .padding(6)
                 }
 
-                GroupBox("Native surfaces") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(MacUISurface.allCases) { surface in
-                            Toggle(surface.title, isOn: prefs.binding(for: surface))
-                                .controlSize(.small)
-                                .disabled(surface == .progress && prefs.preferClassicProgress)
+                ForEach(grouped, id: \.0) { group, surfaces in
+                    GroupBox(group) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(surfaces) { surface in
+                                Toggle(surface.title, isOn: prefs.binding(for: surface))
+                                    .controlSize(.small)
+                                    .disabled(surface == .progress && prefs.preferClassicProgress)
+                            }
                         }
+                        .padding(6)
                     }
-                    .padding(6)
                 }
 
                 HStack {

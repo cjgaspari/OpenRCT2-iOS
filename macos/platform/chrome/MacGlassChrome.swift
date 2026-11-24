@@ -199,8 +199,10 @@ final class MacParkChromeModel: ObservableObject {
     @Published var isMuted = false
     @Published var speed: UInt8 = 1
     @Published var iconMode: MacToolbarIconMode = MacToolbarIconMode.current
-    /// False on title sequence — hide in-game glass HUD; title actions only.
+    /// In-game glass HUD (toolbar + status). Off on title or when UI Lab disables parkChrome.
     @Published var showParkChrome: Bool = true
+    /// Native title/startup chrome. Off when UI Lab reverts title to classic.
+    @Published var showTitleChrome: Bool = false
 
     /// Bottom-center Liquid Glass toast (news ticker + errors). CJ HIG 2A/3A.
     @Published var toastKind: MacToastKind = .news
@@ -331,7 +333,7 @@ struct MacParkChromeOverlay: View {
                 bottomChrome
                     .padding(.horizontal, 14)
                     .padding(.bottom, 12)
-            } else {
+            } else if model.showTitleChrome {
                 titleChrome
                     .padding(.horizontal, 14)
                     .padding(.bottom, 16)

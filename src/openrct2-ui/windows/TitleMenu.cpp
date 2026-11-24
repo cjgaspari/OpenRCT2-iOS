@@ -9,6 +9,9 @@
 
 #if defined(__APPLE__) && defined(__MACH__)
     #include <TargetConditionals.h>
+    #if TARGET_OS_OSX
+        #include "../../../macos/platform/MacNativeUI.h"
+    #endif
 #endif
 
 #include <openrct2-ui/interface/Dropdown.h>
@@ -282,15 +285,15 @@ namespace OpenRCT2::Ui::Windows
     WindowBase* TitleMenuOpen()
     {
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
-        // Mac title chrome (Liquid Glass) owns New/Load/Options/Quit on title.
-        return nullptr;
-#else
+        // UI Lab titleStartup: native Mac title chrome when enabled.
+        if (OpenRCT2MacUINativeEnabled("titleStartup"))
+            return nullptr;
+#endif
         const uint16_t windowHeight = kMenuButtonDims.height + kUpdateButtonDims.height;
 
         auto* windowMgr = GetWindowManager();
         return windowMgr->Create<TitleMenuWindow>(
             WindowClass::titleMenu, ScreenCoordsXY(0, ContextGetHeight() - 182), { 0, windowHeight },
             { WindowFlag::stickToBack, WindowFlag::transparent, WindowFlag::noBackground, WindowFlag::noTitleBar });
-#endif
     }
 } // namespace OpenRCT2::Ui::Windows

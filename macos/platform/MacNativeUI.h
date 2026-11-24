@@ -184,6 +184,11 @@ bool OpenRCT2MacNativeGlassStyleLabPresent(void);
 bool OpenRCT2MacNativeUILabPresent(void);
 /** @return false → Present should fall back to classic engine UI. */
 bool OpenRCT2MacUINativeEnabled(const char* surfaceId);
+/** Called when a UI Lab surface toggle changes (recreate title/chrome as needed). */
+void OpenRCT2MacUINotifySurfaceChanged(const char* surfaceId);
+/** Classic engine toolbars when park glass HUD is disabled in UI Lab. */
+bool OpenRCT2MacShouldCreateDesktopChromeWindows(void);
+int32_t OpenRCT2MacLiquidGlassChromeTopInset(void);
 
 /** Recent news (3.1) — glass dense archive list. */
 bool OpenRCT2MacNativeRecentNewsPresent(void);

@@ -36,6 +36,21 @@
 
 #if defined(__APPLE__) && defined(__MACH__)
     #include <TargetConditionals.h>
+    #if TARGET_OS_OSX
+extern "C" {
+bool OpenRCT2MacShouldCreateDesktopChromeWindows(void);
+int32_t OpenRCT2MacLiquidGlassChromeTopInset(void);
+// Strong defs in MacNativeUI.mm (openrct2 UI). Weak stubs keep openrct2-cli linking.
+__attribute__((weak)) bool OpenRCT2MacShouldCreateDesktopChromeWindows(void)
+{
+    return false;
+}
+__attribute__((weak)) int32_t OpenRCT2MacLiquidGlassChromeTopInset(void)
+{
+    return 72;
+}
+}
+    #endif
 #endif
 
 namespace OpenRCT2
@@ -737,10 +752,11 @@ static constexpr float kWindowScrollLocations[][2] = {
             return 0;
         }
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
-        // research/mac-liquid-glass: engine TopToolbar is suppressed; Option 1
-        // dual-top Liquid Glass capsules occupy ~padding(12)+row(~48). Keep
-        // engine windows clear of that chrome (also used by ClampWindowToScreen).
-        return 72;
+        // research/mac-liquid-glass: glass HUD inset, or classic toolbar height
+        // when UI Lab disables parkChrome.
+        if (!OpenRCT2MacShouldCreateDesktopChromeWindows())
+            return OpenRCT2MacLiquidGlassChromeTopInset();
+        return kTopToolbarHeight + 1;
 #else
         return kTopToolbarHeight + 1;
 #endif

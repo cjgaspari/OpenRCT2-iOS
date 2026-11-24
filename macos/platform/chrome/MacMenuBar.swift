@@ -20,7 +20,24 @@ enum MacChromeMenuAction: Int32 {
 @MainActor
 enum MacMenuBar {
     private static var installed = false
+    private static var enabled = true
     private static var actionHandler: ((Int32, Int32) -> Void)?
+    private static var savedMainMenu: NSMenu?
+
+    static func setEnabled(_ enabled: Bool) {
+        Self.enabled = enabled
+        if enabled {
+            if let saved = savedMainMenu {
+                NSApp.mainMenu = saved
+            } else if let handler = actionHandler {
+                install(actionHandler: handler)
+            }
+        } else if let current = NSApp.mainMenu {
+            savedMainMenu = current
+            // Minimal empty menu — classic engine shortcuts still work via SDL.
+            NSApp.mainMenu = NSMenu()
+        }
+    }
 
     static func install(actionHandler: @escaping (Int32, Int32) -> Void) {
         Self.actionHandler = actionHandler
@@ -96,7 +113,11 @@ enum MacMenuBar {
         NSApp.helpMenu = helpMenuItem.submenu
 
         NSApp.mainMenu = mainMenu
+        savedMainMenu = mainMenu
         installed = true
+        if !enabled {
+            setEnabled(false)
+        }
     }
 
     static func ensureInstalled(actionHandler: @escaping (Int32, Int32) -> Void) {

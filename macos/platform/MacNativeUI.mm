@@ -56,6 +56,9 @@
 #include <openrct2/world/Map.h>
 #include <openrct2/world/MapSelection.h>
 #include <openrct2/world/Park.h>
+#include <openrct2/scenes/title/TitleScene.h>
+#include <openrct2/interface/WindowClasses.h>
+#include <cstring>
 
 #include <algorithm>
 #include <cstdio>
@@ -320,6 +323,8 @@ static void MacNativeUnpauseAfterModal()
 
 bool OpenRCT2MacNativeSavePromptPresent(void)
 {
+    if (!OpenRCT2MacUINativeEnabled("alerts"))
+        return false;
     MacNativePauseForModal();
 
     const bool trackEditor = isInTrackDesignerOrManager();
@@ -365,6 +370,8 @@ bool OpenRCT2MacNativeSavePromptPresent(void)
 
 bool OpenRCT2MacNativeFireStaffPresent(uint16_t peepId)
 {
+    if (!OpenRCT2MacUINativeEnabled("alerts"))
+        return false;
     auto* peep = getGameState().entities.TryGetEntity<Peep>(EntityId::FromUnderlying(peepId));
     if (peep == nullptr)
         return false;
@@ -386,6 +393,8 @@ bool OpenRCT2MacNativeFireStaffPresent(uint16_t peepId)
 
 bool OpenRCT2MacNativeDemolishRidePresent(uint16_t rideId, bool refurbish)
 {
+    if (!OpenRCT2MacUINativeEnabled("alerts"))
+        return false;
     auto* ride = GetRide(RideId::FromUnderlying(rideId));
     if (ride == nullptr)
         return false;
@@ -1874,6 +1883,59 @@ extern "C" void OpenRCT2MacNativeNewsLocate(int32_t index)
         return;
     if (auto* mainWindow = WindowGetMain(); mainWindow != nullptr)
         WindowScrollToLocation(*mainWindow, subjectLoc.value());
+}
+
+extern "C" bool OpenRCT2MacShouldCreateDesktopChromeWindows(void)
+{
+    // Classic engine toolbars when UI Lab disables park glass HUD.
+    return !OpenRCT2MacUINativeEnabled("parkChrome");
+}
+
+extern "C" int32_t OpenRCT2MacLiquidGlassChromeTopInset(void)
+{
+    return OpenRCT2MacUINativeEnabled("parkChrome") ? 72 : 0;
+}
+
+extern "C" void OpenRCT2MacUINotifySurfaceChanged(const char* surfaceId)
+{
+    if (surfaceId == nullptr)
+        return;
+
+    auto* windowMgr = Ui::GetWindowManager();
+    if (windowMgr == nullptr)
+        return;
+
+    if (std::strcmp(surfaceId, "titleStartup") == 0)
+    {
+        windowMgr->CloseByClass(WindowClass::titleMenu);
+        windowMgr->CloseByClass(WindowClass::titleExit);
+        windowMgr->CloseByClass(WindowClass::titleOptions);
+        windowMgr->CloseByClass(WindowClass::titleLogo);
+        windowMgr->CloseByClass(WindowClass::titleVersion);
+        if (gLegacyScene == LegacyScene::titleSequence)
+            TitleCreateWindows();
+        return;
+    }
+
+    if (std::strcmp(surfaceId, "parkChrome") == 0)
+    {
+        if (gLegacyScene == LegacyScene::titleSequence)
+            return;
+        if (OpenRCT2MacShouldCreateDesktopChromeWindows())
+        {
+            ContextOpenWindow(WindowClass::topToolbar);
+            ContextOpenWindow(WindowClass::bottomToolbar);
+            ContextOpenWindow(WindowClass::parkInfoPanel);
+            ContextOpenWindow(WindowClass::dateInfoPanel);
+        }
+        else
+        {
+            windowMgr->CloseByClass(WindowClass::topToolbar);
+            windowMgr->CloseByClass(WindowClass::bottomToolbar);
+            windowMgr->CloseByClass(WindowClass::parkInfoPanel);
+            windowMgr->CloseByClass(WindowClass::dateInfoPanel);
+        }
+    }
 }
 
 #endif // TARGET_OS_OSX

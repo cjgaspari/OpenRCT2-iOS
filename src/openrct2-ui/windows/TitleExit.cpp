@@ -9,6 +9,9 @@
 
 #if defined(__APPLE__) && defined(__MACH__)
     #include <TargetConditionals.h>
+    #if TARGET_OS_OSX
+        #include "../../../macos/platform/MacNativeUI.h"
+    #endif
 #endif
 
 #include <openrct2-ui/interface/Widget.h>
@@ -62,13 +65,12 @@ namespace OpenRCT2::Ui::Windows
     WindowBase* TitleExitOpen()
     {
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
-        // Mac title chrome owns Quit.
-        return nullptr;
-#else
+        if (OpenRCT2MacUINativeEnabled("titleStartup"))
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         return windowMgr->Create<TitleExitWindow>(
             WindowClass::titleExit, ScreenCoordsXY(ContextGetWidth() - 40, ContextGetHeight() - 64), kWindowSize,
             { WindowFlag::stickToBack, WindowFlag::transparent, WindowFlag::noTitleBar });
-#endif
     }
 } // namespace OpenRCT2::Ui::Windows

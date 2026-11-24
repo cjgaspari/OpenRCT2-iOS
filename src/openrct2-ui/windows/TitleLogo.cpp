@@ -7,6 +7,13 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+    #if TARGET_OS_OSX
+        #include "../../../macos/platform/MacNativeUI.h"
+    #endif
+#endif
+
 #include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2-ui/windows/Windows.h>
@@ -67,6 +74,10 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* TitleLogoOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacUINativeEnabled("titleStartup"))
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->BringToFrontByClass(WindowClass::titleLogo);
         if (window == nullptr)
