@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Research mockup — FULL desktop TopToolbar inventory as real Liquid Glass.
- * Not a Touch HUD port. Uses Mac width.
+ * Research mockup — FULL desktop TopToolbar as Liquid Glass.
+ * Gold standard: Option 2 — horizontal layered clear glass, tint/opacity,
+ * GlassEffectContainer + glassEffectUnion. No vertical tool rails.
  *****************************************************************************/
 
 import AppKit
@@ -16,35 +17,57 @@ struct MacLiquidGlassLayoutsApp: App {
     }
 }
 
+/// Only horizontal, Option-2-styled layouts. Vertical rails removed.
 enum LayoutOption: String, CaseIterable, Identifiable {
-    case classicMapped
-    case denserTop
-    case splitRails
-    case topAndBottomStatus
+    /// Gold standard — single dual top clear-glass band + bottom status.
+    case layeredDualTop
+    /// Same glass language; tools split into L/R top corner plates.
+    case cornerPlates
+    /// Same glass language; one continuous top band, status also on bg glass.
+    case fullBand
 
     var id: String { rawValue }
 
     var shortLabel: String {
         switch self {
-        case .classicMapped: return "1"
-        case .denserTop: return "2"
-        case .splitRails: return "3"
-        case .topAndBottomStatus: return "4"
+        case .layeredDualTop: return "1"
+        case .cornerPlates: return "2"
+        case .fullBand: return "3"
         }
     }
 
     var title: String {
         switch self {
-        case .classicMapped: return "Classic groups → glass"
-        case .denserTop: return "Dense dual top bars"
-        case .splitRails: return "L/R rails + bottom status"
-        case .topAndBottomStatus: return "Full top + bottom status"
+        case .layeredDualTop: return "Gold — layered dual top"
+        case .cornerPlates: return "Corner plates + bg glass"
+        case .fullBand: return "Full top band + status glass"
         }
     }
 }
 
+/// Semantic glass palette — tint sparingly (HIG: one primary, status accents).
+enum GlassChrome {
+    static let primaryAction = Color.orange
+    static let money = Color.green
+    static let weather = Color.cyan
+    static let session = Color.blue
+    static let construct = Color.orange
+    static let manage = Color.purple
+
+    static func clearPlate(tint: Color, opacity: Double = 0.22) -> Glass {
+        .clear.tint(tint.opacity(opacity))
+    }
+
+    static func statusPlate(tint: Color, opacity: Double = 0.28) -> Glass {
+        .regular.tint(tint.opacity(opacity))
+    }
+
+    /// HIG: ~35% dark dim under clear glass when content is bright.
+    static let clearDimming = Color.black.opacity(0.28)
+}
+
 struct RootView: View {
-    @State private var option: LayoutOption = .classicMapped
+    @State private var option: LayoutOption = .layeredDualTop
 
     var body: some View {
         NavigationStack {
@@ -62,7 +85,7 @@ struct RootView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 160)
+                    .frame(width: 140)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Text("\(option.shortLabel) — \(option.title)")
@@ -78,14 +101,12 @@ struct RootView: View {
     @ViewBuilder
     private var layoutOverlay: some View {
         switch option {
-        case .classicMapped:
-            LayoutClassicMapped()
-        case .denserTop:
-            LayoutDenserTop()
-        case .splitRails:
-            LayoutSplitRails()
-        case .topAndBottomStatus:
-            LayoutTopAndBottomStatus()
+        case .layeredDualTop:
+            LayoutLayeredDualTop()
+        case .cornerPlates:
+            LayoutCornerPlates()
+        case .fullBand:
+            LayoutFullBand()
         }
     }
 
@@ -128,7 +149,6 @@ struct ToolItem: Identifiable {
 }
 
 enum DesktopTools {
-    // Left group — playback / session
     static let playback: [ToolItem] = [
         .init(id: "pause", symbol: "pause.fill", help: "Pause"),
         .init(id: "speed", symbol: "forward.fill", help: "Game speed"),
@@ -140,7 +160,6 @@ enum DesktopTools {
         .init(id: "debug", symbol: "ladybug.fill", help: "Debug"),
     ]
 
-    // Left group — camera / view
     static let camera: [ToolItem] = [
         .init(id: "zoomOut", symbol: "minus.magnifyingglass", help: "Zoom out"),
         .init(id: "zoomIn", symbol: "plus.magnifyingglass", help: "Zoom in"),
@@ -150,7 +169,6 @@ enum DesktopTools {
         .init(id: "map", symbol: "map.fill", help: "Map"),
     ]
 
-    // Right group — construction
     static let construct: [ToolItem] = [
         .init(id: "clear", symbol: "trash", help: "Clear scenery"),
         .init(id: "land", symbol: "square.3.layers.3d.top.filled", help: "Land"),
@@ -160,7 +178,6 @@ enum DesktopTools {
         .init(id: "ride", symbol: "hammer.fill", help: "Construct ride"),
     ]
 
-    // Right group — management
     static let manage: [ToolItem] = [
         .init(id: "finances", symbol: "banknote", help: "Finances"),
         .init(id: "research", symbol: "flask.fill", help: "Research"),
@@ -172,7 +189,7 @@ enum DesktopTools {
     ]
 }
 
-// MARK: - Glass primitives
+// MARK: - Gold-standard glass primitives (from former Option 2)
 
 struct GlassToolButton: View {
     let item: ToolItem
@@ -197,7 +214,7 @@ private struct GlassToolChrome: ViewModifier {
         if prominent {
             content
                 .buttonStyle(.glassProminent)
-                .tint(tint ?? .orange)
+                .tint(tint ?? GlassChrome.primaryAction)
                 .buttonBorderShape(.circle)
                 .controlSize(.regular)
         } else {
@@ -209,25 +226,61 @@ private struct GlassToolChrome: ViewModifier {
     }
 }
 
-struct GlassToolCluster: View {
+/// Horizontal semantic tool group — clear tinted plate + unioned glass buttons.
+struct GlassToolGroup: View {
     let items: [ToolItem]
+    let unionID: String
+    var plateTint: Color = GlassChrome.session
+    var plateOpacity: Double = 0.18
     var prominentID: String? = nil
+    var prominentTint: Color = GlassChrome.primaryAction
     var spacing: CGFloat = 6
 
+    @Namespace private var glassNS
+
     var body: some View {
-        GlassEffectContainer(spacing: spacing + 4) {
+        // Container spacing > stack spacing → shapes blend at rest (Apple docs).
+        GlassEffectContainer(spacing: spacing + 18) {
             HStack(spacing: spacing) {
                 ForEach(items) { item in
                     GlassToolButton(
                         item: item,
                         prominent: item.id == prominentID,
-                        tint: item.id == prominentID ? .orange : nil
+                        tint: item.id == prominentID ? prominentTint : nil
                     )
+                    .glassEffectUnion(id: unionID, namespace: glassNS)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(GlassChrome.clearDimming, in: Capsule())
+            .glassEffect(
+                GlassChrome.clearPlate(tint: plateTint, opacity: plateOpacity),
+                in: .capsule
+            )
         }
+    }
+}
+
+/// Outer clear plate over park media (gold-standard background glass).
+struct GlassBackgroundPlate<Content: View>: View {
+    var cornerRadius: CGFloat = 22
+    var dimmingOpacity: Double = 0.55
+    var glassTintOpacity: Double = 0.08
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        content()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                GlassChrome.clearDimming.opacity(dimmingOpacity),
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            )
+            .glassEffect(
+                .clear.tint(Color.white.opacity(glassTintOpacity)),
+                in: .rect(cornerRadius: cornerRadius)
+            )
     }
 }
 
@@ -241,7 +294,11 @@ struct StatusPanel: View {
         .font(.caption.weight(.semibold).monospacedDigit())
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+        .background(Color.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .glassEffect(
+            GlassChrome.statusPlate(tint: GlassChrome.money, opacity: 0.32),
+            in: .rect(cornerRadius: 14)
+        )
     }
 }
 
@@ -255,123 +312,140 @@ struct DateWeatherPanel: View {
         .font(.caption.weight(.semibold))
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+        .background(Color.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .glassEffect(
+            GlassChrome.statusPlate(tint: GlassChrome.weather, opacity: 0.30),
+            in: .rect(cornerRadius: 14)
+        )
     }
 }
 
-// MARK: - Layout 1: classic left/right groups mirrored as glass (uses width)
-
-struct LayoutClassicMapped: View {
+/// Shared leading / trailing horizontal tool rows (never vertical rails).
+struct SessionToolRow: View {
     var body: some View {
-        VStack {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 8) {
-                    GlassToolCluster(items: DesktopTools.playback)
-                    GlassToolCluster(items: DesktopTools.camera)
-                }
-                Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 8) {
-                    GlassToolCluster(items: DesktopTools.construct, prominentID: "ride")
-                    GlassToolCluster(items: DesktopTools.manage)
-                }
-            }
-            Spacer()
-            HStack(alignment: .bottom) {
-                StatusPanel()
-                Spacer()
-                DateWeatherPanel()
-            }
+        HStack(spacing: 10) {
+            GlassToolGroup(
+                items: DesktopTools.playback,
+                unionID: "playback",
+                plateTint: GlassChrome.session,
+                plateOpacity: 0.20
+            )
+            GlassToolGroup(
+                items: DesktopTools.camera,
+                unionID: "camera",
+                plateTint: GlassChrome.session,
+                plateOpacity: 0.12
+            )
         }
     }
 }
 
-// MARK: - Layout 2: denser single top bands (maximum horizontal use)
-
-struct LayoutDenserTop: View {
+struct BuildManageToolRow: View {
     var body: some View {
-        VStack {
-            GlassEffectContainer(spacing: 10) {
-                HStack(spacing: 8) {
-                    ForEach(DesktopTools.playback) { GlassToolButton(item: $0) }
-                    Divider().frame(height: 22)
-                    ForEach(DesktopTools.camera) { GlassToolButton(item: $0) }
-                    Spacer(minLength: 12)
-                    ForEach(DesktopTools.construct) { item in
-                        GlassToolButton(item: item, prominent: item.id == "ride", tint: .orange)
+        HStack(spacing: 10) {
+            GlassToolGroup(
+                items: DesktopTools.construct,
+                unionID: "construct",
+                plateTint: GlassChrome.construct,
+                plateOpacity: 0.24,
+                prominentID: "ride"
+            )
+            GlassToolGroup(
+                items: DesktopTools.manage,
+                unionID: "manage",
+                plateTint: GlassChrome.manage,
+                plateOpacity: 0.14
+            )
+        }
+    }
+}
+
+struct BottomStatusRow: View {
+    var withBackgroundGlass = false
+
+    var body: some View {
+        GlassEffectContainer(spacing: 24) {
+            HStack(alignment: .bottom) {
+                if withBackgroundGlass {
+                    GlassBackgroundPlate(cornerRadius: 18, dimmingOpacity: 0.45) {
+                        StatusPanel()
                     }
-                    Divider().frame(height: 22)
-                    ForEach(DesktopTools.manage) { GlassToolButton(item: $0) }
+                } else {
+                    StatusPanel()
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .glassEffect(.regular, in: .rect(cornerRadius: 16))
-            }
-            Spacer()
-            HStack(alignment: .bottom) {
-                StatusPanel()
                 Spacer()
-                DateWeatherPanel()
+                if withBackgroundGlass {
+                    GlassBackgroundPlate(cornerRadius: 18, dimmingOpacity: 0.45) {
+                        DateWeatherPanel()
+                    }
+                } else {
+                    DateWeatherPanel()
+                }
             }
         }
     }
 }
 
-// MARK: - Layout 3: vertical rails on L/R (uses height + width)
+// MARK: - 1 Gold standard (former Option 2)
 
-struct LayoutSplitRails: View {
+struct LayoutLayeredDualTop: View {
     var body: some View {
-        HStack(alignment: .top) {
-            VStack(spacing: 8) {
-                rail(DesktopTools.playback)
-                rail(DesktopTools.camera)
-                Spacer()
-                StatusPanel()
-            }
-            Spacer()
-            VStack(spacing: 8) {
-                rail(DesktopTools.construct, prominentID: "ride")
-                rail(DesktopTools.manage)
-                Spacer()
-                DateWeatherPanel()
-            }
-        }
-    }
-
-    private func rail(_ items: [ToolItem], prominentID: String? = nil) -> some View {
-        GlassEffectContainer(spacing: 8) {
-            VStack(spacing: 6) {
-                ForEach(items) { item in
-                    GlassToolButton(
-                        item: item,
-                        prominent: item.id == prominentID,
-                        tint: item.id == prominentID ? .orange : nil
-                    )
+        VStack(spacing: 0) {
+            GlassEffectContainer(spacing: 28) {
+                GlassBackgroundPlate {
+                    HStack(alignment: .center, spacing: 12) {
+                        SessionToolRow()
+                        Spacer(minLength: 16)
+                        BuildManageToolRow()
+                    }
                 }
             }
-            .padding(8)
+            Spacer()
+            BottomStatusRow()
         }
     }
 }
 
-// MARK: - Layout 4: full top strip + prominent bottom status (status-forward)
+// MARK: - 2 Same glass; separate L/R top corner plates + bottom bg glass
 
-struct LayoutTopAndBottomStatus: View {
+struct LayoutCornerPlates: View {
     var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 10) {
-                GlassToolCluster(items: DesktopTools.playback + DesktopTools.camera)
+        VStack {
+            HStack(alignment: .top, spacing: 14) {
+                GlassEffectContainer(spacing: 22) {
+                    GlassBackgroundPlate(cornerRadius: 20) {
+                        SessionToolRow()
+                    }
+                }
                 Spacer(minLength: 8)
-                GlassToolCluster(items: DesktopTools.construct, prominentID: "ride")
-                GlassToolCluster(items: DesktopTools.manage)
+                GlassEffectContainer(spacing: 22) {
+                    GlassBackgroundPlate(cornerRadius: 20) {
+                        BuildManageToolRow()
+                    }
+                }
             }
             Spacer()
-            HStack(spacing: 16) {
-                StatusPanel()
-                    .frame(maxWidth: 280, alignment: .leading)
-                Spacer()
-                DateWeatherPanel()
-                    .frame(maxWidth: 280, alignment: .trailing)
+            BottomStatusRow(withBackgroundGlass: true)
+        }
+    }
+}
+
+// MARK: - 3 Same glass; continuous top band; status also on bg glass
+
+struct LayoutFullBand: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            GlassEffectContainer(spacing: 28) {
+                GlassBackgroundPlate {
+                    HStack(alignment: .center, spacing: 12) {
+                        SessionToolRow()
+                        Spacer(minLength: 16)
+                        BuildManageToolRow()
+                    }
+                }
             }
+            Spacer()
+            BottomStatusRow(withBackgroundGlass: true)
         }
     }
 }
