@@ -47,6 +47,7 @@
 
 #include <cstdio>
 #include <memory>
+#include <pthread.h>
 
 #import <Foundation/Foundation.h>
 
@@ -476,8 +477,17 @@ bool OpenRCT2MacNativeChangelogPresent(int32_t personality)
 static bool gMacNativeProgressActive = false;
 static bool gMacNativeNetworkStatusActive = false;
 
+static bool MacNativeIsMainThread()
+{
+    return pthread_main_np() != 0;
+}
+
 bool OpenRCT2MacNativeProgressPresent(const char* text)
 {
+    // Progress often opens from JobPool workers during load — MainActor.assumeIsolated
+    // would SIGTRAP. Keep classic engine window off the main thread.
+    if (!MacNativeIsMainThread())
+        return false;
     OpenRCT2MacNativeNetworkStatusClose();
     gMacNativeProgressActive = OpenRCT2MacNativeProgressShow(text != nullptr ? text : "");
     return gMacNativeProgressActive;
@@ -500,6 +510,8 @@ void OpenRCT2MacNativeProgressClose(void)
 
 bool OpenRCT2MacNativeNetworkStatusPresent(const char* text)
 {
+    if (!MacNativeIsMainThread())
+        return false;
     OpenRCT2MacNativeProgressClose();
     gMacNativeNetworkStatusActive = OpenRCT2MacNativeNetworkStatusShow(text != nullptr ? text : "");
     return gMacNativeNetworkStatusActive;
