@@ -118,6 +118,16 @@ void OpenRCT2MacNativeAssetPackSetEnabled(int32_t index, bool enabled);
 void OpenRCT2MacNativeAssetPackMove(int32_t index, int32_t direction); // -1 up, +1 down
 void OpenRCT2MacNativeAssetPackApply(void);
 
+bool OpenRCT2MacNativeOptionsPresent(void);
+bool OpenRCT2MacNativeConfigGetBool(int32_t key);
+void OpenRCT2MacNativeConfigSetBool(int32_t key, bool value);
+void OpenRCT2MacNativeConfigSave(void);
+
+bool OpenRCT2MacNativeCheatsPresent(void);
+bool OpenRCT2MacNativeCheatGet(int32_t type);
+void OpenRCT2MacNativeCheatToggle(int32_t type);
+void OpenRCT2MacNativeCheatRun(int32_t type, int64_t p1, int64_t p2);
+
 #ifdef __cplusplus
 }
 #endif

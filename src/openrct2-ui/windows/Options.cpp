@@ -53,6 +53,13 @@
 #include <openrct2/ui/UiContext.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
 extern "C" {
@@ -2392,6 +2399,10 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* OptionsOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeOptionsPresent())
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         return windowMgr->FocusOrCreate<OptionsWindow>(WindowClass::options, kWindowSize, WindowFlag::centreScreen);
     }

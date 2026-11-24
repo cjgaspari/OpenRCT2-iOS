@@ -16,6 +16,7 @@
 #include <openrct2-ui/windows/Windows.h>
 #include <openrct2/AssetPack.h>
 #include <openrct2/AssetPackManager.h>
+#include <openrct2/Cheats.h>
 #include <openrct2/Context.h>
 #include <openrct2/Game.h>
 #include <openrct2/GameState.h>
@@ -44,6 +45,7 @@
 #include <openrct2/windows/Intent.h>
 #include <openrct2/world/Map.h>
 #include <openrct2/world/MapSelection.h>
+#include <openrct2/world/Park.h>
 
 #include <cstdio>
 #include <memory>
@@ -651,6 +653,235 @@ void OpenRCT2MacNativeAssetPackApply(void)
     objectManager.ResetObjects();
     if (auto* mgr = GetContext()->GetAssetPackManager(); mgr != nullptr)
         mgr->SaveEnabledAssetPacks();
+}
+
+extern "C" bool OpenRCT2MacNativeOptionsShow(void);
+extern "C" bool OpenRCT2MacNativeCheatsShow(void);
+
+bool OpenRCT2MacNativeOptionsPresent(void)
+{
+    return OpenRCT2MacNativeOptionsShow();
+}
+
+bool OpenRCT2MacNativeCheatsPresent(void)
+{
+    return OpenRCT2MacNativeCheatsShow();
+}
+
+enum MacConfigBoolKey : int32_t
+{
+    MacConfig_UncapFPS = 0,
+    MacConfig_UseVSync = 1,
+    MacConfig_ShowFPS = 2,
+    MacConfig_LandscapeSmoothing = 3,
+    MacConfig_AlwaysShowGridlines = 4,
+    MacConfig_DayNightCycle = 5,
+    MacConfig_EnableLightFx = 6,
+    MacConfig_RenderWeatherEffects = 7,
+    MacConfig_RenderWeatherGloom = 8,
+    MacConfig_TransparentWater = 9,
+    MacConfig_ShowGuestPurchases = 10,
+    MacConfig_EdgeScrolling = 11,
+    MacConfig_InvertViewportDrag = 12,
+    MacConfig_ZoomToCursor = 13,
+    MacConfig_TrapCursor = 14,
+    MacConfig_ToolbarShowFinances = 15,
+    MacConfig_ToolbarShowResearch = 16,
+    MacConfig_ToolbarShowCheats = 17,
+    MacConfig_ToolbarShowNews = 18,
+    MacConfig_ToolbarShowMute = 19,
+    MacConfig_ToolbarShowChat = 20,
+    MacConfig_ToolbarShowZoom = 21,
+    MacConfig_MasterSoundEnabled = 22,
+    MacConfig_SoundEnabled = 23,
+    MacConfig_RideMusicEnabled = 24,
+    MacConfig_AudioFocus = 25,
+    MacConfig_DebuggingTools = 26,
+    MacConfig_AutoStaffPlacement = 27,
+    MacConfig_AutoOpenShops = 28,
+    MacConfig_ShowRealNamesOfGuests = 29,
+    MacConfig_ShowRealNamesOfStaff = 30,
+    MacConfig_ConfirmationPrompt = 31,
+    MacConfig_AllowEarlyCompletion = 32,
+};
+
+static bool* MacConfigBoolPtr(int32_t key)
+{
+    auto& cfg = Config::Get();
+    switch (key)
+    {
+        case MacConfig_UncapFPS:
+            return &cfg.general.uncapFPS;
+        case MacConfig_UseVSync:
+            return &cfg.general.useVSync;
+        case MacConfig_ShowFPS:
+            return &cfg.general.showFPS;
+        case MacConfig_LandscapeSmoothing:
+            return &cfg.general.landscapeSmoothing;
+        case MacConfig_AlwaysShowGridlines:
+            return &cfg.general.alwaysShowGridlines;
+        case MacConfig_DayNightCycle:
+            return &cfg.general.dayNightCycle;
+        case MacConfig_EnableLightFx:
+            return &cfg.general.enableLightFx;
+        case MacConfig_RenderWeatherEffects:
+            return &cfg.general.renderWeatherEffects;
+        case MacConfig_RenderWeatherGloom:
+            return &cfg.general.renderWeatherGloom;
+        case MacConfig_TransparentWater:
+            return &cfg.general.transparentWater;
+        case MacConfig_ShowGuestPurchases:
+            return &cfg.general.showGuestPurchases;
+        case MacConfig_EdgeScrolling:
+            return &cfg.general.edgeScrolling;
+        case MacConfig_InvertViewportDrag:
+            return &cfg.general.invertViewportDrag;
+        case MacConfig_ZoomToCursor:
+            return &cfg.general.zoomToCursor;
+        case MacConfig_TrapCursor:
+            return &cfg.general.trapCursor;
+        case MacConfig_ToolbarShowFinances:
+            return &cfg.interface.toolbarShowFinances;
+        case MacConfig_ToolbarShowResearch:
+            return &cfg.interface.toolbarShowResearch;
+        case MacConfig_ToolbarShowCheats:
+            return &cfg.interface.toolbarShowCheats;
+        case MacConfig_ToolbarShowNews:
+            return &cfg.interface.toolbarShowNews;
+        case MacConfig_ToolbarShowMute:
+            return &cfg.interface.toolbarShowMute;
+        case MacConfig_ToolbarShowChat:
+            return &cfg.interface.toolbarShowChat;
+        case MacConfig_ToolbarShowZoom:
+            return &cfg.interface.toolbarShowZoom;
+        case MacConfig_MasterSoundEnabled:
+            return &cfg.sound.masterSoundEnabled;
+        case MacConfig_SoundEnabled:
+            return &cfg.sound.soundEnabled;
+        case MacConfig_RideMusicEnabled:
+            return &cfg.sound.rideMusicEnabled;
+        case MacConfig_AudioFocus:
+            return &cfg.sound.audioFocus;
+        case MacConfig_DebuggingTools:
+            return &cfg.general.debuggingTools;
+        case MacConfig_AutoStaffPlacement:
+            return &cfg.general.autoStaffPlacement;
+        case MacConfig_AutoOpenShops:
+            return &cfg.general.autoOpenShops;
+        case MacConfig_ShowRealNamesOfGuests:
+            return &cfg.general.showRealNamesOfGuests;
+        case MacConfig_ShowRealNamesOfStaff:
+            return &cfg.general.showRealNamesOfStaff;
+        case MacConfig_ConfirmationPrompt:
+            return &cfg.general.confirmationPrompt;
+        case MacConfig_AllowEarlyCompletion:
+            return &cfg.general.allowEarlyCompletion;
+        default:
+            return nullptr;
+    }
+}
+
+bool OpenRCT2MacNativeConfigGetBool(int32_t key)
+{
+    if (auto* p = MacConfigBoolPtr(key); p != nullptr)
+        return *p;
+    return false;
+}
+
+void OpenRCT2MacNativeConfigSetBool(int32_t key, bool value)
+{
+    if (auto* p = MacConfigBoolPtr(key); p != nullptr)
+        *p = value;
+}
+
+void OpenRCT2MacNativeConfigSave(void)
+{
+    Config::Save();
+}
+
+static bool MacCheatStateGet(CheatType type)
+{
+    const auto& c = getGameState().cheats;
+    switch (type)
+    {
+        case CheatType::sandboxMode:
+            return c.sandboxMode;
+        case CheatType::disableClearanceChecks:
+            return c.disableClearanceChecks;
+        case CheatType::disableSupportLimits:
+            return c.disableSupportLimits;
+        case CheatType::showAllOperatingModes:
+            return c.showAllOperatingModes;
+        case CheatType::showVehiclesFromOtherTrackTypes:
+            return c.showVehiclesFromOtherTrackTypes;
+        case CheatType::disableTrainLengthLimit:
+            return c.disableTrainLengthLimit;
+        case CheatType::enableChainLiftOnAllTrack:
+            return c.enableChainLiftOnAllTrack;
+        case CheatType::disableBrakesFailure:
+            return c.disableBrakesFailure;
+        case CheatType::disableAllBreakdowns:
+            return c.disableAllBreakdowns;
+        case CheatType::buildInPauseMode:
+            return c.buildInPauseMode;
+        case CheatType::ignoreRideIntensity:
+            return c.ignoreRideIntensity;
+        case CheatType::disableVandalism:
+            return c.disableVandalism;
+        case CheatType::disableLittering:
+            return c.disableLittering;
+        case CheatType::noMoney:
+            return getGameState().park.flags.has(ParkFlag::noMoney);
+        case CheatType::freezeWeather:
+            return c.freezeWeather;
+        case CheatType::neverendingMarketing:
+            return c.neverendingMarketing;
+        case CheatType::allowArbitraryRideTypeChanges:
+            return c.allowArbitraryRideTypeChanges;
+        case CheatType::disableRideValueAging:
+            return c.disableRideValueAging;
+        case CheatType::ignoreResearchStatus:
+            return c.ignoreResearchStatus;
+        case CheatType::enableAllDrawableTrackPieces:
+            return c.enableAllDrawableTrackPieces;
+        case CheatType::allowTrackPlaceInvalidHeights:
+            return c.allowTrackPlaceInvalidHeights;
+        case CheatType::allowRegularPathAsQueue:
+            return c.allowRegularPathAsQueue;
+        case CheatType::allowSpecialColourSchemes:
+            return c.allowSpecialColourSchemes;
+        case CheatType::ignorePrice:
+            return c.ignorePrice;
+        case CheatType::disableGrassGrowing:
+            return c.disableGrassGrowing;
+        case CheatType::disablePlantAging:
+            return c.disablePlantAging;
+        case CheatType::makeDestructible:
+            return c.makeAllDestructible;
+        default:
+            return false;
+    }
+}
+
+bool OpenRCT2MacNativeCheatGet(int32_t type)
+{
+    return MacCheatStateGet(static_cast<CheatType>(type));
+}
+
+void OpenRCT2MacNativeCheatToggle(int32_t type)
+{
+    const auto cheat = static_cast<CheatType>(type);
+    if (cheat == CheatType::noMoney)
+    {
+        CheatsSet(CheatType::noMoney, getGameState().park.flags.has(ParkFlag::noMoney) ? 0 : 1);
+        return;
+    }
+    CheatsSet(cheat);
+}
+
+void OpenRCT2MacNativeCheatRun(int32_t type, int64_t p1, int64_t p2)
+{
+    CheatsSet(static_cast<CheatType>(type), p1, p2);
 }
 
 #endif // TARGET_OS_OSX

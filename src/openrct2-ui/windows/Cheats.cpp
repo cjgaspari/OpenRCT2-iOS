@@ -33,6 +33,13 @@
 #include <openrct2/world/Park.h>
 #include <openrct2/world/tile_element/SurfaceElement.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     constexpr auto kCheatsMoneyDefault = 10000.00_GBP;
@@ -1333,6 +1340,10 @@ static StringId window_cheats_page_titles[] = {
 
     WindowBase* CheatsOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeCheatsPresent())
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->BringToFrontByClass(WindowClass::cheats);
         if (window == nullptr)
