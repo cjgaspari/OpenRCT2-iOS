@@ -83,6 +83,41 @@ void OpenRCT2MacNativeCustomCurrencySetSymbol(const char* symbol);
 int32_t OpenRCT2MacNativeCustomCurrencyGetAffix(void); // 0=prefix, 1=suffix
 void OpenRCT2MacNativeCustomCurrencySetAffix(int32_t affix);
 
+/**
+ * Modal text field (Tier 1.9). Returns 1=OK, 0=Cancel.
+ * On OK, writes UTF-8 into out (nul-terminated, truncated to outLen-1).
+ */
+int32_t OpenRCT2MacNativeTextInput(
+    const char* title, const char* message, const char* initial, char* out, size_t outLen);
+
+/** Changelog / contributors / new-version (2.6). personality: 0=changelog, 1=contributors, 2=newVersion. */
+bool OpenRCT2MacNativeChangelogPresent(int32_t personality);
+bool OpenRCT2MacNativeChangelogGetText(int32_t personality, char* out, size_t outLen);
+
+bool OpenRCT2MacNativeProgressPresent(const char* text);
+void OpenRCT2MacNativeProgressSet(uint32_t current, uint32_t total);
+void OpenRCT2MacNativeProgressClose(void);
+
+bool OpenRCT2MacNativeNetworkStatusPresent(const char* text);
+void OpenRCT2MacNativeNetworkStatusClose(void);
+
+bool OpenRCT2MacNativeViewClippingPresent(void);
+bool OpenRCT2MacNativeViewClippingGetEnabled(void);
+void OpenRCT2MacNativeViewClippingSetEnabled(bool enabled);
+bool OpenRCT2MacNativeViewClippingGetSeeThrough(void);
+void OpenRCT2MacNativeViewClippingSetSeeThrough(bool enabled);
+int32_t OpenRCT2MacNativeViewClippingGetHeight(void);
+void OpenRCT2MacNativeViewClippingSetHeight(int32_t height);
+void OpenRCT2MacNativeViewClippingClearSelection(void);
+
+bool OpenRCT2MacNativeAssetPacksPresent(void);
+int32_t OpenRCT2MacNativeAssetPackCount(void);
+void OpenRCT2MacNativeAssetPackGetName(int32_t index, char* out, size_t outLen);
+bool OpenRCT2MacNativeAssetPackGetEnabled(int32_t index);
+void OpenRCT2MacNativeAssetPackSetEnabled(int32_t index, bool enabled);
+void OpenRCT2MacNativeAssetPackMove(int32_t index, int32_t direction); // -1 up, +1 down
+void OpenRCT2MacNativeAssetPackApply(void);
+
 #ifdef __cplusplus
 }
 #endif

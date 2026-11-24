@@ -23,6 +23,13 @@
 #include <openrct2/world/Map.h>
 #include <openrct2/world/MapSelection.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     enum WindowViewClippingWidgetIdx : WidgetIndex
@@ -409,6 +416,10 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* ViewClippingOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeViewClippingPresent())
+            return nullptr;
+#endif
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->BringToFrontByClass(WindowClass::viewClipping);
         if (window == nullptr)

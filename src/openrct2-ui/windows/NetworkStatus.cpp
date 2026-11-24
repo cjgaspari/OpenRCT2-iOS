@@ -16,6 +16,13 @@
 #include <openrct2/network/Network.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     enum WindowNetworkStatusWidgetIdx : WidgetIndex
@@ -128,6 +135,12 @@ namespace OpenRCT2::Ui::Windows
     {
         ContextForceCloseWindowByClass(WindowClass::progressWindow);
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        (void)onClose;
+        if (OpenRCT2MacNativeNetworkStatusPresent(text.c_str()))
+            return nullptr;
+#endif
+
         auto* windowMgr = GetWindowManager();
 
         NetworkStatusWindow* window;
@@ -151,6 +164,9 @@ namespace OpenRCT2::Ui::Windows
     // force close
     void WindowNetworkStatusClose()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        OpenRCT2MacNativeNetworkStatusClose();
+#endif
         auto* windowMgr = GetWindowManager();
         auto window = windowMgr->FindByClass(WindowClass::networkStatus);
         if (window == nullptr)

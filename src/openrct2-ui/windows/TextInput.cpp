@@ -8,6 +8,7 @@
  *****************************************************************************/
 
 #include <SDL_keyboard.h>
+#include <algorithm>
 #include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2-ui/windows/Windows.h>
@@ -21,7 +22,17 @@
 #include <openrct2/drawing/RenderTarget.h>
 #include <openrct2/drawing/Text.h>
 #include <openrct2/localisation/Formatting.h>
+#include <openrct2/localisation/Formatting.h>
+#include <openrct2/localisation/Language.h>
 #include <openrct2/ui/WindowManager.h>
+#include <vector>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
 
 using namespace OpenRCT2::Drawing;
 
@@ -377,6 +388,23 @@ namespace OpenRCT2::Ui::Windows
         auto* windowMgr = GetWindowManager();
         windowMgr->CloseByClass(WindowClass::textinput);
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        {
+            const char* titleStr = LanguageGetString(title);
+            const auto descStr = FormatStringIDLegacy(description, descriptionArgs.Data());
+            const size_t cap = static_cast<size_t>(std::max(maxLength, 1)) + 1;
+            std::vector<char> buf(cap);
+            const int32_t ok = OpenRCT2MacNativeTextInput(
+                titleStr != nullptr ? titleStr : "", descStr.c_str(), existing_text != nullptr ? existing_text : "", buf.data(),
+                buf.size());
+            if (ok == 1 && call_w != nullptr)
+            {
+                call_w->onTextInput(call_widget, buf.data());
+            }
+            return;
+        }
+#endif
+
         auto w = windowMgr->Create<TextInputWindow>(
             WindowClass::textinput, { kWindowSize.width, kWindowSize.height + 10 },
             { WindowFlag::centreScreen, WindowFlag::stickToFront });
@@ -392,6 +420,25 @@ namespace OpenRCT2::Ui::Windows
         std::string_view title, std::string_view description, std::string_view initialValue, size_t maxLength,
         std::function<void(std::string_view)> callback, std::function<void()> cancelCallback)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        {
+            const size_t cap = std::max(maxLength, size_t{ 1 }) + 1;
+            std::vector<char> buf(cap);
+            const int32_t ok = OpenRCT2MacNativeTextInput(
+                std::string(title).c_str(), std::string(description).c_str(), std::string(initialValue).c_str(), buf.data(),
+                buf.size());
+            if (ok == 1)
+            {
+                if (callback)
+                    callback(buf.data());
+            }
+            else if (cancelCallback)
+            {
+                cancelCallback();
+            }
+            return;
+        }
+#endif
         auto* windowMgr = GetWindowManager();
         auto w = windowMgr->Create<TextInputWindow>(
             WindowClass::textinput, { kWindowSize.width, kWindowSize.height + 10 },

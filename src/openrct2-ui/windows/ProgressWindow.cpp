@@ -22,8 +22,18 @@
 #include <openrct2/ui/WindowManager.h>
 #include <random>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    static CloseCallback gMacProgressOnClose = nullptr;
+#endif
     enum ProgressWindowWidgetIdx : WidgetIndex
     {
         WIDX_BACKGROUND,
@@ -229,6 +239,12 @@ namespace OpenRCT2::Ui::Windows
     {
         ContextForceCloseWindowByClass(WindowClass::networkStatus);
 
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        gMacProgressOnClose = onClose;
+        if (OpenRCT2MacNativeProgressPresent(text.c_str()))
+            return nullptr;
+#endif
+
         auto* windowMgr = GetWindowManager();
 
         ProgressWindow* window;
@@ -251,6 +267,9 @@ namespace OpenRCT2::Ui::Windows
 
     void ProgressWindowSet(uint32_t currentProgress, uint32_t totalCount, StringId format)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        OpenRCT2MacNativeProgressSet(currentProgress, totalCount);
+#endif
         auto* windowMgr = GetWindowManager();
         auto window = windowMgr->FindByClass(WindowClass::progressWindow);
         if (window == nullptr)
@@ -264,6 +283,10 @@ namespace OpenRCT2::Ui::Windows
     // Closes the window, deliberately *without* executing the callback.
     void ProgressWindowClose()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        gMacProgressOnClose = nullptr;
+        OpenRCT2MacNativeProgressClose();
+#endif
         auto* windowMgr = GetWindowManager();
         auto window = windowMgr->FindByClass(WindowClass::progressWindow);
         if (window == nullptr)

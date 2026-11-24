@@ -22,6 +22,13 @@
 #include <openrct2/ui/WindowManager.h>
 #include <vector>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     enum WindowChangelogWidgetIdx : WidgetIndex
@@ -267,6 +274,25 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* ChangelogOpen(WindowView personality)
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        {
+            int32_t p = 0;
+            switch (personality)
+            {
+                case WindowView::contributors:
+                    p = 1;
+                    break;
+                case WindowView::newVersionInfo:
+                    p = 2;
+                    break;
+                default:
+                    p = 0;
+                    break;
+            }
+            if (OpenRCT2MacNativeChangelogPresent(p))
+                return nullptr;
+        }
+#endif
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->BringToFrontByClass(WindowClass::changelog);
         if (window == nullptr)

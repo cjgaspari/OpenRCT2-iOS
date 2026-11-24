@@ -14,10 +14,14 @@
 
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2-ui/windows/Windows.h>
+#include <openrct2/AssetPack.h>
+#include <openrct2/AssetPackManager.h>
 #include <openrct2/Context.h>
 #include <openrct2/Game.h>
 #include <openrct2/GameState.h>
 #include <openrct2/OpenRCT2.h>
+#include <openrct2/PlatformEnvironment.h>
+#include <openrct2/Version.h>
 #include <openrct2/interface/Window.h>
 #include <openrct2/ui/UiContext.h>
 #include <openrct2/actions/GameActionRunner.h>
@@ -26,17 +30,20 @@
 #include <openrct2/audio/Audio.h>
 #include <openrct2/config/Config.h>
 #include <openrct2/core/EnumUtils.hpp>
+#include <openrct2/core/File.h>
 #include <openrct2/drawing/Drawing.h>
 #include <openrct2/entity/Peep.h>
 #include <openrct2/localisation/Currency.h>
 #include <openrct2/ui/WindowManager.h>
 #include <openrct2/interface/Viewport.h>
 #include <openrct2/network/Network.h>
+#include <openrct2/object/ObjectManager.h>
 #include <openrct2/paint/Paint.h>
 #include <openrct2/paint/tile_element/Paint.TileElement.h>
 #include <openrct2/ride/Ride.h>
-#include <openrct2/ui/WindowManager.h>
 #include <openrct2/windows/Intent.h>
+#include <openrct2/world/Map.h>
+#include <openrct2/world/MapSelection.h>
 
 #include <cstdio>
 #include <memory>
@@ -388,7 +395,7 @@ void OpenRCT2MacNativeCustomCurrencySetRate(int32_t rate)
     CurrencyDescriptors[EnumValue(CurrencyType::custom)].rate = static_cast<int16_t>(rate);
     Config::Get().general.customCurrencyRate = CurrencyDescriptors[EnumValue(CurrencyType::custom)].rate;
     Config::Save();
-    GetWindowManager()->InvalidateAll();
+    OpenRCT2::Ui::GetWindowManager()->InvalidateAll();
 }
 
 void OpenRCT2MacNativeCustomCurrencyGetSymbol(char* out, size_t outLen)
@@ -406,7 +413,7 @@ void OpenRCT2MacNativeCustomCurrencySetSymbol(const char* symbol)
     std::snprintf(desc.symbol_unicode, sizeof(desc.symbol_unicode), "%s", symbol);
     Config::Get().general.customCurrencySymbol = symbol;
     Config::Save();
-    GetWindowManager()->InvalidateAll();
+    OpenRCT2::Ui::GetWindowManager()->InvalidateAll();
 }
 
 int32_t OpenRCT2MacNativeCustomCurrencyGetAffix(void)
@@ -420,7 +427,218 @@ void OpenRCT2MacNativeCustomCurrencySetAffix(int32_t affix)
     CurrencyDescriptors[EnumValue(CurrencyType::custom)].affix_unicode = value;
     Config::Get().general.customCurrencyAffix = value;
     Config::Save();
-    GetWindowManager()->InvalidateAll();
+    OpenRCT2::Ui::GetWindowManager()->InvalidateAll();
+}
+
+extern "C" bool OpenRCT2MacNativeChangelogShow(int32_t personality);
+extern "C" bool OpenRCT2MacNativeProgressShow(const char* text);
+extern "C" void OpenRCT2MacNativeProgressSetUI(uint32_t current, uint32_t total);
+extern "C" void OpenRCT2MacNativeProgressCloseUI(void);
+extern "C" bool OpenRCT2MacNativeNetworkStatusShow(const char* text);
+extern "C" void OpenRCT2MacNativeNetworkStatusCloseUI(void);
+extern "C" bool OpenRCT2MacNativeViewClippingShow(void);
+extern "C" bool OpenRCT2MacNativeAssetPacksShow(void);
+
+extern "C" bool OpenRCT2MacNativeChangelogGetText(int32_t personality, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return false;
+    out[0] = '\0';
+
+    auto& env = GetContext()->GetPlatformEnvironment();
+    std::string text;
+    switch (personality)
+    {
+        case 1: // contributors
+            text = File::ReadAllText(env.GetFilePath(PathId::contributors));
+            break;
+        case 2: // new version
+            if (!GetContext()->HasNewVersionInfo())
+                return false;
+            {
+                const auto* info = GetContext()->GetNewVersionInfo();
+                text = info != nullptr ? info->changelog : "";
+            }
+            break;
+        default: // changelog
+            text = File::ReadAllText(env.GetFilePath(PathId::changelog));
+            break;
+    }
+    std::snprintf(out, outLen, "%s", text.c_str());
+    return true;
+}
+
+bool OpenRCT2MacNativeChangelogPresent(int32_t personality)
+{
+    return OpenRCT2MacNativeChangelogShow(personality);
+}
+
+static bool gMacNativeProgressActive = false;
+static bool gMacNativeNetworkStatusActive = false;
+
+bool OpenRCT2MacNativeProgressPresent(const char* text)
+{
+    OpenRCT2MacNativeNetworkStatusClose();
+    gMacNativeProgressActive = OpenRCT2MacNativeProgressShow(text != nullptr ? text : "");
+    return gMacNativeProgressActive;
+}
+
+void OpenRCT2MacNativeProgressSet(uint32_t current, uint32_t total)
+{
+    if (!gMacNativeProgressActive)
+        return;
+    OpenRCT2MacNativeProgressSetUI(current, total);
+}
+
+void OpenRCT2MacNativeProgressClose(void)
+{
+    if (!gMacNativeProgressActive)
+        return;
+    OpenRCT2MacNativeProgressCloseUI();
+    gMacNativeProgressActive = false;
+}
+
+bool OpenRCT2MacNativeNetworkStatusPresent(const char* text)
+{
+    OpenRCT2MacNativeProgressClose();
+    gMacNativeNetworkStatusActive = OpenRCT2MacNativeNetworkStatusShow(text != nullptr ? text : "");
+    return gMacNativeNetworkStatusActive;
+}
+
+void OpenRCT2MacNativeNetworkStatusClose(void)
+{
+    if (!gMacNativeNetworkStatusActive)
+        return;
+    OpenRCT2MacNativeNetworkStatusCloseUI();
+    gMacNativeNetworkStatusActive = false;
+}
+
+bool OpenRCT2MacNativeViewClippingPresent(void)
+{
+    return OpenRCT2MacNativeViewClippingShow();
+}
+
+bool OpenRCT2MacNativeViewClippingGetEnabled(void)
+{
+    auto* w = WindowGetMain();
+    return w != nullptr && w->viewport != nullptr && (w->viewport->flags & VIEWPORT_FLAG_CLIP_VIEW);
+}
+
+void OpenRCT2MacNativeViewClippingSetEnabled(bool enabled)
+{
+    auto* w = WindowGetMain();
+    if (w == nullptr || w->viewport == nullptr)
+        return;
+    if (enabled)
+        w->viewport->flags |= VIEWPORT_FLAG_CLIP_VIEW;
+    else
+        w->viewport->flags &= ~VIEWPORT_FLAG_CLIP_VIEW;
+    w->invalidate();
+}
+
+bool OpenRCT2MacNativeViewClippingGetSeeThrough(void)
+{
+    auto* w = WindowGetMain();
+    return w != nullptr && w->viewport != nullptr && (w->viewport->flags & VIEWPORT_FLAG_CLIP_VIEW_SEE_THROUGH);
+}
+
+void OpenRCT2MacNativeViewClippingSetSeeThrough(bool enabled)
+{
+    auto* w = WindowGetMain();
+    if (w == nullptr || w->viewport == nullptr)
+        return;
+    if (enabled)
+        w->viewport->flags |= VIEWPORT_FLAG_CLIP_VIEW_SEE_THROUGH;
+    else
+        w->viewport->flags &= ~VIEWPORT_FLAG_CLIP_VIEW_SEE_THROUGH;
+    w->invalidate();
+}
+
+int32_t OpenRCT2MacNativeViewClippingGetHeight(void)
+{
+    return gClipHeight;
+}
+
+void OpenRCT2MacNativeViewClippingSetHeight(int32_t height)
+{
+    if (height < 0)
+        height = 0;
+    if (height > 255)
+        height = 255;
+    gClipHeight = static_cast<uint8_t>(height);
+    if (auto* w = WindowGetMain(); w != nullptr)
+        w->invalidate();
+}
+
+void OpenRCT2MacNativeViewClippingClearSelection(void)
+{
+    gClipSelectionA = { 0, 0 };
+    gClipSelectionB = { kMaximumMapSizeBig - 1, kMaximumMapSizeBig - 1 };
+    GfxInvalidateScreen();
+}
+
+bool OpenRCT2MacNativeAssetPacksPresent(void)
+{
+    return OpenRCT2MacNativeAssetPacksShow();
+}
+
+int32_t OpenRCT2MacNativeAssetPackCount(void)
+{
+    auto* mgr = GetContext()->GetAssetPackManager();
+    return mgr != nullptr ? static_cast<int32_t>(mgr->GetCount()) : 0;
+}
+
+void OpenRCT2MacNativeAssetPackGetName(int32_t index, char* out, size_t outLen)
+{
+    if (out == nullptr || outLen == 0)
+        return;
+    out[0] = '\0';
+    auto* mgr = GetContext()->GetAssetPackManager();
+    if (mgr == nullptr)
+        return;
+    auto* pack = mgr->GetAssetPack(static_cast<size_t>(index));
+    if (pack == nullptr)
+        return;
+    std::snprintf(out, outLen, "%s", pack->Name.c_str());
+}
+
+bool OpenRCT2MacNativeAssetPackGetEnabled(int32_t index)
+{
+    auto* mgr = GetContext()->GetAssetPackManager();
+    if (mgr == nullptr)
+        return false;
+    auto* pack = mgr->GetAssetPack(static_cast<size_t>(index));
+    return pack != nullptr && pack->IsEnabled();
+}
+
+void OpenRCT2MacNativeAssetPackSetEnabled(int32_t index, bool enabled)
+{
+    auto* mgr = GetContext()->GetAssetPackManager();
+    if (mgr == nullptr)
+        return;
+    auto* pack = mgr->GetAssetPack(static_cast<size_t>(index));
+    if (pack != nullptr)
+        pack->SetEnabled(enabled);
+}
+
+void OpenRCT2MacNativeAssetPackMove(int32_t index, int32_t direction)
+{
+    auto* mgr = GetContext()->GetAssetPackManager();
+    if (mgr == nullptr || index < 0)
+        return;
+    const auto count = static_cast<int32_t>(mgr->GetCount());
+    if (direction < 0 && index > 0)
+        mgr->Swap(static_cast<size_t>(index), static_cast<size_t>(index - 1));
+    else if (direction > 0 && index < count - 1)
+        mgr->Swap(static_cast<size_t>(index), static_cast<size_t>(index + 1));
+}
+
+void OpenRCT2MacNativeAssetPackApply(void)
+{
+    auto& objectManager = GetContext()->GetObjectManager();
+    objectManager.ResetObjects();
+    if (auto* mgr = GetContext()->GetAssetPackManager(); mgr != nullptr)
+        mgr->SaveEnabledAssetPacks();
 }
 
 #endif // TARGET_OS_OSX
