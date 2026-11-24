@@ -212,7 +212,8 @@ private struct ScenarioSelectView: View {
             }
 
             HStack(alignment: .top, spacing: 8) {
-                List(selection: $selectedRow) {
+                // No List(selection:) — avoids hard system blue; custom rounded highlight only.
+                List {
                     ForEach(rows) { row in
                         if row.kind == 0 {
                             Text(row.name)
@@ -232,11 +233,23 @@ private struct ScenarioSelectView: View {
                                         .lineLimit(2)
                                 }
                             }
-                            .tag(row.index)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                             .opacity(row.locked ? 0.55 : 1)
                             .listRowBackground(
                                 MacGlassSelectionBackground(selected: selectedRow == row.index)
                             )
+                            .onTapGesture {
+                                selectedRow = row.index
+                                let idx = Int32(row.index)
+                                if OpenRCT2MacNativeScenarioRowKind(idx) == 1,
+                                   !OpenRCT2MacNativeScenarioRowLocked(idx)
+                                {
+                                    OpenRCT2MacNativeScenarioRequestPreview(idx)
+                                } else {
+                                    preview.clear()
+                                }
+                            }
                         }
                     }
                 }
@@ -246,20 +259,6 @@ private struct ScenarioSelectView: View {
                 .padding(4)
                 .background(MacGlassTextPlate())
                 .frame(minWidth: 340)
-                .onChange(of: selectedRow) { _, newValue in
-                    guard let newValue else {
-                        preview.clear()
-                        return
-                    }
-                    let row = Int32(newValue)
-                    if OpenRCT2MacNativeScenarioRowKind(row) == 1,
-                       !OpenRCT2MacNativeScenarioRowLocked(row)
-                    {
-                        OpenRCT2MacNativeScenarioRequestPreview(row)
-                    } else {
-                        preview.clear()
-                    }
-                }
 
                 detailPane
                     .padding(10)
@@ -384,27 +383,22 @@ private struct LoadParkView: View {
     @State private var files: [SaveFileRow] = []
     @Bindable private var knobs = MacGlassStyleKnobs.shared
 
+    private var saveCountLabel: String {
+        if files.isEmpty {
+            return String(localized: "No saved games found.")
+        }
+        // Automatic inflection: "1 save" / "12 saves" (no save(s)).
+        return String(localized: "^[\(files.count) save](inflect: true)")
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Title in NSPanel titlebar; Close = traffic lights only.
-            HStack {
-                Spacer()
-                Button {
-                    OpenRCT2MacNativeSaveFileRefresh()
-                    reload()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .buttonStyle(.glass)
-                .controlSize(.small)
-                .help("Refresh")
-                .accessibilityLabel("Refresh")
-            }
-            .padding(.horizontal, 12)
-            .padding(.top, 18) // tight under titlebar title
-            .padding(.bottom, 2)
+            // Title in NSPanel titlebar; Close = traffic lights only. Refresh lives in footer.
+            Color.clear
+                .frame(height: 18)
 
-            List(selection: $selected) {
+            // No List(selection:) — avoids hard system blue; custom rounded highlight only.
+            List {
                 ForEach(files) { file in
                     HStack {
                         Text(file.name)
@@ -415,15 +409,19 @@ private struct LoadParkView: View {
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundStyle(knobs.secondaryLabel)
                     }
-                    .tag(file.index)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
                     .listRowBackground(
                         MacGlassSelectionBackground(selected: selected == file.index)
                     )
                     .onTapGesture(count: 2) {
+                        selected = file.index
                         if OpenRCT2MacNativeSaveFileLoad(Int32(file.index)) {
                             onClose()
                         }
+                    }
+                    .onTapGesture(count: 1) {
+                        selected = file.index
                     }
                 }
             }
@@ -434,10 +432,20 @@ private struct LoadParkView: View {
             .background(MacGlassTextPlate())
             .padding(.horizontal, 10)
 
-            HStack {
-                Text(files.isEmpty ? "No saved games found." : "\(files.count) save(s)")
+            HStack(spacing: 8) {
+                Text(saveCountLabel)
                     .font(.system(size: 10))
                     .foregroundStyle(knobs.secondaryLabel)
+                Button {
+                    OpenRCT2MacNativeSaveFileRefresh()
+                    reload()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.glass)
+                .controlSize(.small)
+                .help("Refresh")
+                .accessibilityLabel("Refresh")
                 Spacer()
                 Button("Load") {
                     if let selected, OpenRCT2MacNativeSaveFileLoad(Int32(selected)) {
