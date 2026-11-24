@@ -55,6 +55,16 @@ final class MacParkChromeSession: NSObject {
         overlayView = overlay
         hostingView = host
         bringToFront()
+
+        // First-class macOS menu bar (File/Edit/View/Window/Help). In-game
+        // toolbar NSMenus stay unchanged — same action codes/indices.
+        MacMenuBar.ensureInstalled { [model] code, extra in
+            if let widx = MacToolbarWIDX(rawValue: code) {
+                model.queue(widx, extra: extra)
+            } else {
+                model.forwardMenuCode(code, extra: extra)
+            }
+        }
     }
 
     func detach() {

@@ -7,11 +7,12 @@
  * dropdown widgets, `extra` is the dropdown index (FileMenuDdidx, etc.).
  *****************************************************************************/
 
-#include "MacNativeChrome.h"
+    #include "MacNativeChrome.h"
 
 #if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
 
     #include "MacCocoaWindow.h"
+    #include "MacNativeUI.h"
 
     #include <SDL.h>
     #include <cstdio>
@@ -72,6 +73,9 @@ namespace
     constexpr int32_t kMacTitleLoadGameAction = 10011;
     constexpr int32_t kMacTitleOptionsAction = 10012;
     constexpr int32_t kMacTitleQuitAction = 10013;
+    constexpr int32_t kMacMenuCloseTopAction = 10020;
+    constexpr int32_t kMacMenuCloseAllAction = 10021;
+    constexpr int32_t kMacMenuKeyboardShortcutsAction = 10022;
 
     std::string StripFormatCodes(std::string_view in)
     {
@@ -506,6 +510,27 @@ namespace OpenRCT2::Ui
             if (code == kMacTitleQuitAction)
             {
                 HandleFileMenu(DDIDX_EXIT_OPENRCT2);
+                return;
+            }
+            if (code == kMacMenuCloseTopAction)
+            {
+                auto* windowMgr = Ui::GetWindowManager();
+                windowMgr->CloseTop();
+                return;
+            }
+            if (code == kMacMenuCloseAllAction)
+            {
+                auto* windowMgr = Ui::GetWindowManager();
+                if (gLegacyScene != LegacyScene::scenarioEditor)
+                    windowMgr->CloseAll();
+                else
+                    windowMgr->CloseTop();
+                return;
+            }
+            if (code == kMacMenuKeyboardShortcutsAction)
+            {
+                if (!OpenRCT2MacNativeShortcutKeysPresent())
+                    ContextOpenWindow(WindowClass::keyboardShortcutList);
                 return;
             }
 

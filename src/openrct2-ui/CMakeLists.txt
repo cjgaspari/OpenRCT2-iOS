@@ -82,6 +82,7 @@ if (APPLE)
             "${ROOT_DIR}/macos/platform/chrome/MacGlassChrome.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacGlassToast.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacToolbarMenus.swift"
+            "${ROOT_DIR}/macos/platform/chrome/MacMenuBar.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacAboutPanel.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacNativeAlerts.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacDensePanels.swift"

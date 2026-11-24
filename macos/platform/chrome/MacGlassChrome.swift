@@ -281,6 +281,10 @@ final class MacParkChromeModel: ObservableObject {
         onAction(action.rawValue, 0)
     }
 
+    func forwardMenuCode(_ code: Int32, extra: Int32 = 0) {
+        onAction(code, extra)
+    }
+
     func handleToolbarClick(_ widx: MacToolbarWIDX, buttonView: NSView?) {
         if MacToolbarMenus.isMenuWidget(widx) {
             MacToolbarMenus.popUp(for: widx, relativeTo: buttonView) { [weak self] index in
