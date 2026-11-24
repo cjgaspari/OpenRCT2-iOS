@@ -64,6 +64,14 @@ namespace OpenRCT2::Ui
 
             // MRC build (-fno-objc-arc): NSView* → void* without __bridge.
             void* contentViewPtr = static_cast<void*>(contentView);
+            // Set OPENRCT2_MAC_GLASS=0 to capture classic engine chrome screenshots.
+            const char* glassEnv = getenv("OPENRCT2_MAC_GLASS");
+            if (glassEnv != nullptr && (glassEnv[0] == '0') && (glassEnv[1] == '\0'))
+            {
+                LOG_INFO("Mac Liquid Glass chrome skipped (OPENRCT2_MAC_GLASS=0)");
+                return;
+            }
+
             gMacChromeSession = OpenRCT2MacChromeAttach(contentViewPtr, &MacChromeOnAction);
             if (gMacChromeSession == nullptr)
             {
