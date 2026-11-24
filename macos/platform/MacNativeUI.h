@@ -169,6 +169,7 @@ void OpenRCT2MacNativeScenarioRowName(int32_t row, char* out, size_t outLen);
 void OpenRCT2MacNativeScenarioRowDetails(int32_t row, char* out, size_t outLen);
 bool OpenRCT2MacNativeScenarioRowLocked(int32_t row);
 bool OpenRCT2MacNativeScenarioSelectRow(int32_t row);
+void OpenRCT2MacNativeScenarioRequestPreview(int32_t row);
 
 void OpenRCT2MacNativeSaveFileRefresh(void);
 int32_t OpenRCT2MacNativeSaveFileCount(void);

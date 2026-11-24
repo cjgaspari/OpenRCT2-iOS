@@ -4,7 +4,7 @@
  * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
  *
  * Native Mac About panel — 1:1 with classic About roles (title, description,
- * version, copy). Not Catalyst.
+ * version, copy). Mid-legibility clear Liquid Glass.
  *****************************************************************************/
 
 import AppKit
@@ -12,30 +12,24 @@ import SwiftUI
 
 enum MacAboutPanel {
     static var versionString: String = "OpenRCT2"
+    @MainActor private static var panel: NSPanel?
 
     @MainActor
     static func show() {
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 280),
-            styleMask: [.titled, .closable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        panel.title = "About OpenRCT2"
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.hidesOnDeactivate = false
-        panel.center()
-
-        let root = AboutPanelView(version: versionString) {
-            panel.close()
+        if let panel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            return
         }
-        let host = NSHostingView(rootView: root)
-        host.frame = panel.contentView?.bounds ?? .zero
-        host.autoresizingMask = [.width, .height]
-        panel.contentView = host
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        panel = MacGlassPanelHost.present(
+            title: "About OpenRCT2",
+            size: NSSize(width: 420, height: 280),
+            minSize: NSSize(width: 360, height: 220),
+            resizable: false,
+            root: AboutPanelView(version: versionString) {
+                panel?.close()
+                panel = nil
+            }
+        )
     }
 }
 
@@ -47,13 +41,15 @@ private struct AboutPanelView: View {
         VStack(spacing: 16) {
             Text("OpenRCT2")
                 .font(.title.weight(.semibold))
+                .foregroundStyle(MacGlassPanelStyle.primaryLabel)
             Text("An open-source re-implementation of RollerCoaster Tycoon 2.")
                 .font(.body)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
                 .padding(.horizontal)
             Text(version)
                 .font(.caption.monospaced())
+                .foregroundStyle(MacGlassPanelStyle.primaryLabel)
                 .textSelection(.enabled)
             HStack(spacing: 12) {
                 Button("Copy Version") {
@@ -67,5 +63,6 @@ private struct AboutPanelView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(MacGlassPanelStyle.textPlate(cornerRadius: 14).padding(8))
     }
 }

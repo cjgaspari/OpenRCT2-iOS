@@ -4,57 +4,12 @@
  * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
  *
  * Title-shell browsers: scenario select + load saved game.
- * Option A (CJ): clear NSPanel + NSGlassEffectView.contentView (.clear)
- * so park art shows through — not SwiftUI-only .glassEffect on opaque chrome.
+ * Mid-legibility: clear NSGlassEffectView + localized dark dimming (~0.35) +
+ * vibrant dark-scheme labels. Classic park preview in the detail pane.
  *****************************************************************************/
 
 import AppKit
 import SwiftUI
-
-// MARK: - Clear Liquid Glass browser host (Option A)
-
-enum MacGlassBrowserHost {
-    @MainActor
-    static func present(title: String, size: NSSize, root: some View) -> NSPanel {
-        let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        panel.title = title
-        panel.titlebarAppearsTransparent = true
-        panel.titleVisibility = .hidden
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.hidesOnDeactivate = false
-        panel.isReleasedWhenClosed = false
-        panel.minSize = NSSize(width: 480, height: 320)
-
-        // Content lives *inside* glass (WWDC25 310). Clear style samples park behind the window.
-        let sizedRoot = root.frame(minWidth: size.width, minHeight: size.height)
-        let host = NSHostingView(rootView: sizedRoot)
-        host.wantsLayer = true
-        host.layer?.backgroundColor = NSColor.clear.cgColor
-
-        let glass = NSGlassEffectView()
-        glass.style = .clear
-        glass.cornerRadius = 18
-        glass.contentView = host
-        glass.frame = NSRect(origin: .zero, size: size)
-        glass.autoresizingMask = [.width, .height]
-        glass.wantsLayer = true
-
-        panel.contentView = glass
-        panel.center()
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        return panel
-    }
-}
 
 // MARK: - C bridges
 
@@ -71,7 +26,7 @@ func OpenRCT2MacNativeScenarioSetActiveTab(_ tab: Int32)
 @_silgen_name("OpenRCT2MacNativeScenarioRowCount")
 func OpenRCT2MacNativeScenarioRowCount() -> Int32
 @_silgen_name("OpenRCT2MacNativeScenarioRowKind")
-func OpenRCT2MacNativeScenarioRowKind(_ row: Int32) -> Int32 // 0 heading, 1 scenario
+func OpenRCT2MacNativeScenarioRowKind(_ row: Int32) -> Int32
 @_silgen_name("OpenRCT2MacNativeScenarioRowName")
 func OpenRCT2MacNativeScenarioRowName(_ row: Int32, _ out: UnsafeMutablePointer<CChar>, _ outLen: Int)
 @_silgen_name("OpenRCT2MacNativeScenarioRowDetails")
@@ -80,6 +35,8 @@ func OpenRCT2MacNativeScenarioRowDetails(_ row: Int32, _ out: UnsafeMutablePoint
 func OpenRCT2MacNativeScenarioRowLocked(_ row: Int32) -> Bool
 @_silgen_name("OpenRCT2MacNativeScenarioSelectRow")
 func OpenRCT2MacNativeScenarioSelectRow(_ row: Int32) -> Bool
+@_silgen_name("OpenRCT2MacNativeScenarioRequestPreview")
+func OpenRCT2MacNativeScenarioRequestPreview(_ row: Int32)
 
 @_silgen_name("OpenRCT2MacNativeSaveFileCount")
 func OpenRCT2MacNativeSaveFileCount() -> Int32
@@ -92,6 +49,79 @@ func OpenRCT2MacNativeSaveFileLoad(_ index: Int32) -> Bool
 @_silgen_name("OpenRCT2MacNativeSaveFileRefresh")
 func OpenRCT2MacNativeSaveFileRefresh()
 
+// MARK: - Preview store (classic ParkPreview → RGBA)
+
+@MainActor
+@Observable
+final class MacScenarioPreviewStore {
+    static let shared = MacScenarioPreviewStore()
+
+    var row: Int32 = -1
+    var isLoading = false
+    var image: NSImage?
+
+    func beginLoading(row: Int32) {
+        self.row = row
+        isLoading = true
+        image = nil
+    }
+
+    func clear() {
+        row = -1
+        isLoading = false
+        image = nil
+    }
+
+    func apply(row: Int32, rgba: UnsafePointer<UInt8>?, width: Int32, height: Int32) {
+        guard self.row == row else { return }
+        isLoading = false
+        guard let rgba, width > 0, height > 0 else {
+            image = nil
+            return
+        }
+        let byteCount = Int(width) * Int(height) * 4
+        let data = Data(bytes: rgba, count: byteCount)
+        guard let provider = CGDataProvider(data: data as CFData),
+              let cgImage = CGImage(
+                  width: Int(width),
+                  height: Int(height),
+                  bitsPerComponent: 8,
+                  bitsPerPixel: 32,
+                  bytesPerRow: Int(width) * 4,
+                  space: CGColorSpaceCreateDeviceRGB(),
+                  bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+                  provider: provider,
+                  decode: nil,
+                  shouldInterpolate: false,
+                  intent: .defaultIntent
+              )
+        else {
+            image = nil
+            return
+        }
+        image = NSImage(cgImage: cgImage, size: NSSize(width: Int(width), height: Int(height)))
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeScenarioPreviewLoading")
+func OpenRCT2MacNativeScenarioPreviewLoading(_ row: Int32) {
+    MainActor.assumeIsolated {
+        MacScenarioPreviewStore.shared.beginLoading(row: row)
+    }
+}
+
+@_cdecl("OpenRCT2MacNativeScenarioPreviewReady")
+func OpenRCT2MacNativeScenarioPreviewReady(
+    _ row: Int32,
+    _ rgba: UnsafePointer<UInt8>?,
+    _ width: Int32,
+    _ height: Int32
+) {
+    MainActor.assumeIsolated {
+        MacScenarioPreviewStore.shared.apply(row: row, rgba: rgba, width: width, height: height)
+    }
+}
+
 // MARK: - Scenario select (3.20 / title)
 
 enum MacScenarioSelectPanel {
@@ -103,12 +133,15 @@ enum MacScenarioSelectPanel {
             panel.makeKeyAndOrderFront(nil)
             return true
         }
-        panel = MacGlassBrowserHost.present(
+        MacScenarioPreviewStore.shared.clear()
+        panel = MacGlassPanelHost.present(
             title: "Select Scenario",
-            size: NSSize(width: 720, height: 440),
+            size: NSSize(width: 760, height: 460),
+            minSize: NSSize(width: 560, height: 360),
             root: ScenarioSelectView {
                 panel?.close()
                 panel = nil
+                MacScenarioPreviewStore.shared.clear()
             }
         )
         return true
@@ -120,6 +153,7 @@ private struct ScenarioSelectView: View {
     @State private var tab: Int = Int(OpenRCT2MacNativeScenarioGetActiveTab())
     @State private var selectedRow: Int?
     @State private var tick = 0
+    @State private var preview = MacScenarioPreviewStore.shared
 
     private var visibleTabs: [(id: Int, name: String)] {
         let count = Int(OpenRCT2MacNativeScenarioTabCount())
@@ -156,6 +190,7 @@ private struct ScenarioSelectView: View {
             HStack {
                 Text("Select Scenario")
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
                 Spacer()
                 Button("Close", action: onClose)
                     .buttonStyle(.glass)
@@ -174,31 +209,35 @@ private struct ScenarioSelectView: View {
                 .pickerStyle(.segmented)
                 .controlSize(.mini)
                 .padding(.horizontal, 12)
+                .padding(6)
+                .background(MacGlassPanelStyle.textPlate(cornerRadius: 8))
+                .padding(.horizontal, 12)
                 .onChange(of: tab) { _, newValue in
                     OpenRCT2MacNativeScenarioSetActiveTab(Int32(newValue))
                     selectedRow = nil
+                    preview.clear()
                     tick &+= 1
                 }
             }
 
-            HStack(alignment: .top, spacing: 0) {
+            HStack(alignment: .top, spacing: 10) {
                 List(selection: $selectedRow) {
                     ForEach(rows) { row in
                         if row.kind == 0 {
                             Text(row.name)
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                         } else {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(row.name)
                                     .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(row.locked ? .secondary : .primary)
+                                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
                                 if !row.details.isEmpty {
                                     Text(row.details)
                                         .font(.system(size: 10))
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
                                         .lineLimit(2)
                                 }
                             }
@@ -206,57 +245,104 @@ private struct ScenarioSelectView: View {
                             .opacity(row.locked ? 0.55 : 1)
                             .listRowBackground(
                                 selectedRow == row.index
-                                    ? Color.accentColor.opacity(0.22)
-                                    : Color.white.opacity(0.06)
+                                    ? Color.accentColor.opacity(0.28)
+                                    : Color.clear
                             )
                         }
                     }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .frame(minWidth: 360)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    if let selectedRow, let row = rows.first(where: { $0.index == selectedRow && $0.kind == 1 }) {
-                        Text(row.name)
-                            .font(.headline)
-                        if !row.details.isEmpty {
-                            Text(row.details)
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if row.locked {
-                            Text("Locked — complete earlier scenarios to unlock.")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.orange)
-                        }
-                        Spacer()
-                        Button("Start Scenario") {
-                            if OpenRCT2MacNativeScenarioSelectRow(Int32(row.index)) {
-                                onClose()
-                            }
-                        }
-                        .buttonStyle(.glassProminent)
-                        .controlSize(.regular)
-                        .disabled(row.locked)
+                .padding(8)
+                .background(MacGlassPanelStyle.textPlate())
+                .frame(minWidth: 340)
+                .onChange(of: selectedRow) { _, newValue in
+                    guard let newValue else {
+                        preview.clear()
+                        return
+                    }
+                    let row = Int32(newValue)
+                    if OpenRCT2MacNativeScenarioRowKind(row) == 1,
+                       !OpenRCT2MacNativeScenarioRowLocked(row)
+                    {
+                        OpenRCT2MacNativeScenarioRequestPreview(row)
                     } else {
-                        Text("Choose a scenario")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                        Spacer()
+                        preview.clear()
                     }
                 }
-                .padding(14)
-                .frame(width: 240, alignment: .topLeading)
+
+                detailPane
+                    .padding(12)
+                    .frame(width: 260, alignment: .topLeading)
+                    .background(MacGlassPanelStyle.textPlate())
             }
-            .padding(.top, 8)
+            .padding(12)
         }
-        // Glass is AppKit NSGlassEffectView (.clear); keep SwiftUI chrome transparent.
         .background(Color.clear)
         .onAppear {
             tab = Int(OpenRCT2MacNativeScenarioGetActiveTab())
             tick &+= 1
+        }
+    }
+
+    @ViewBuilder
+    private var detailPane: some View {
+        if let selectedRow, let row = rows.first(where: { $0.index == selectedRow && $0.kind == 1 }) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(row.name)
+                    .font(.headline)
+                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
+
+                previewArt
+
+                if !row.details.isEmpty {
+                    Text(row.details)
+                        .font(.system(size: 11))
+                        .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if row.locked {
+                    Text("Locked — complete earlier scenarios to unlock.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                }
+                Spacer(minLength: 0)
+                Button("Start Scenario") {
+                    if OpenRCT2MacNativeScenarioSelectRow(Int32(row.index)) {
+                        onClose()
+                    }
+                }
+                .buttonStyle(.glassProminent)
+                .controlSize(.regular)
+                .disabled(row.locked)
+            }
+        } else {
+            Text("Choose a scenario")
+                .font(.system(size: 12))
+                .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private var previewArt: some View {
+        if preview.isLoading {
+            ProgressView("Loading preview…")
+                .controlSize(.small)
+                .frame(maxWidth: .infinity, minHeight: 120)
+        } else if let image = preview.image {
+            Image(nsImage: image)
+                .interpolation(.none)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 100, maxHeight: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                )
+                .accessibilityLabel("Park preview")
         }
     }
 }
@@ -287,9 +373,10 @@ enum MacLoadParkPanel {
             panel.makeKeyAndOrderFront(nil)
             return true
         }
-        panel = MacGlassBrowserHost.present(
+        panel = MacGlassPanelHost.present(
             title: "Load Saved Game",
             size: NSSize(width: 560, height: 400),
+            minSize: NSSize(width: 420, height: 280),
             root: LoadParkView {
                 panel?.close()
                 panel = nil
@@ -309,6 +396,7 @@ private struct LoadParkView: View {
             HStack {
                 Text("Load Saved Game")
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(MacGlassPanelStyle.primaryLabel)
                 Spacer()
                 Button("Refresh") {
                     OpenRCT2MacNativeSaveFileRefresh()
@@ -329,17 +417,18 @@ private struct LoadParkView: View {
                     HStack {
                         Text(file.name)
                             .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(MacGlassPanelStyle.primaryLabel)
                         Spacer()
                         Text(file.date)
                             .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
                     }
                     .tag(file.index)
                     .contentShape(Rectangle())
                     .listRowBackground(
                         selected == file.index
-                            ? Color.accentColor.opacity(0.22)
-                            : Color.white.opacity(0.06)
+                            ? Color.accentColor.opacity(0.28)
+                            : Color.clear
                     )
                     .onTapGesture(count: 2) {
                         if OpenRCT2MacNativeSaveFileLoad(Int32(file.index)) {
@@ -350,12 +439,14 @@ private struct LoadParkView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .padding(.horizontal, 8)
+            .padding(8)
+            .background(MacGlassPanelStyle.textPlate())
+            .padding(.horizontal, 12)
 
             HStack {
                 Text(files.isEmpty ? "No saved games found." : "\(files.count) save(s)")
                     .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(MacGlassPanelStyle.secondaryLabel)
                 Spacer()
                 Button("Load") {
                     if let selected, OpenRCT2MacNativeSaveFileLoad(Int32(selected)) {
@@ -367,6 +458,7 @@ private struct LoadParkView: View {
                 .disabled(selected == nil)
             }
             .padding(12)
+            .background(MacGlassPanelStyle.textPlate(cornerRadius: 8).padding(.horizontal, 12))
         }
         .background(Color.clear)
         .onAppear { reload() }
@@ -397,3 +489,6 @@ private struct SaveFileRow: Identifiable {
 func OpenRCT2MacNativeLoadParkShow() -> Bool {
     MainActor.assumeIsolated { MacLoadParkPanel.show() }
 }
+
+// Compatibility alias used by earlier call sites / docs.
+typealias MacGlassBrowserHost = MacGlassPanelHost

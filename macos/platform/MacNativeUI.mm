@@ -1193,9 +1193,18 @@ void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int
 #include <openrct2-ui/UiStringIds.h>
 #include <openrct2-ui/interface/FileBrowser.h>
 #include <openrct2-ui/interface/Objective.h>
+#include <openrct2/Diagnostic.h>
+#include <openrct2/FileClassifier.h>
+#include <openrct2/ParkImporter.h>
+#include <openrct2/core/BackgroundWorker.hpp>
 #include <openrct2/core/FileScanner.h>
+#include <openrct2/core/FileStream.h>
 #include <openrct2/core/Path.hpp>
+#include <openrct2/drawing/Drawing.h>
 #include <openrct2/localisation/Formatting.h>
+#include <openrct2/object/ObjectManager.h>
+#include <openrct2/object/ScenarioMetaObject.h>
+#include <openrct2/park/ParkPreview.h>
 #include <openrct2/platform/Platform.h>
 #include <openrct2/rct12/RCT12.h>
 #include <openrct2/scenario/ScenarioCategory.h>
@@ -1207,6 +1216,8 @@ void OpenRCT2MacNativeCampaignStart(int16_t campaignType, int32_t rideIndex, int
 
 extern "C" bool OpenRCT2MacNativeScenarioSelectShow(void);
 extern "C" bool OpenRCT2MacNativeLoadParkShow(void);
+extern "C" void OpenRCT2MacNativeScenarioPreviewLoading(int32_t row);
+extern "C" void OpenRCT2MacNativeScenarioPreviewReady(int32_t row, const uint8_t* rgba, int32_t width, int32_t height);
 
 namespace
 {
@@ -1232,6 +1243,7 @@ namespace
         std::string name;
         std::string details;
         std::string path;
+        std::string internalName;
         bool locked{};
     };
 
@@ -1247,6 +1259,8 @@ namespace
     int32_t gMacScenarioActiveTab = 0;
     uint32_t gMacScenarioVisibleTabs = 0;
     std::vector<MacScenarioRow> gMacScenarioRows;
+    BackgroundWorker::Job gMacPreviewJob;
+    int32_t gMacPreviewRow = -1;
 
     std::vector<MacSaveFileRow> gMacSaveFiles;
 
@@ -1344,6 +1358,7 @@ namespace
                 row.details += MacPlain(scenario->Details);
             }
             row.path = scenario->Path;
+            row.internalName = scenario->InternalName;
             if (MacScenarioLockingEnabled())
             {
                 row.locked = numUnlocks <= 0;
@@ -1495,6 +1510,108 @@ extern "C" bool OpenRCT2MacNativeScenarioSelectRow(int32_t row)
     if (gMacScenarioCallback)
         gMacScenarioCallback(item.path);
     return true;
+}
+
+namespace
+{
+    void MacPublishScenarioPreview(int32_t row, const ParkPreview& preview)
+    {
+        if (row != gMacPreviewRow)
+            return;
+
+        const auto targetType = Config::Get().interface.scenarioPreviewScreenshots ? PreviewImageType::screenshot
+                                                                                   : PreviewImageType::miniMap;
+        const PreviewImage* image = nullptr;
+        for (const auto& candidate : preview.images)
+        {
+            if (candidate.type == targetType)
+            {
+                image = &candidate;
+                break;
+            }
+        }
+        if (image == nullptr || image->width == 0 || image->height == 0)
+        {
+            OpenRCT2MacNativeScenarioPreviewReady(row, nullptr, 0, 0);
+            return;
+        }
+
+        const size_t pixelCount = static_cast<size_t>(image->width) * image->height;
+        std::vector<uint8_t> rgba(pixelCount * 4);
+        for (size_t index = 0; index < pixelCount; ++index)
+        {
+            const auto paletteIndex = static_cast<uint8_t>(image->pixels[index]);
+            const auto& colour = gPalette[paletteIndex];
+            rgba[(index * 4) + 0] = colour.red;
+            rgba[(index * 4) + 1] = colour.green;
+            rgba[(index * 4) + 2] = colour.blue;
+            rgba[(index * 4) + 3] = 0xFF;
+        }
+        OpenRCT2MacNativeScenarioPreviewReady(
+            row, rgba.data(), static_cast<int32_t>(image->width), static_cast<int32_t>(image->height));
+    }
+
+    ParkPreview MacLoadMetadataPreview(const MacScenarioRow& entry)
+    {
+        SourceDescriptor source{};
+        if (!ScenarioSources::TryGetByName(entry.internalName, &source))
+            return {};
+
+        auto& objectManager = GetContext()->GetObjectManager();
+        auto object = objectManager.LoadTempObject(source.textObjectId, true);
+        if (object == nullptr)
+            return {};
+
+        auto& scenarioMeta = reinterpret_cast<ScenarioMetaObject&>(*object);
+        scenarioMeta.Load();
+        ParkPreview preview{};
+        preview.images.push_back(scenarioMeta.GetMiniMapImage());
+        preview.images.push_back(scenarioMeta.GetPreviewImage());
+        scenarioMeta.Unload();
+        return preview;
+    }
+} // namespace
+
+extern "C" void OpenRCT2MacNativeScenarioRequestPreview(int32_t row)
+{
+    if (row < 0 || static_cast<size_t>(row) >= gMacScenarioRows.size())
+        return;
+    const auto& entry = gMacScenarioRows[static_cast<size_t>(row)];
+    if (entry.kind != MacScenarioRowKind::scenario || entry.locked)
+        return;
+
+    gMacPreviewRow = row;
+    if (gMacPreviewJob.isValid())
+        gMacPreviewJob.cancel();
+    OpenRCT2MacNativeScenarioPreviewLoading(row);
+
+    ClassifiedFileInfo info;
+    if (TryClassifyFile(entry.path, &info) && info.Type == FileType::park)
+    {
+        const auto path = entry.path;
+        auto& worker = GetContext()->GetBackgroundWorker();
+        gMacPreviewJob = worker.addJob(
+            [path]() {
+                try
+                {
+                    auto stream = FileStream(path, FileMode::open);
+                    auto& objectRepository = GetContext()->GetObjectRepository();
+                    auto importer = ParkImporter::CreateParkFile(objectRepository);
+                    importer->LoadFromStream(&stream, false, true, path.c_str());
+                    return importer->GetParkPreview();
+                }
+                catch (const std::exception& error)
+                {
+                    LOG_ERROR(
+                        "Could not get Mac scenario preview for \"%s\" due to %s", path.c_str(), error.what());
+                    return ParkPreview{};
+                }
+            },
+            [row](const ParkPreview preview) { MacPublishScenarioPreview(row, preview); });
+        return;
+    }
+
+    MacPublishScenarioPreview(row, MacLoadMetadataPreview(entry));
 }
 
 bool OpenRCT2MacNativeLoadParkPresent(void)

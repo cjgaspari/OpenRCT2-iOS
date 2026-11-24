@@ -3,8 +3,8 @@
  *
  * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
  *
- * Dense classic-Mac content panels (Tier 2). Standard window materials —
- * Liquid Glass stays on park chrome / toasts only (HIG Materials).
+ * Dense classic-Mac content panels (Tier 2). Prefer locked mid-legibility
+ * Liquid Glass (clear + ~0.35 dimming) over flat black/white sheets.
  *****************************************************************************/
 
 import AppKit
@@ -21,39 +21,20 @@ func OpenRCT2MacNativeTransparencyGet() -> UInt32
 @_silgen_name("OpenRCT2MacNativeTransparencyToggle")
 func OpenRCT2MacNativeTransparencyToggle(_ flag: UInt32)
 
-// MARK: - Shared dense panel chrome
+// MARK: - Shared dense panel chrome → clear Liquid Glass host
 
 enum MacDensePanelHost {
     @MainActor
     static func present(title: String, size: NSSize, root: some View) -> NSPanel {
-        let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .utilityWindow, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
+        MacGlassPanelHost.present(
+            title: title,
+            size: size,
+            minSize: NSSize(width: min(size.width, 280), height: min(size.height, 180)),
+            resizable: true,
+            root: root
+                .padding(8)
+                .background(MacGlassPanelStyle.textPlate(cornerRadius: 12).padding(4))
         )
-        panel.title = title
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.hidesOnDeactivate = false
-        panel.isReleasedWhenClosed = false
-        let host = NSHostingView(rootView: root)
-        host.frame = panel.contentView?.bounds ?? .zero
-        host.autoresizingMask = [.width, .height]
-        panel.contentView = host
-        panel.center()
-        // Keep clear of Option 1 top glass (~72px engine inset ≈ panel nudge).
-        if let screen = panel.screen ?? NSScreen.main {
-            var frame = panel.frame
-            let topLimit = screen.visibleFrame.maxY - 80
-            if frame.maxY > topLimit {
-                frame.origin.y -= (frame.maxY - topLimit)
-                panel.setFrame(frame, display: true)
-            }
-        }
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        return panel
     }
 }
 
