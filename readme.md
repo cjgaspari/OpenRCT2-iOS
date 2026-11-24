@@ -49,7 +49,10 @@ to configured testers. There is no public IPA or App Store release.
 
 The maintained and GitHub default branch for this fork is **`ipad`**. The
 `develop` branch is retained only as an upstream mirror, and this project does
-not use a `main` branch for Touch releases.
+not use a `main` branch for Touch releases. The SwiftUI Liquid Glass park HUD
+and Duo-aware chrome are **fork product UX**, not a proposed OpenRCT2 upstream
+UI. Do not open Touch / iPad chrome pull requests against upstream without
+prior coordination (see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
 
 The August 1, 2026 checkpoint is synchronized through upstream OpenRCT2
 `develop` commit `69872010ae6b`. Future updates should merge a tested upstream

@@ -5,17 +5,19 @@
  *****************************************************************************/
 
 #include "NativeChromeParkState.iOS.h"
+
 #include "NativeScenarioPicker.iOS.h"
+
 #include <TargetConditionals.h>
 
 #if TARGET_OS_IOS
 
+    #include <openrct2-ui/interface/Window.h>
     #include <openrct2/Context.h>
     #include <openrct2/Game.h>
     #include <openrct2/GameState.h>
     #include <openrct2/scenes/SceneManager.h>
     #include <openrct2/ui/WindowManager.h>
-    #include <openrct2-ui/interface/Window.h>
 
 namespace OpenRCT2::Ui
 {

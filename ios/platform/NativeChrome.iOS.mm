@@ -5,29 +5,30 @@
  *****************************************************************************/
 
 #include "NativeChrome.iOS.h"
+
 #include "NativeChromeActionRouting.iOS.h"
-#include "NativeLoadSave.iOS.h"
 #include "NativeChromeParkState.iOS.h"
+#include "NativeLoadSave.iOS.h"
 #include "NativeScenarioPicker.iOS.h"
+
 #include <TargetConditionals.h>
 
 #if TARGET_OS_IOS
 
     #include "chrome/ParkChromeActions.h"
 
-    #include <openrct2-ui/interface/Window.h>
-    #include <openrct2-ui/windows/Windows.h>
-
     #include <SDL.h>
     #include <SDL_syswm.h>
     #include <UIKit/UIKit.h>
     #include <cstdint>
+    #include <openrct2-ui/interface/Window.h>
+    #include <openrct2-ui/windows/Windows.h>
     #include <openrct2/Context.h>
+    #include <openrct2/Date.h>
     #include <openrct2/Diagnostic.h>
     #include <openrct2/Game.h>
     #include <openrct2/GameState.h>
     #include <openrct2/OpenRCT2.h>
-    #include <openrct2/Date.h>
     #include <openrct2/config/Config.h>
     #include <openrct2/localisation/Currency.h>
     #include <os/log.h>
@@ -36,15 +37,15 @@
 
 namespace
 {
-    Uint32 gNativeChromeEventType = 0;
+    Uint32 _nativeChromeEventType = 0;
 
     Uint32 EnsureNativeChromeEventType()
     {
-        if (gNativeChromeEventType == 0)
+        if (_nativeChromeEventType == 0)
         {
-            gNativeChromeEventType = SDL_RegisterEvents(1);
+            _nativeChromeEventType = SDL_RegisterEvents(1);
         }
-        return gNativeChromeEventType;
+        return _nativeChromeEventType;
     }
 
     void QueueChromeAction(int32_t code, const char* name, int32_t extra)
@@ -74,8 +75,7 @@ namespace
     {
         char amount[OpenRCT2::kMoneyStringMaxlength];
         OpenRCT2::MoneyToString(cash, amount, sizeof(amount), false);
-        const auto& currency = OpenRCT2::CurrencyDescriptors[EnumValue(
-            OpenRCT2::Config::Get().general.currencyFormat)];
+        const auto& currency = OpenRCT2::CurrencyDescriptors[EnumValue(OpenRCT2::Config::Get().general.currencyFormat)];
         if (currency.affix_unicode == OpenRCT2::CurrencyAffix::prefix)
         {
             return [NSString stringWithFormat:@"%s%s", currency.symbol_unicode, amount];
@@ -86,14 +86,7 @@ namespace
     NSString* FormatParkDate(int32_t month, int32_t day)
     {
         static NSString* const kMonthNames[] = {
-            @"Mar",
-            @"Apr",
-            @"May",
-            @"Jun",
-            @"Jul",
-            @"Aug",
-            @"Sep",
-            @"Oct",
+            @"Mar", @"Apr", @"May", @"Jun", @"Jul", @"Aug", @"Sep", @"Oct",
         };
         if (month < 0)
         {
@@ -113,8 +106,7 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
     QueueChromeAction(code, OpenRCT2::Ui::NativeChromeActionLogName(code), extra);
 }
 
-@interface OpenRCT2TouchNativeChrome : NSObject
-{
+@interface OpenRCT2TouchNativeChrome : NSObject {
     void* _session;
     UIView* _hostView;
     BOOL _parkOpen;
@@ -233,8 +225,7 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
     {
         return;
     }
-    OpenRCT2TouchChromeSetStatus(
-        _session, cash.UTF8String, guests.UTF8String, rating.UTF8String, date.UTF8String);
+    OpenRCT2TouchChromeSetStatus(_session, cash.UTF8String, guests.UTF8String, rating.UTF8String, date.UTF8String);
 }
 
 - (void)presentScenarioPicker:(NSString*)snapshotJSON
@@ -269,15 +260,11 @@ extern "C" void OpenRCT2TouchChromeHandleAction(int32_t code, int32_t extra)
     }
 }
 
-- (void)setScenarioPreview:(NSData*)rgba
-                 scenarioID:(int32_t)scenarioID
-                      width:(int32_t)width
-                     height:(int32_t)height
+- (void)setScenarioPreview:(NSData*)rgba scenarioID:(int32_t)scenarioID width:(int32_t)width height:(int32_t)height
 {
     if (_session != nullptr)
     {
-        OpenRCT2TouchChromeSetScenarioPreview(
-            _session, scenarioID, static_cast<const uint8_t*>(rgba.bytes), width, height);
+        OpenRCT2TouchChromeSetScenarioPreview(_session, scenarioID, static_cast<const uint8_t*>(rgba.bytes), width, height);
     }
 }
 
@@ -333,9 +320,9 @@ namespace OpenRCT2::Ui
 {
     namespace
     {
-        OpenRCT2TouchNativeChrome* gNativeChrome = nil;
-        bool gChromeHasLastState = false;
-        NativeChromeParkStateSnapshot gChromeLastState{};
+        OpenRCT2TouchNativeChrome* _nativeChrome = nil;
+        bool _chromeHasLastState = false;
+        NativeChromeParkStateSnapshot _chromeLastState{};
 
         UIWindow* WindowFromSdl(SDL_Window* window)
         {
@@ -399,9 +386,9 @@ namespace OpenRCT2::Ui
 
         void AttachOnMainThread(SDL_Window* window)
         {
-            if (gNativeChrome == nil)
+            if (_nativeChrome == nil)
             {
-                gNativeChrome = [OpenRCT2TouchNativeChrome new];
+                _nativeChrome = [OpenRCT2TouchNativeChrome new];
             }
 
             UIWindow* host = WindowFromSdl(window);
@@ -413,8 +400,8 @@ namespace OpenRCT2::Ui
                 return;
             }
 
-            [gNativeChrome attachToView:parent];
-            gChromeHasLastState = false;
+            [_nativeChrome attachToView:parent];
+            _chromeHasLastState = false;
         }
 
     } // namespace
@@ -431,7 +418,7 @@ namespace OpenRCT2::Ui
 
         SDL_Window* target = window != nullptr ? window : sWindow;
         auto attach = ^{
-            AttachOnMainThread(target);
+          AttachOnMainThread(target);
         };
 
         if ([NSThread isMainThread])
@@ -449,10 +436,10 @@ namespace OpenRCT2::Ui
     void NativeChromeDetach()
     {
         auto detach = ^{
-            [gNativeChrome detach];
-            [gNativeChrome release];
-            gNativeChrome = nil;
-            gChromeHasLastState = false;
+          [_nativeChrome detach];
+          [_nativeChrome release];
+          _nativeChrome = nil;
+          _chromeHasLastState = false;
         };
 
         if ([NSThread isMainThread])
@@ -471,8 +458,8 @@ namespace OpenRCT2::Ui
                                                       length:snapshotJSON.size()
                                                     encoding:NSUTF8StringEncoding];
         auto present = ^{
-            [gNativeChrome presentScenarioPicker:snapshot];
-            [snapshot release];
+          [_nativeChrome presentScenarioPicker:snapshot];
+          [snapshot release];
         };
         if ([NSThread isMainThread])
         {
@@ -487,7 +474,7 @@ namespace OpenRCT2::Ui
     void NativeChromeScenarioPickerDismiss()
     {
         auto dismiss = ^{
-            [gNativeChrome dismissScenarioPicker];
+          [_nativeChrome dismissScenarioPicker];
         };
         if ([NSThread isMainThread])
         {
@@ -502,7 +489,7 @@ namespace OpenRCT2::Ui
     void NativeChromeScenarioPickerSetPreviewLoading(int32_t scenarioID, bool loading)
     {
         auto update = ^{
-            [gNativeChrome setScenarioPreviewLoading:loading scenarioID:scenarioID];
+          [_nativeChrome setScenarioPreviewLoading:loading scenarioID:scenarioID];
         };
         if ([NSThread isMainThread])
         {
@@ -519,8 +506,8 @@ namespace OpenRCT2::Ui
     {
         NSData* data = rgba == nullptr || byteCount == 0 ? nil : [[NSData alloc] initWithBytes:rgba length:byteCount];
         auto update = ^{
-            [gNativeChrome setScenarioPreview:data scenarioID:scenarioID width:width height:height];
-            [data release];
+          [_nativeChrome setScenarioPreview:data scenarioID:scenarioID width:width height:height];
+          [data release];
         };
         if ([NSThread isMainThread])
         {
@@ -538,8 +525,8 @@ namespace OpenRCT2::Ui
                                                       length:snapshotJSON.size()
                                                     encoding:NSUTF8StringEncoding];
         auto present = ^{
-            [gNativeChrome presentLoadSave:snapshot];
-            [snapshot release];
+          [_nativeChrome presentLoadSave:snapshot];
+          [snapshot release];
         };
         if ([NSThread isMainThread])
         {
@@ -554,7 +541,7 @@ namespace OpenRCT2::Ui
     void NativeChromeLoadSaveDismiss()
     {
         auto dismiss = ^{
-            [gNativeChrome dismissLoadSave];
+          [_nativeChrome dismissLoadSave];
         };
         if ([NSThread isMainThread])
         {
@@ -570,45 +557,45 @@ namespace OpenRCT2::Ui
     // SwiftUI model's pending filename does not race with the UI.
     bool NativeChromeLoadSaveCopyPendingName(char* buffer, size_t length)
     {
-        if (gNativeChrome == nil || buffer == nullptr || length == 0)
+        if (_nativeChrome == nil || buffer == nullptr || length == 0)
         {
             return false;
         }
-        return [gNativeChrome copyPendingSaveName:buffer length:length] == YES;
+        return [_nativeChrome copyPendingSaveName:buffer length:length] == YES;
     }
 
     void NativeChromeTick()
     {
-        if (gNativeChrome == nil)
+        if (_nativeChrome == nil)
         {
             return;
         }
 
-#if TARGET_OS_SIMULATOR
+    #if TARGET_OS_SIMULATOR
         // Temporary visual-verification hook. Removed after the Xcode MCP
         // screenshots are captured.
         static bool didHandleScenarioPickerPreviewArgument = false;
-        if (!didHandleScenarioPickerPreviewArgument
-            && [[[NSProcessInfo processInfo] arguments] containsObject:@"--open-native-scenario-picker"])
+        if (!didHandleScenarioPickerPreviewArgument &&
+            [[[NSProcessInfo processInfo] arguments] containsObject:@"--open-native-scenario-picker"])
         {
             didHandleScenarioPickerPreviewArgument = true;
             NativeScenarioPickerOpen([](std::string_view) {});
         }
-#endif
+    #endif
 
         const NativeChromeParkStateSnapshot state = NativeChromeCaptureParkStateSnapshot();
-        const BOOL parkOpenChanged = !gChromeHasLastState || state.Open != gChromeLastState.Open;
-        const BOOL chromeStateChanged = !gChromeHasLastState || state.Paused != gChromeLastState.Paused
-            || state.Speed != gChromeLastState.Speed || state.ViewportFlags != gChromeLastState.ViewportFlags;
-        const BOOL statusChanged = !gChromeHasLastState || state.Cash != gChromeLastState.Cash
-            || state.Guests != gChromeLastState.Guests || state.Rating != gChromeLastState.Rating
-            || state.Month != gChromeLastState.Month || state.Day != gChromeLastState.Day;
+        const BOOL parkOpenChanged = !_chromeHasLastState || state.Open != _chromeLastState.Open;
+        const BOOL chromeStateChanged = !_chromeHasLastState || state.Paused != _chromeLastState.Paused
+            || state.Speed != _chromeLastState.Speed || state.ViewportFlags != _chromeLastState.ViewportFlags;
+        const BOOL statusChanged = !_chromeHasLastState || state.Cash != _chromeLastState.Cash
+            || state.Guests != _chromeLastState.Guests || state.Rating != _chromeLastState.Rating
+            || state.Month != _chromeLastState.Month || state.Day != _chromeLastState.Day;
         if (!parkOpenChanged && !chromeStateChanged && !statusChanged)
         {
             return;
         }
-        gChromeLastState = state;
-        gChromeHasLastState = true;
+        _chromeLastState = state;
+        _chromeHasLastState = true;
 
         NSString* cashText = nil;
         NSString* guestsText = nil;
@@ -623,24 +610,24 @@ namespace OpenRCT2::Ui
         }
 
         auto sync = ^{
-            if (parkOpenChanged)
-            {
-                [gNativeChrome setParkOpen:state.Open != 0];
-            }
-            if (parkOpenChanged || chromeStateChanged)
-            {
-                [gNativeChrome updateParkChromeStatePaused:state.Paused != 0
-                                                     speed:static_cast<uint8_t>(state.Speed)
-                                                     flags:state.ViewportFlags];
-            }
-            if (state.Open != 0 && (parkOpenChanged || statusChanged))
-            {
-                [gNativeChrome updateStatusCash:cashText guests:guestsText rating:ratingText date:dateText];
-            }
-            [cashText release];
-            [guestsText release];
-            [ratingText release];
-            [dateText release];
+          if (parkOpenChanged)
+          {
+              [_nativeChrome setParkOpen:state.Open != 0];
+          }
+          if (parkOpenChanged || chromeStateChanged)
+          {
+              [_nativeChrome updateParkChromeStatePaused:state.Paused != 0
+                                                   speed:static_cast<uint8_t>(state.Speed)
+                                                   flags:state.ViewportFlags];
+          }
+          if (state.Open != 0 && (parkOpenChanged || statusChanged))
+          {
+              [_nativeChrome updateStatusCash:cashText guests:guestsText rating:ratingText date:dateText];
+          }
+          [cashText release];
+          [guestsText release];
+          [ratingText release];
+          [dateText release];
         };
         if ([NSThread isMainThread])
         {
@@ -654,8 +641,8 @@ namespace OpenRCT2::Ui
 
     bool NativeChromeHandleEvent(const SDL_Event& event)
     {
-        if (gNativeChromeEventType == 0 || gNativeChromeEventType == static_cast<Uint32>(-1)
-            || event.type != gNativeChromeEventType)
+        if (_nativeChromeEventType == 0 || _nativeChromeEventType == static_cast<Uint32>(-1)
+            || event.type != _nativeChromeEventType)
         {
             return false;
         }
