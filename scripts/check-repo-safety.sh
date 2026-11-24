@@ -10,8 +10,9 @@ branch="$(git branch --show-current)"
 if [[ -z "$branch" && "${GITHUB_ACTIONS:-}" == "true" ]]; then
     branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 fi
-if [[ "$branch" != "ipad" && "$branch" != touch/* ]]; then
-    printf 'ERROR: unsafe branch %s; use ipad or touch/*\n' "$branch" >&2
+# research/* is allowed for fork-only experiments (e.g. Mac Liquid Glass).
+if [[ "$branch" != "ipad" && "$branch" != touch/* && "$branch" != research/* ]]; then
+    printf 'ERROR: unsafe branch %s; use ipad, touch/*, or research/*\n' "$branch" >&2
     failures=$((failures + 1))
 fi
 

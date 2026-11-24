@@ -33,6 +33,8 @@
     #include <openrct2/ui/UiContext.h>
     #include <string>
 
+    #include "../../macos/platform/MacNativeChrome.h"
+
 namespace OpenRCT2::Ui
 {
     class macOSContext final : public IPlatformUiContext
@@ -50,8 +52,28 @@ namespace OpenRCT2::Ui
             }
         }
 
+        ~macOSContext() override
+        {
+            MacNativeChromeDetach();
+        }
+
         void SetWindowIcon(SDL_Window* window) override
         {
+        }
+
+        void AttachNativeOverlay(SDL_Window* window) override
+        {
+            MacNativeChromeAttach(window);
+        }
+
+        bool HandleSdlEvent(const SDL_Event& event) override
+        {
+            return MacNativeChromeHandleEvent(event);
+        }
+
+        void TickNativeOverlay() override
+        {
+            MacNativeChromeTick();
         }
 
         bool IsSteamOverlayAttached() override

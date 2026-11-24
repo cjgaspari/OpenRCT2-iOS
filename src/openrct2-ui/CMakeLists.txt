@@ -72,6 +72,15 @@ if (APPLE)
             "${ROOT_DIR}/ios/platform/chrome/ParkChromeLayout.swift"
             "${ROOT_DIR}/ios/platform/chrome/ParkChromeHost.swift"
             "${ROOT_DIR}/ios/platform/chrome/ParkChromeBridges.swift")
+    elseif (OPENRCT2_MACOS)
+        # Mac Liquid Glass chrome — native AppKit/SwiftUI host (not Catalyst, not iOS Touch reuse).
+        list(APPEND OPENRCT2_UI_MM_SOURCES
+            "${ROOT_DIR}/macos/platform/MacCocoaWindow.mm"
+            "${ROOT_DIR}/macos/platform/MacNativeChrome.mm")
+        set(OPENRCT2_UI_SWIFT_SOURCES
+            "${ROOT_DIR}/macos/platform/chrome/MacGlassChrome.swift"
+            "${ROOT_DIR}/macos/platform/chrome/MacParkChromeHost.swift"
+            "${ROOT_DIR}/macos/platform/chrome/MacParkChromeBridges.swift")
     endif ()
     set_source_files_properties(${OPENRCT2_UI_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules -fno-objc-arc")
 endif ()
@@ -92,6 +101,15 @@ if (OPENRCT2_IOS)
     set_source_files_properties(${OPENRCT2_UI_SWIFT_SOURCES} PROPERTIES
         COMPILE_OPTIONS "-parse-as-library")
     target_include_directories(${OPENRCT2_UI_TARGET} PRIVATE "${ROOT_DIR}/ios/platform")
+elseif (OPENRCT2_MACOS)
+    set(OPENRCT2_UI_TARGET openrct2)
+    add_executable(${OPENRCT2_UI_TARGET} ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES} ${OPENRCT2_UI_SWIFT_SOURCES})
+    add_executable(OpenRCT2::openrct2 ALIAS ${OPENRCT2_UI_TARGET})
+    set_target_properties(${OPENRCT2_UI_TARGET} PROPERTIES
+        Swift_MODULE_NAME OpenRCT2MacChrome)
+    set_source_files_properties(${OPENRCT2_UI_SWIFT_SOURCES} PROPERTIES
+        COMPILE_OPTIONS "-parse-as-library")
+    target_include_directories(${OPENRCT2_UI_TARGET} PRIVATE "${ROOT_DIR}/macos/platform")
 else ()
     set(OPENRCT2_UI_TARGET openrct2)
     add_executable(${OPENRCT2_UI_TARGET} ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
@@ -118,6 +136,13 @@ elseif (OPENRCT2_IOS)
     target_link_libraries(${OPENRCT2_UI_TARGET}
         "-framework SwiftUI"
         "-framework Combine")
+elseif (OPENRCT2_MACOS)
+    target_link_libraries(${OPENRCT2_UI_TARGET} "libopenrct2"
+                                    PkgConfig::SDL2)
+    target_link_libraries(${OPENRCT2_UI_TARGET}
+        "-framework SwiftUI"
+        "-framework Combine"
+        "-framework AppKit")
 elseif (NOT MSVC AND NOT WIN32)
     target_link_libraries(${OPENRCT2_UI_TARGET} "libopenrct2"
                                     PkgConfig::SDL2)

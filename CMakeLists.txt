@@ -35,10 +35,12 @@ if (APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
 
     set(CMAKE_OSX_ARCHITECTURES "${ARCH}" CACHE STRING "")
 
+    # research/mac-liquid-glass: Liquid Glass requires macOS 27+ (CJ).
+    # Override at configure time with -DCMAKE_OSX_DEPLOYMENT_TARGET=… if needed.
     if("${ARCH}" MATCHES "^x86_64")
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "")
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "27.0" CACHE STRING "")
     elseif("${ARCH}" MATCHES "^arm64")
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "")
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "27.0" CACHE STRING "")
     else()
         message("Unknown macOS architecture: ${ARCH}. Behavior may be unexpected.")
     endif()
@@ -62,6 +64,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
     set(CMAKE_Swift_LANGUAGE_VERSION 5)
 elseif (APPLE)
     set(OPENRCT2_MACOS ON)
+    enable_language(Swift)
+    set(CMAKE_Swift_LANGUAGE_VERSION 5)
 endif ()
 
 include(cmake/platform.cmake)
