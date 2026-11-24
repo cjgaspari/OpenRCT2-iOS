@@ -279,13 +279,27 @@ func OpenRCT2MacNativeUILabShow() -> Bool {
 }
 
 /// C++ Present gates — return false to use classic engine UI.
+/// Safe from any thread (JobPool / BackgroundWorker call this during load).
 @_cdecl("OpenRCT2MacUINativeEnabled")
 func OpenRCT2MacUINativeEnabled(_ surfaceId: UnsafePointer<CChar>?) -> Bool {
     guard let surfaceId else { return true }
     let id = String(cString: surfaceId)
-    return MainActor.assumeIsolated {
-        MacUILab.installHotkeyIfNeeded()
-        guard let surface = MacUISurface(rawValue: id) else { return true }
-        return MacUILabPrefs.shared.isNativeEnabled(surface)
+    let prefix = "openrct2.mac.ui.native."
+    let defaults = UserDefaults.standard
+
+    // Progress: classic preferred by default (mirrors MacUILabPrefs).
+    if id == "progress" {
+        if defaults.object(forKey: prefix + "preferClassicProgress") == nil
+            || defaults.bool(forKey: prefix + "preferClassicProgress")
+        {
+            return false
+        }
     }
+
+    let key = prefix + id
+    if defaults.object(forKey: key) == nil {
+        // Default native on for every surface except progress.
+        return id != "progress"
+    }
+    return defaults.bool(forKey: key)
 }

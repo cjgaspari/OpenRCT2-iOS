@@ -1887,13 +1887,27 @@ extern "C" void OpenRCT2MacNativeNewsLocate(int32_t index)
 
 extern "C" bool OpenRCT2MacShouldCreateDesktopChromeWindows(void)
 {
-    // Classic engine toolbars when UI Lab disables park glass HUD.
-    return !OpenRCT2MacUINativeEnabled("parkChrome");
+    // Called from JobPool workers via WindowGetTopToolbarOffset — read
+    // UserDefaults directly; never touch Swift MainActor helpers here.
+    @autoreleasepool
+    {
+        NSUserDefaults* defaults = NSUserDefaults.standardUserDefaults;
+        NSString* key = @"openrct2.mac.ui.native.parkChrome";
+        if ([defaults objectForKey:key] == nil)
+            return false; // default: native glass HUD → no classic toolbars
+        return ![defaults boolForKey:key];
+    }
 }
 
 extern "C" int32_t OpenRCT2MacLiquidGlassChromeTopInset(void)
 {
-    return OpenRCT2MacUINativeEnabled("parkChrome") ? 72 : 0;
+    @autoreleasepool
+    {
+        NSUserDefaults* defaults = NSUserDefaults.standardUserDefaults;
+        NSString* key = @"openrct2.mac.ui.native.parkChrome";
+        const bool nativePark = ([defaults objectForKey:key] == nil) || [defaults boolForKey:key];
+        return nativePark ? 72 : 0;
+    }
 }
 
 extern "C" void OpenRCT2MacUINotifySurfaceChanged(const char* surfaceId)
