@@ -736,7 +736,14 @@ static constexpr float kWindowScrollLocations[][2] = {
         {
             return 0;
         }
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        // research/mac-liquid-glass: engine TopToolbar is suppressed; Option 1
+        // dual-top Liquid Glass capsules occupy ~padding(12)+row(~48). Keep
+        // engine windows clear of that chrome (also used by ClampWindowToScreen).
+        return 72;
+#else
         return kTopToolbarHeight + 1;
+#endif
 #endif
     }
 

@@ -85,6 +85,10 @@ enum MacToolbarMenus {
             item("About OpenRCT2", index: 9)
             item("File Bug on GitHub", index: 10)
             item("Options…", index: 12)
+            // Mac-only: inline (not nested submenu) so it always appears in
+            // toolbar File popUp — nested submenus were missing under popUp.
+            sep()
+            addToolbarIconsSection(to: menu)
             sep()
             item("Quit to Menu", index: 14)
             item("Exit OpenRCT2", index: 15)
@@ -149,24 +153,40 @@ enum MacToolbarMenus {
             break
         }
 
-        // Icon mode toggle lives under File for discoverability (not a classic item).
-        if widx == .fileMenu {
-            sep()
-            let icons = NSMenu(title: "Toolbar Icons")
-            let sf = NSMenuItem(title: "SF Symbols", action: #selector(MenuTarget.setSFIcons(_:)), keyEquivalent: "")
-            sf.target = MenuTarget.shared
-            sf.state = MacToolbarIconMode.current == .systemSF ? .on : .off
-            let native = NSMenuItem(title: "In-game Icons", action: #selector(MenuTarget.setNativeIcons(_:)), keyEquivalent: "")
-            native.target = MenuTarget.shared
-            native.state = MacToolbarIconMode.current == .nativeInGame ? .on : .off
-            icons.addItem(sf)
-            icons.addItem(native)
-            let iconsParent = NSMenuItem(title: "Toolbar Icons", action: nil, keyEquivalent: "")
-            menu.addItem(iconsParent)
-            menu.setSubmenu(icons, for: iconsParent)
+        return menu
+    }
+
+    /// Mac-only icon mode toggle. Kept as top-level File items (section header +
+    /// radio rows) because nested `NSMenu` submenus do not reliably appear when
+    /// the File menu is shown via `NSMenu.popUp(positioning:at:in:)`.
+    private static func addToolbarIconsSection(to menu: NSMenu) {
+        if #available(macOS 14.0, *) {
+            menu.addItem(.sectionHeader(title: "Toolbar Icons"))
+        } else {
+            let header = NSMenuItem(title: "Toolbar Icons", action: nil, keyEquivalent: "")
+            header.isEnabled = false
+            menu.addItem(header)
         }
 
-        return menu
+        let sf = NSMenuItem(
+            title: "SF Symbols",
+            action: #selector(MenuTarget.setSFIcons(_:)),
+            keyEquivalent: ""
+        )
+        sf.target = MenuTarget.shared
+        sf.isEnabled = true
+        sf.state = MacToolbarIconMode.current == .systemSF ? .on : .off
+        menu.addItem(sf)
+
+        let native = NSMenuItem(
+            title: "In-game Icons",
+            action: #selector(MenuTarget.setNativeIcons(_:)),
+            keyEquivalent: ""
+        )
+        native.target = MenuTarget.shared
+        native.isEnabled = true
+        native.state = MacToolbarIconMode.current == .nativeInGame ? .on : .off
+        menu.addItem(native)
     }
 }
 

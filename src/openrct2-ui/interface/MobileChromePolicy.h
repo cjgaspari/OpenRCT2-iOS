@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #if defined(__APPLE__) && defined(__MACH__)
     #include <TargetConditionals.h>
 #endif
@@ -31,5 +33,19 @@ namespace OpenRCT2::Ui
         return true;
 #endif
 
+    }
+
+    /**
+     * Top inset (engine pixels) reserved for Mac Option 1 Liquid Glass dual-top
+     * capsules when engine TopToolbar is suppressed. Must stay in sync with
+     * `WindowGetTopToolbarOffset()` on TARGET_OS_OSX.
+     */
+    constexpr int32_t MacLiquidGlassChromeTopInset()
+    {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        return 72;
+#else
+        return 0;
+#endif
     }
 } // namespace OpenRCT2::Ui

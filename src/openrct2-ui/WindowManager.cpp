@@ -748,12 +748,14 @@ public:
         auto& uiContext = GetContext()->GetUiContext();
         ScreenSize screenSize = { uiContext.GetWidth(), uiContext.GetHeight() };
 
-#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_IOS
-        // iPhone/iPad: centre auto-positioned windows instead of the desktop
-        // top-left cascade. Oversized windows stay clamped to the canvas.
+#if defined(__APPLE__) && defined(__MACH__) && (TARGET_OS_IOS || TARGET_OS_OSX)
+        // iPhone/iPad + Mac Liquid Glass: centre auto-positioned windows so
+        // they do not open under native chrome (iOS safe areas / Mac dual-top
+        // glass capsules). Oversized windows stay clamped to the canvas.
+        const auto topInset = WindowGetTopToolbarOffset();
         auto centred = ScreenCoordsXY{
             (screenSize.width - windowSize.width) / 2,
-            std::max(0, (screenSize.height - windowSize.height) / 2) };
+            std::max(topInset, (screenSize.height - windowSize.height) / 2) };
         return ClampWindowToScreen(centred, screenSize, windowSize);
 #else
         // Place window in an empty corner of the screen
