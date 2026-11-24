@@ -22,6 +22,13 @@
 #include <openrct2/paint/tile_element/Paint.TileElement.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     enum WindowDebugPaintWidgetIdx : WidgetIndex
@@ -165,6 +172,12 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* DebugPaintOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeDebugPaintPresent())
+        {
+            return nullptr;
+        }
+#endif
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->FocusOrCreate<DebugPaintWindow>(
             WindowClass::debugPaint, { 16, ContextGetHeight() - 16 - 33 - kWindowSize.height }, kWindowSize,

@@ -1,0 +1,69 @@
+/*****************************************************************************
+ * Copyright (c) 2026 OpenRCT2 Touch contributors
+ *
+ * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
+ *
+ * Native Mac UI ports (Tier 1–2). TARGET_OS_OSX only — not Catalyst.
+ *****************************************************************************/
+
+#pragma once
+
+#include <cstdint>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/** @return true if a native Mac UI handled presentation (skip engine window). */
+bool OpenRCT2MacNativeDebugPaintPresent(void);
+bool OpenRCT2MacNativeTransparencyPresent(void);
+
+/** Debug-paint flag indices — must match MacDebugPaintPanel / bridge. */
+enum MacDebugPaintFlag : int32_t
+{
+    MacDebugPaint_WidePaths = 0,
+    MacDebugPaint_BlockedTiles = 1,
+    MacDebugPaint_SegmentHeights = 2,
+    MacDebugPaint_BoundBoxes = 3,
+    MacDebugPaint_DirtyVisuals = 4,
+    MacDebugPaint_StableSort = 5,
+    MacDebugPaint_ForceRedraw = 6,
+    MacDebugPaint_Count = 7,
+};
+
+bool OpenRCT2MacNativeDebugPaintGet(int32_t flag);
+void OpenRCT2MacNativeDebugPaintSet(int32_t flag, bool value);
+
+/** Transparency / see-through — bit flags mirror VIEWPORT_FLAG_HIDE_* / INVISIBLE_*. */
+enum MacTransparencyFlag : uint32_t
+{
+    MacTransparency_HideVegetation = 1u << 0,
+    MacTransparency_HideScenery = 1u << 1,
+    MacTransparency_HidePaths = 1u << 2,
+    MacTransparency_HideRides = 1u << 3,
+    MacTransparency_HideVehicles = 1u << 4,
+    MacTransparency_HideSupports = 1u << 5,
+    MacTransparency_HideGuests = 1u << 6,
+    MacTransparency_HideStaff = 1u << 7,
+    MacTransparency_InvisibleVegetation = 1u << 8,
+    MacTransparency_InvisibleScenery = 1u << 9,
+    MacTransparency_InvisiblePaths = 1u << 10,
+    MacTransparency_InvisibleRides = 1u << 11,
+    MacTransparency_InvisibleVehicles = 1u << 12,
+    MacTransparency_InvisibleSupports = 1u << 13,
+};
+
+uint32_t OpenRCT2MacNativeTransparencyGet(void);
+void OpenRCT2MacNativeTransparencyToggle(uint32_t flag);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // TARGET_OS_OSX

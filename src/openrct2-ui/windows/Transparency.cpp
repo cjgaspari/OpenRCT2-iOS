@@ -18,6 +18,13 @@
 #include <openrct2/localisation/StringIds.h>
 #include <openrct2/ui/WindowManager.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+    #include "MacNativeUI.h"
+#endif
+
 namespace OpenRCT2::Ui::Windows
 {
     enum WindowTransparencyWidgetIndex : WidgetIndex
@@ -230,6 +237,12 @@ namespace OpenRCT2::Ui::Windows
 
     WindowBase* TransparencyOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        if (OpenRCT2MacNativeTransparencyPresent())
+        {
+            return nullptr;
+        }
+#endif
         auto* windowMgr = GetWindowManager();
         auto* window = windowMgr->BringToFrontByClass(WindowClass::transparency);
         if (window == nullptr)

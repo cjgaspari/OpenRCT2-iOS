@@ -76,11 +76,13 @@ if (APPLE)
         # Mac Liquid Glass chrome — native AppKit/SwiftUI host (not Catalyst, not iOS Touch reuse).
         list(APPEND OPENRCT2_UI_MM_SOURCES
             "${ROOT_DIR}/macos/platform/MacCocoaWindow.mm"
-            "${ROOT_DIR}/macos/platform/MacNativeChrome.mm")
+            "${ROOT_DIR}/macos/platform/MacNativeChrome.mm"
+            "${ROOT_DIR}/macos/platform/MacNativeUI.mm")
         set(OPENRCT2_UI_SWIFT_SOURCES
             "${ROOT_DIR}/macos/platform/chrome/MacGlassChrome.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacToolbarMenus.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacAboutPanel.swift"
+            "${ROOT_DIR}/macos/platform/chrome/MacDensePanels.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacParkChromeHost.swift"
             "${ROOT_DIR}/macos/platform/chrome/MacParkChromeBridges.swift")
     endif ()
