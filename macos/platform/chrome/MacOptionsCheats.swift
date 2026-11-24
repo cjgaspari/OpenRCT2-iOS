@@ -25,8 +25,12 @@ func OpenRCT2MacNativeCheatToggle(_ type: Int32)
 @_silgen_name("OpenRCT2MacNativeCheatRun")
 func OpenRCT2MacNativeCheatRun(_ type: Int32, _ p1: Int64, _ p2: Int64)
 
-// Config bool keys — must match MacNativeUI.mm
-private enum MacConfigKey: Int32 {
+extension Notification.Name {
+    static let openRCT2MacChromePrefsDidChange = Notification.Name("openRCT2MacChromePrefsDidChange")
+}
+
+/// Config bool keys — must match MacNativeUI.mm
+enum MacConfigKey: Int32 {
     case uncapFPS = 0
     case useVSync = 1
     case showFPS = 2
@@ -167,6 +171,7 @@ private struct OptionsView: View {
                     configToggle("Toolbar: Mute", .toolbarShowMute)
                     configToggle("Toolbar: Chat", .toolbarShowChat)
                     configToggle("Toolbar: Zoom", .toolbarShowZoom)
+                    newsToastEdgePicker
                 case .controls:
                     configToggle("Edge scrolling", .edgeScrolling)
                     configToggle("Invert viewport drag", .invertViewportDrag)
@@ -196,8 +201,22 @@ private struct OptionsView: View {
             set: { v in
                 OpenRCT2MacNativeConfigSetBool(key.rawValue, v)
                 OpenRCT2MacNativeConfigSave()
+                NotificationCenter.default.post(name: .openRCT2MacChromePrefsDidChange, object: nil)
             }
         ))
+        .controlSize(.small)
+    }
+
+    private var newsToastEdgePicker: some View {
+        Picker("News toast", selection: Binding(
+            get: { MacUILabPrefs.shared.newsToastEdge },
+            set: { MacUILabPrefs.shared.newsToastEdge = $0 }
+        )) {
+            ForEach(MacNewsToastEdge.allCases) { edge in
+                Text(edge.title).tag(edge)
+            }
+        }
+        .pickerStyle(.segmented)
         .controlSize(.small)
     }
 }

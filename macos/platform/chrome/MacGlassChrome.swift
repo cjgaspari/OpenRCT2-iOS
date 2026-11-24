@@ -60,6 +60,30 @@ enum MacToolbarWIDX: Int32, CaseIterable, Identifiable {
         .finances, .research, .rides, .park, .staff, .guests, .news,
     ]
 
+    /// Same gates as `TopToolbar::HideDisabledButtons` (Options → Interface).
+    var isShownByConfig: Bool {
+        switch self {
+        case .mute:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowMute.rawValue)
+        case .chat:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowChat.rawValue)
+        case .research:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowResearch.rawValue)
+        case .cheats:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowCheats.rawValue)
+        case .news:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowNews.rawValue)
+        case .zoomIn, .zoomOut:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowZoom.rawValue)
+        case .finances:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.toolbarShowFinances.rawValue)
+        case .debug:
+            return OpenRCT2MacNativeConfigGetBool(MacConfigKey.debuggingTools.rawValue)
+        default:
+            return true
+        }
+    }
+
     var help: String {
         switch self {
         case .pause: return "Pause game"
@@ -205,20 +229,38 @@ final class MacParkChromeModel: ObservableObject {
     /// Native title/startup chrome. Off when UI Lab reverts title to classic.
     @Published var showTitleChrome: Bool = false
 
-    /// Bottom-center Liquid Glass toast (news ticker + errors). CJ HIG 2A/3A.
+    /// Liquid Glass toast (news ticker + errors). Edge from Options / UI Lab.
     @Published var toastKind: MacToastKind = .news
     @Published var toastMessage: String = ""
     @Published var toastVisible: Bool = false
     @Published var toastShowSubject: Bool = false
     @Published var toastShowLocate: Bool = false
+    /// Bumped when Options / UI Lab chrome prefs change (toolbar icons, toast edge).
+    @Published var prefsEpoch: UInt = 0
 
     private let onAction: (Int32, Int32) -> Void
     private var errorDismissTask: Task<Void, Never>?
+    private var prefsObserver: NSObjectProtocol?
 
     init(onAction: @escaping (Int32, Int32) -> Void) {
         self.onAction = onAction
         MenuTarget.shared.onIconModeChanged = { [weak self] in
             self?.iconMode = MacToolbarIconMode.current
+        }
+        prefsObserver = NotificationCenter.default.addObserver(
+            forName: .openRCT2MacChromePrefsDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.prefsEpoch &+= 1
+            }
+        }
+    }
+
+    deinit {
+        if let prefsObserver {
+            NotificationCenter.default.removeObserver(prefsObserver)
         }
     }
 
@@ -327,8 +369,13 @@ struct MacParkChromeOverlay: View {
             } else {
                 VStack(spacing: 0) {
                     if model.showParkChrome {
+                        if toastEdge == .top {
+                            toastBar(edge: .top)
+                                .padding(.top, 4)
+                                .padding(.horizontal, 14)
+                        }
                         topChrome
-                            .padding(.top, 4)
+                            .padding(.top, toastEdge == .top ? 6 : 4)
                             .padding(.horizontal, 14)
                     }
                     Spacer(minLength: 0)
@@ -338,63 +385,77 @@ struct MacParkChromeOverlay: View {
                             .padding(.bottom, 12)
                     }
                 }
+                .animation(.snappy, value: model.toastVisible)
+                .animation(.snappy, value: toastEdge)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .allowsHitTesting(true)
     }
 
+    private var toastEdge: MacNewsToastEdge {
+        _ = model.prefsEpoch
+        return MacUILabPrefs.shared.newsToastEdge
+    }
+
     /// Four capsules matching classic left/right groups + internal separators.
-    /// No full-span clear glass across the top.
+    /// No full-span clear glass across the top. Icons honor Options → Interface.
     private var topChrome: some View {
-        HStack(alignment: .center, spacing: 10) {
-            GlassToolGroup(
-                items: MacToolbarWIDX.playback,
+        let _ = model.prefsEpoch
+        return HStack(alignment: .center, spacing: 10) {
+            toolGroup(
+                MacToolbarWIDX.playback,
                 unionID: "playback",
-                plateTint: GlassChrome.session,
-                plateOpacity: 0.20,
-                model: model
+                tint: GlassChrome.session,
+                opacity: 0.20
             )
-            GlassToolGroup(
-                items: MacToolbarWIDX.camera,
+            toolGroup(
+                MacToolbarWIDX.camera,
                 unionID: "camera",
-                plateTint: GlassChrome.session,
-                plateOpacity: 0.12,
-                model: model
+                tint: GlassChrome.session,
+                opacity: 0.12
             )
             Spacer(minLength: 12)
-            GlassToolGroup(
-                items: MacToolbarWIDX.construct,
+            toolGroup(
+                MacToolbarWIDX.construct,
                 unionID: "construct",
-                plateTint: GlassChrome.construct,
-                plateOpacity: 0.18,
-                model: model
+                tint: GlassChrome.construct,
+                opacity: 0.18
             )
-            GlassToolGroup(
-                items: MacToolbarWIDX.manage,
+            toolGroup(
+                MacToolbarWIDX.manage,
                 unionID: "manage",
-                plateTint: GlassChrome.manage,
-                plateOpacity: 0.14,
-                model: model
+                tint: GlassChrome.manage,
+                opacity: 0.14
             )
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("openrct2.mac.desktopToolbar")
     }
 
+    @ViewBuilder
+    private func toolGroup(
+        _ items: [MacToolbarWIDX],
+        unionID: String,
+        tint: Color,
+        opacity: Double
+    ) -> some View {
+        let visible = items.filter(\.isShownByConfig)
+        if !visible.isEmpty {
+            GlassToolGroup(
+                items: visible,
+                unionID: unionID,
+                plateTint: tint,
+                plateOpacity: opacity,
+                model: model
+            )
+        }
+    }
+
     private var bottomChrome: some View {
         VStack(spacing: 10) {
-            if model.toastVisible, !model.toastMessage.isEmpty {
-                MacGlassToastBar(
-                    kind: model.toastKind,
-                    message: model.toastMessage,
-                    showSubject: model.toastShowSubject,
-                    showLocate: model.toastShowLocate,
-                    onSubject: { model.toastSubject() },
-                    onLocate: { model.toastLocate() },
-                    onDismiss: { model.dismissToast() }
-                )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+            if toastEdge == .bottom {
+                toastBar(edge: .bottom)
             }
             GlassEffectContainer(spacing: 24) {
                 HStack(alignment: .bottom) {
@@ -412,7 +473,23 @@ struct MacParkChromeOverlay: View {
                 }
             }
         }
-        .animation(.snappy, value: model.toastVisible)
+    }
+
+    @ViewBuilder
+    private func toastBar(edge: MacNewsToastEdge) -> some View {
+        if model.toastVisible, !model.toastMessage.isEmpty {
+            MacGlassToastBar(
+                kind: model.toastKind,
+                message: model.toastMessage,
+                showSubject: model.toastShowSubject,
+                showLocate: model.toastShowLocate,
+                onSubject: { model.toastSubject() },
+                onLocate: { model.toastLocate() },
+                onDismiss: { model.dismissToast() }
+            )
+            .frame(maxWidth: .infinity)
+            .transition(.move(edge: edge == .top ? .top : .bottom).combined(with: .opacity))
+        }
     }
 }
 

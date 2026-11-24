@@ -90,6 +90,20 @@ enum MacUISurface: String, CaseIterable, Identifiable {
 @_silgen_name("OpenRCT2MacUINotifySurfaceChanged")
 func OpenRCT2MacUINotifySurfaceChanged(_ surfaceId: UnsafePointer<CChar>)
 
+enum MacNewsToastEdge: String, CaseIterable, Identifiable {
+    case bottom
+    case top
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .bottom: return "Bottom"
+        case .top: return "Top"
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class MacUILabPrefs {
@@ -97,10 +111,19 @@ final class MacUILabPrefs {
 
     private let defaults = UserDefaults.standard
     private let prefix = "openrct2.mac.ui.native."
+    private let toastEdgeKey = "openrct2.mac.ui.newsToastEdge"
 
     /// When true, ProgressPresent falls back to classic engine window (CJ default).
     var preferClassicProgress: Bool {
         didSet { defaults.set(preferClassicProgress, forKey: prefix + "preferClassicProgress") }
+    }
+
+    /// News / error toast edge on the park glass HUD.
+    var newsToastEdge: MacNewsToastEdge {
+        didSet {
+            defaults.set(newsToastEdge.rawValue, forKey: toastEdgeKey)
+            NotificationCenter.default.post(name: .openRCT2MacChromePrefsDidChange, object: nil)
+        }
     }
 
     private var nativeBySurface: [String: Bool]
@@ -119,6 +142,13 @@ final class MacUILabPrefs {
             defaults.set(true, forKey: prefix + "preferClassicProgress")
         }
         preferClassicProgress = defaults.bool(forKey: prefix + "preferClassicProgress")
+        if let raw = defaults.string(forKey: toastEdgeKey),
+           let edge = MacNewsToastEdge(rawValue: raw)
+        {
+            newsToastEdge = edge
+        } else {
+            newsToastEdge = .bottom
+        }
     }
 
     func isNativeEnabled(_ surface: MacUISurface) -> Bool {
@@ -149,6 +179,7 @@ final class MacUILabPrefs {
             surface.rawValue.withCString { OpenRCT2MacUINotifySurfaceChanged($0) }
         }
         preferClassicProgress = true
+        newsToastEdge = .bottom
     }
 }
 
@@ -238,6 +269,25 @@ private struct UILabView: View {
                         Toggle("Prefer classic in-game progress (default)", isOn: $prefs.preferClassicProgress)
                             .controlSize(.small)
                         Text("When on, Progress/loading uses the engine window instead of the macOS spinner.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(6)
+                }
+
+                GroupBox("Park glass HUD") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("News toast", selection: $prefs.newsToastEdge) {
+                            ForEach(MacNewsToastEdge.allCases) { edge in
+                                Text(edge.title).tag(edge)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .controlSize(.small)
+                        Text("Toolbar icon visibility stays in Options → Interface (same as classic).")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("Glass size is not tied to classic window_scale; see docs plan.")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

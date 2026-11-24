@@ -3,8 +3,8 @@
  *
  * OpenRCT2 Touch is licensed under the GNU General Public License version 3.
  *
- * CJ HIG lock: news + errors = bottom-center Liquid Glass toast (choices 2A/3A).
- * Functional chrome layer only — not content-window glass.
+ * News + errors = Liquid Glass toast. Edge (top/bottom) from Options / UI Lab
+ * (`MacUILabPrefs.newsToastEdge`; default bottom). Functional chrome only.
  *****************************************************************************/
 
 import SwiftUI
