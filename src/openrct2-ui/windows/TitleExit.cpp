@@ -7,6 +7,10 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+#endif
+
 #include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2-ui/windows/Windows.h>
@@ -57,9 +61,14 @@ namespace OpenRCT2::Ui::Windows
      */
     WindowBase* TitleExitOpen()
     {
+#if defined(__APPLE__) && defined(__MACH__) && TARGET_OS_OSX
+        // Mac title chrome owns Quit.
+        return nullptr;
+#else
         auto* windowMgr = GetWindowManager();
         return windowMgr->Create<TitleExitWindow>(
             WindowClass::titleExit, ScreenCoordsXY(ContextGetWidth() - 40, ContextGetHeight() - 64), kWindowSize,
             { WindowFlag::stickToBack, WindowFlag::transparent, WindowFlag::noTitleBar });
+#endif
     }
 } // namespace OpenRCT2::Ui::Windows

@@ -61,12 +61,17 @@ void OpenRCT2MacChromeSetStatus(
     const char* weather);
 void OpenRCT2MacChromeSetState(void* session, bool paused, bool muted, uint8_t speed);
 void OpenRCT2MacChromeSetNewsToast(void* session, const char* message, bool showSubject, bool showLocate);
+void OpenRCT2MacChromeSetParkChromeVisible(void* session, bool visible);
 }
 
 namespace
 {
     constexpr int32_t kMacToastSubjectAction = 10001;
     constexpr int32_t kMacToastLocateAction = 10002;
+    constexpr int32_t kMacTitleNewGameAction = 10010;
+    constexpr int32_t kMacTitleLoadGameAction = 10011;
+    constexpr int32_t kMacTitleOptionsAction = 10012;
+    constexpr int32_t kMacTitleQuitAction = 10013;
 
     std::string StripFormatCodes(std::string_view in)
     {
@@ -212,6 +217,15 @@ namespace OpenRCT2::Ui
         {
             if (gMacChromeSession == nullptr)
                 return;
+
+            // Title / main before a park: hide in-game HUD (glass toolbar + status).
+            const bool showParkChrome = (gLegacyScene != LegacyScene::titleSequence);
+            OpenRCT2MacChromeSetParkChromeVisible(gMacChromeSession, showParkChrome);
+            if (!showParkChrome)
+            {
+                OpenRCT2MacChromeSetNewsToast(gMacChromeSession, "", false, false);
+                return;
+            }
 
             auto& gameState = getGameState();
             char cashBuf[64];
@@ -474,6 +488,26 @@ namespace OpenRCT2::Ui
                 }
                 return;
             }
+            if (code == kMacTitleNewGameAction)
+            {
+                HandleFileMenu(DDIDX_NEW_GAME);
+                return;
+            }
+            if (code == kMacTitleLoadGameAction)
+            {
+                HandleFileMenu(DDIDX_LOAD_GAME);
+                return;
+            }
+            if (code == kMacTitleOptionsAction)
+            {
+                HandleFileMenu(DDIDX_OPTIONS);
+                return;
+            }
+            if (code == kMacTitleQuitAction)
+            {
+                HandleFileMenu(DDIDX_EXIT_OPENRCT2);
+                return;
+            }
 
             auto* mainWindow = WindowGetMain();
             auto widx = static_cast<TopToolbarWIDX>(code);
@@ -604,11 +638,64 @@ namespace OpenRCT2::Ui
 
     static void MacApplyImmersiveTitlebar(NSWindow* nsWindow)
     {
+        if (nsWindow == nil)
+            return;
         // Park fills the full window under traffic lights (CJ).
+        // Re-apply after fullscreen↔windowed — SDL/AppKit often resets styleMask.
         nsWindow.styleMask |= NSWindowStyleMaskFullSizeContentView;
         nsWindow.titlebarAppearsTransparent = YES;
         nsWindow.titleVisibility = NSWindowTitleHidden;
         // Keep standard traffic lights; do not hide close/miniaturize/zoom.
+    }
+
+    static bool MacImmersiveTitlebarNeedsReapply(NSWindow* nsWindow)
+    {
+        if (nsWindow == nil)
+            return false;
+        const bool hasFullSize = (nsWindow.styleMask & NSWindowStyleMaskFullSizeContentView) != 0;
+        return !hasFullSize || !nsWindow.titlebarAppearsTransparent
+            || nsWindow.titleVisibility != NSWindowTitleHidden;
+    }
+
+    /// Keeps immersive titlebar after exit-fullscreen / styleMask resets.
+    static NSWindow* gMacChromeWindow = nil;
+    static id gMacTitlebarExitFullscreenObserver = nil;
+    static id gMacTitlebarDidResizeObserver = nil;
+
+    static void MacImmersiveTitlebarUnobserve()
+    {
+        NSNotificationCenter* nc = NSNotificationCenter.defaultCenter;
+        if (gMacTitlebarExitFullscreenObserver != nil)
+        {
+            [nc removeObserver:gMacTitlebarExitFullscreenObserver];
+            gMacTitlebarExitFullscreenObserver = nil;
+        }
+        if (gMacTitlebarDidResizeObserver != nil)
+        {
+            [nc removeObserver:gMacTitlebarDidResizeObserver];
+            gMacTitlebarDidResizeObserver = nil;
+        }
+        gMacChromeWindow = nil;
+    }
+
+    static void MacImmersiveTitlebarObserve(NSWindow* nsWindow)
+    {
+        MacImmersiveTitlebarUnobserve();
+        gMacChromeWindow = nsWindow;
+        NSNotificationCenter* nc = NSNotificationCenter.defaultCenter;
+        gMacTitlebarExitFullscreenObserver = [nc addObserverForName:NSWindowDidExitFullScreenNotification
+                                                             object:nsWindow
+                                                              queue:NSOperationQueue.mainQueue
+                                                         usingBlock:^([[maybe_unused]] NSNotification* note) {
+                                                             MacApplyImmersiveTitlebar(gMacChromeWindow);
+                                                         }];
+        gMacTitlebarDidResizeObserver = [nc addObserverForName:NSWindowDidResizeNotification
+                                                        object:nsWindow
+                                                         queue:NSOperationQueue.mainQueue
+                                                    usingBlock:^([[maybe_unused]] NSNotification* note) {
+                                                        if (MacImmersiveTitlebarNeedsReapply(gMacChromeWindow))
+                                                            MacApplyImmersiveTitlebar(gMacChromeWindow);
+                                                    }];
     }
 
     void MacNativeChromeAttach(SDL_Window* window)
@@ -625,6 +712,7 @@ namespace OpenRCT2::Ui
             }
 
             MacApplyImmersiveTitlebar(nsWindow);
+            MacImmersiveTitlebarObserve(nsWindow);
 
             NSView* contentView = nsWindow.contentView;
             if (contentView == nil)
@@ -670,6 +758,7 @@ namespace OpenRCT2::Ui
     {
         @autoreleasepool
         {
+            MacImmersiveTitlebarUnobserve();
             if (gMacChromeSession == nullptr)
                 return;
             OpenRCT2MacChromeDetach(gMacChromeSession);
@@ -681,6 +770,10 @@ namespace OpenRCT2::Ui
     {
         @autoreleasepool
         {
+            // Fullscreen→windowed can restore an opaque titlebar; heal every tick.
+            if (MacImmersiveTitlebarNeedsReapply(gMacChromeWindow))
+                MacApplyImmersiveTitlebar(gMacChromeWindow);
+
             if (gMacChromeSession == nullptr)
                 return;
             OpenRCT2MacChromeBringToFront(gMacChromeSession);

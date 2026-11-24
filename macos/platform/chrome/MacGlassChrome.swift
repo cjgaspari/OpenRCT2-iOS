@@ -199,6 +199,8 @@ final class MacParkChromeModel: ObservableObject {
     @Published var isMuted = false
     @Published var speed: UInt8 = 1
     @Published var iconMode: MacToolbarIconMode = MacToolbarIconMode.current
+    /// False on title sequence — hide in-game glass HUD; title actions only.
+    @Published var showParkChrome: Bool = true
 
     /// Bottom-center Liquid Glass toast (news ticker + errors). CJ HIG 2A/3A.
     @Published var toastKind: MacToastKind = .news
@@ -275,6 +277,10 @@ final class MacParkChromeModel: ObservableObject {
         }
     }
 
+    func queueTitle(_ action: MacChromeTitleAction) {
+        onAction(action.rawValue, 0)
+    }
+
     func handleToolbarClick(_ widx: MacToolbarWIDX, buttonView: NSView?) {
         if MacToolbarMenus.isMenuWidget(widx) {
             MacToolbarMenus.popUp(for: widx, relativeTo: buttonView) { [weak self] index in
@@ -291,10 +297,17 @@ final class MacParkChromeModel: ObservableObject {
     }
 }
 
-/// Extra chrome action codes (outside WIDX_* range) for toast buttons.
+/// Extra chrome action codes (outside WIDX_* range) for toast / title buttons.
 enum MacChromeToastAction: Int32 {
     case subject = 10001
     case locate = 10002
+}
+
+enum MacChromeTitleAction: Int32 {
+    case newGame = 10010
+    case loadGame = 10011
+    case options = 10012
+    case quit = 10013
 }
 
 /// Option 1 north star: layered dual-top capsules + bottom ParkInfo / DateInfo.
@@ -303,17 +316,53 @@ struct MacParkChromeOverlay: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            topChrome
-                // Sit just under traffic lights (immersive titlebar).
-                .padding(.top, 4)
-                .padding(.horizontal, 14)
+            if model.showParkChrome {
+                topChrome
+                    // Sit just under traffic lights (immersive titlebar).
+                    .padding(.top, 4)
+                    .padding(.horizontal, 14)
+            }
             Spacer(minLength: 0)
-            bottomChrome
-                .padding(.horizontal, 14)
-                .padding(.bottom, 12)
+            if model.showParkChrome {
+                bottomChrome
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 12)
+            } else {
+                titleChrome
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 16)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .allowsHitTesting(true)
+    }
+
+    /// Minimal title actions (replaces classic bottom title icons on Mac).
+    private var titleChrome: some View {
+        HStack(spacing: 10) {
+            titleButton("New Game", action: .newGame)
+            titleButton("Load Game", action: .loadGame)
+            titleButton("Options", action: .options)
+            Spacer(minLength: 12)
+            titleButton("Quit", action: .quit)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(GlassChrome.clearDimming, in: Capsule())
+        .glassEffect(GlassChrome.clearPlate(tint: GlassChrome.session, opacity: 0.16), in: .capsule)
+        .accessibilityIdentifier("openrct2.mac.titleChrome")
+    }
+
+    private func titleButton(_ title: String, action: MacChromeTitleAction) -> some View {
+        Button(title) {
+            model.queueTitle(action)
+        }
+        .buttonStyle(.plain)
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .contentShape(Capsule())
     }
 
     /// Four capsules matching classic left/right groups + internal separators.

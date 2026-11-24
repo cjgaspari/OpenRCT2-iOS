@@ -197,12 +197,10 @@ private struct ScenarioSelectView: View {
                 }
                 .pickerStyle(.segmented)
                 .controlSize(.mini)
-                .padding(.horizontal, 10)
-                .padding(4)
-                .background(MacGlassTextPlate(cornerRadius: 8))
+                .labelsHidden()
                 .padding(.horizontal, 10)
                 .padding(.top, 18) // tight under titlebar title
-                .padding(.bottom, 4)
+                .padding(.bottom, 6)
                 .onChange(of: tab) { _, newValue in
                     OpenRCT2MacNativeScenarioSetActiveTab(Int32(newValue))
                     selectedRow = nil
@@ -219,6 +217,10 @@ private struct ScenarioSelectView: View {
                             Text(row.name)
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(knobs.secondaryLabel)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .listRowInsets(EdgeInsets(top: 1, leading: 4, bottom: 1, trailing: 4))
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                         } else {
@@ -226,16 +228,22 @@ private struct ScenarioSelectView: View {
                                 Text(row.name)
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(knobs.primaryLabel)
+                                    .lineLimit(1)
                                 if !row.details.isEmpty {
                                     Text(row.details)
                                         .font(.system(size: 10))
                                         .foregroundStyle(knobs.secondaryLabel)
                                         .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
                             .opacity(row.locked ? 0.55 : 1)
+                            .listRowInsets(EdgeInsets(top: 1, leading: 4, bottom: 1, trailing: 4))
+                            .listRowSeparator(.hidden)
                             .listRowBackground(
                                 MacGlassSelectionBackground(selected: selectedRow == row.index)
                             )
@@ -255,8 +263,7 @@ private struct ScenarioSelectView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
+                .environment(\.defaultMinListRowHeight, 28)
                 .padding(4)
                 .background(MacGlassTextPlate())
                 .frame(minWidth: 340)
@@ -409,13 +416,19 @@ private struct LoadParkView: View {
                         Text(file.name)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(knobs.primaryLabel)
-                        Spacer()
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
                         Text(file.date)
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundStyle(knobs.secondaryLabel)
+                            .lineLimit(1)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
+                    .listRowInsets(EdgeInsets(top: 1, leading: 4, bottom: 1, trailing: 4))
+                    .listRowSeparator(.hidden)
                     .listRowBackground(
                         MacGlassSelectionBackground(selected: selected == file.index)
                     )
@@ -432,7 +445,7 @@ private struct LoadParkView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .listRowInsets(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
+            .environment(\.defaultMinListRowHeight, 28)
             .padding(4)
             .background(MacGlassTextPlate())
             .padding(.horizontal, 10)

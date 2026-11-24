@@ -126,20 +126,16 @@ struct MacGlassFullWash: View {
 }
 
 /// Rounded selection fill, inset so corners stay concentric with list plates.
+/// Always reserves the same inset so selected/unselected text padding matches.
 struct MacGlassSelectionBackground: View {
     var selected: Bool
-    var cornerRadius: CGFloat = 8
+    var cornerRadius: CGFloat = 10
+    var inset: CGFloat = 2
 
     var body: some View {
-        Group {
-            if selected {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.28))
-                    .padding(3)
-            } else {
-                Color.clear
-            }
-        }
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(selected ? Color.accentColor.opacity(0.28) : Color.clear)
+            .padding(inset)
     }
 }
 

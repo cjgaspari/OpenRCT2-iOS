@@ -106,6 +106,10 @@ final class MacParkChromeSession: NSObject {
         model.speed = speed
     }
 
+    func setParkChromeVisible(_ visible: Bool) {
+        model.showParkChrome = visible
+    }
+
     func setNewsToast(message: String, showSubject: Bool, showLocate: Bool) {
         model.setNewsToast(message: message, showSubject: showSubject, showLocate: showLocate)
     }
