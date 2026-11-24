@@ -139,7 +139,16 @@ final class MacUILabPrefs {
         }
     }
 
+    /// Soft group-color icon tint on glass toolbar (default off).
+    var tintToolbarIcons: Bool {
+        didSet {
+            defaults.set(tintToolbarIcons, forKey: tintIconsKey)
+            NotificationCenter.default.post(name: .openRCT2MacChromePrefsDidChange, object: nil)
+        }
+    }
+
     private let glassScaleKey = "openrct2.mac.ui.glassChromeScale"
+    private let tintIconsKey = "openrct2.mac.ui.tintToolbarIcons"
 
     private var nativeBySurface: [String: Bool]
 
@@ -173,6 +182,11 @@ final class MacUILabPrefs {
         } else {
             glassChromeScale = Self.clampGlassScale(defaults.double(forKey: glassScaleKey))
         }
+        if defaults.object(forKey: tintIconsKey) == nil {
+            tintToolbarIcons = false
+        } else {
+            tintToolbarIcons = defaults.bool(forKey: tintIconsKey)
+        }
     }
 
     func isNativeEnabled(_ surface: MacUISurface) -> Bool {
@@ -205,6 +219,7 @@ final class MacUILabPrefs {
         preferClassicProgress = true
         newsToastEdge = .bottom
         glassChromeScale = 1.0
+        tintToolbarIcons = false
     }
 }
 
@@ -332,7 +347,9 @@ private struct UILabView: View {
                         .pickerStyle(.segmented)
                         .controlSize(.small)
                         glassScaleControls
-                        Text("Toolbar icons: Options → Interface (full list). Scale is separate from classic window_scale.")
+                        Toggle("Tint toolbar icons by group", isOn: $prefs.tintToolbarIcons)
+                            .controlSize(.small)
+                        Text("Soft session/construct/manage colors on icons (off by default). Toolbar list: Options → Interface.")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

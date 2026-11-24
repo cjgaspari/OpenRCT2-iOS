@@ -242,6 +242,15 @@ enum GlassChrome {
     static func statusPlate(tint: Color, opacity: Double) -> Glass {
         .regular.tint(tint.opacity(opacity))
     }
+
+    /// Soft group icon color — readable in light and dark, not neon.
+    static func iconForeground(_ tint: Color?, scheme: ColorScheme = .dark) -> Color {
+        guard let tint else {
+            return scheme == .dark ? Color.white.opacity(0.92) : Color.primary.opacity(0.85)
+        }
+        // Slightly stronger in dark so hue reads on clear glass; softer in light.
+        return tint.opacity(scheme == .dark ? 0.82 : 0.70)
+    }
 }
 
 /// Loads cleaned toolbar sprites / g2 icons from directories set by C++.
@@ -585,6 +594,11 @@ struct OverflowGlassToolbar: View {
     private var gap: CGFloat { 10 * scale }
     private var overflowSlot: CGFloat { 40 * scale }
 
+    private var tintIcons: Bool {
+        _ = model.prefsEpoch
+        return MacUILabPrefs.shared.tintToolbarIcons
+    }
+
     var body: some View {
         let plan = fitPlan(width: availableWidth)
         return HStack(alignment: .center, spacing: gap) {
@@ -595,15 +609,16 @@ struct OverflowGlassToolbar: View {
                     plateTint: group.spec.tint,
                     plateOpacity: group.spec.opacity,
                     scale: scale,
+                    tintIcons: tintIcons,
                     model: model
                 )
             }
             if !plan.leftOverflow.isEmpty {
-                overflowMenu(plan.leftOverflow, scale: scale)
+                overflowMenu(plan.leftOverflow, scale: scale, tint: tintIcons ? GlassChrome.session : nil)
             }
             Spacer(minLength: 8)
             if !plan.rightOverflow.isEmpty {
-                overflowMenu(plan.rightOverflow, scale: scale)
+                overflowMenu(plan.rightOverflow, scale: scale, tint: tintIcons ? GlassChrome.manage : nil)
             }
             ForEach(Array(plan.right.enumerated()), id: \.offset) { _, group in
                 GlassToolGroup(
@@ -612,6 +627,7 @@ struct OverflowGlassToolbar: View {
                     plateTint: group.spec.tint,
                     plateOpacity: group.spec.opacity,
                     scale: scale,
+                    tintIcons: tintIcons,
                     model: model
                 )
             }
@@ -689,7 +705,7 @@ struct OverflowGlassToolbar: View {
     }
 
     @ViewBuilder
-    private func overflowMenu(_ items: [MacToolbarWIDX], scale: CGFloat) -> some View {
+    private func overflowMenu(_ items: [MacToolbarWIDX], scale: CGFloat, tint: Color?) -> some View {
         Menu {
             ForEach(items) { widx in
                 Button(widx.help) {
@@ -700,6 +716,7 @@ struct OverflowGlassToolbar: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: 14 * scale, weight: .semibold))
                 .frame(width: 18 * scale, height: 18 * scale)
+                .foregroundStyle(GlassChrome.iconForeground(tint))
         }
         .menuStyle(.button)
         .buttonStyle(.glass)
@@ -717,6 +734,7 @@ struct GlassToolGroup: View {
     var plateOpacity: Double
     var spacing: CGFloat = 6
     var scale: CGFloat = 1
+    var tintIcons: Bool = false
     @ObservedObject var model: MacParkChromeModel
 
     @Namespace private var glassNS
@@ -726,8 +744,13 @@ struct GlassToolGroup: View {
         GlassEffectContainer(spacing: pitch + 18) {
             HStack(spacing: pitch) {
                 ForEach(items) { widx in
-                    GlassToolbarButton(widx: widx, scale: scale, model: model)
-                        .glassEffectUnion(id: unionID, namespace: glassNS)
+                    GlassToolbarButton(
+                        widx: widx,
+                        scale: scale,
+                        iconTint: tintIcons ? plateTint : nil,
+                        model: model
+                    )
+                    .glassEffectUnion(id: unionID, namespace: glassNS)
                 }
             }
             .padding(.horizontal, 10 * scale)
@@ -744,7 +767,9 @@ struct GlassToolGroup: View {
 struct GlassToolbarButton: View {
     let widx: MacToolbarWIDX
     var scale: CGFloat = 1
+    var iconTint: Color? = nil
     @ObservedObject var model: MacParkChromeModel
+    @Environment(\.colorScheme) private var colorScheme
     @State private var anchor = ToolbarButtonAnchor()
 
     var body: some View {
@@ -766,14 +791,21 @@ struct GlassToolbarButton: View {
     @ViewBuilder
     private var toolbarGlyph: some View {
         let preferNative = model.iconMode == .nativeInGame
+        let fg = GlassChrome.iconForeground(iconTint, scheme: colorScheme)
         if preferNative, let nsImage = MacToolbarIconStore.image(for: widx, muted: model.isMuted) {
             Image(nsImage: nsImage)
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
+                .foregroundStyle(fg)
+                // Soft multiply so g2 sprites pick up group hue without washing out.
+                .opacity(iconTint == nil ? 1 : (colorScheme == .dark ? 0.92 : 0.88))
+                .colorMultiply(iconTint == nil ? .white : fg)
         } else {
             Image(systemName: resolvedSFSymbol)
                 .font(.body.weight(.semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(fg)
         }
     }
 

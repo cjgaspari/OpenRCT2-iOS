@@ -167,6 +167,11 @@ private struct OptionsView: View {
                 case .interface:
                     glassScaleControls
                     newsToastEdgePicker
+                    Toggle("Tint toolbar icons by group", isOn: Binding(
+                        get: { MacUILabPrefs.shared.tintToolbarIcons },
+                        set: { MacUILabPrefs.shared.tintToolbarIcons = $0 }
+                    ))
+                    .controlSize(.small)
                     Section("Toolbar buttons") {
                         ForEach(MacToolbarWIDX.optionsList) { widx in
                             if widx == .zoomOut {
