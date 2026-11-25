@@ -60,7 +60,7 @@ write_portable_zip() {
     rm -rf "$verify_dir"
 
     printf 'Zipped %s\n' "$zip"
-    printf '  requires: macOS 27.0+ / arm64 (Apple Silicon)\n'
+    printf '  requires: macOS 27.2.1+ / arm64 (Apple Silicon)\n'
     printf '  copy: AirDrop/scp the zip only — not the whole build/macos tree\n'
     printf '  other Mac: unzip, then open OpenRCT2-Glass.app\n'
     printf '  if the other Mac still blocks: right-click → Open, or: xattr -dr com.apple.quarantine OpenRCT2-Glass.app\n'
@@ -124,7 +124,7 @@ cat >"$APP/Contents/Info.plist" <<EOF
 	<key>CFBundleSignature</key>
 	<string>ORCT</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>27.0</string>
+	<string>27.2.1</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>OpenRCT2 is licensed under the GNU General Public License version 3</string>
 	<key>CFBundleIconFile</key>
