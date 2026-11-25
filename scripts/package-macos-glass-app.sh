@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
-# Assemble OpenRCT2-Glass.app from the current macOS install tree (MACOS_BUNDLE=OFF tip).
+# Assemble OpenRCT2-Glass.app from the current macOS install tree (MACOS_BUNDLE=OFF tip)
+# and emit a portable OpenRCT2-Glass.zip next to it (ditto; preserves +x).
+#
+# Usage:
+#   ./scripts/package-macos-glass-app.sh              # rebuild .app + zip
+#   ./scripts/package-macos-glass-app.sh --zip-only   # zip existing .app only
+#   ./scripts/package-macos-glass-app.sh /path/App.app
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MACOS_BUILD_DIR="${MACOS_BUILD_DIR:-$ROOT/build/macos}"
 INSTALL_DIR="${INSTALL_DIR:-$MACOS_BUILD_DIR/install}"
-APP="${1:-$MACOS_BUILD_DIR/OpenRCT2-Glass.app}"
+ZIP_ONLY=0
+APP="$MACOS_BUILD_DIR/OpenRCT2-Glass.app"
+for arg in "$@"; do
+    case "$arg" in
+        --zip-only) ZIP_ONLY=1 ;;
+        -*) echo "Unknown option: $arg" >&2; exit 2 ;;
+        *) APP="$arg" ;;
+    esac
+done
 BIN_SRC="$INSTALL_DIR/bin/openrct2"
 DATA_SRC="$INSTALL_DIR/share/openrct2"
 LIB_SRC="$INSTALL_DIR/lib"
@@ -14,10 +28,58 @@ ASSETS_CAR="$ROOT/resources/mac/Assets.car"
 EXE_NAME="OpenRCT2-Glass"
 SHORT_SHA="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo tip)"
 VERSION_TAG="$(git -C "$ROOT" describe --tags --always 2>/dev/null || echo tip)"
+ZIP_PATH="$(dirname "$APP")/OpenRCT2-Glass.zip"
+
+glass_app_in_use() {
+    # Don't delete/rebuild the bundle if a live process has the binary open.
+    pgrep -f "$APP/Contents/MacOS/$EXE_NAME" >/dev/null 2>&1
+}
+
+write_portable_zip() {
+    local app="$1"
+    local zip="$2"
+    local verify_dir
+    [[ -d "$app/Contents/MacOS" ]] || { echo "Not an app bundle: $app" >&2; exit 1; }
+    [[ -x "$app/Contents/MacOS/$EXE_NAME" ]] || { echo "Missing executable: $app/Contents/MacOS/$EXE_NAME" >&2; exit 1; }
+
+    # Fresh ad-hoc sign so the sealed bundle is coherent after any local edits.
+    codesign --force --deep -s - "$app" >/dev/null
+
+    rm -f "$zip"
+    # ditto keeps Unix modes (+x) and AppleDouble; Finder "Compress" of a whole
+    # CMake build tree is what produced the confusing loose openrct2 siblings.
+    ditto -c -k --sequesterRsrc --keepParent "$app" "$zip"
+
+    verify_dir="$(mktemp -d /tmp/OpenRCT2-Glass-zip-verify.XXXXXX)"
+    ditto -x -k "$zip" "$verify_dir"
+    local vexe="$verify_dir/OpenRCT2-Glass.app/Contents/MacOS/$EXE_NAME"
+    [[ -x "$vexe" ]] || { echo "Zip verify failed: executable lost +x" >&2; exit 1; }
+    file "$vexe" | grep -q 'Mach-O 64-bit executable arm64' \
+        || { echo "Zip verify failed: expected arm64 Mach-O" >&2; exit 1; }
+    codesign --verify --deep --strict "$verify_dir/OpenRCT2-Glass.app" >/dev/null
+    rm -rf "$verify_dir"
+
+    printf 'Zipped %s\n' "$zip"
+    printf '  requires: macOS 27.0+ / arm64 (Apple Silicon)\n'
+    printf '  copy: AirDrop/scp the zip only — not the whole build/macos tree\n'
+    printf '  other Mac: unzip, then open OpenRCT2-Glass.app\n'
+    printf '  if the other Mac still blocks: right-click → Open, or: xattr -dr com.apple.quarantine OpenRCT2-Glass.app\n'
+}
+
+if [[ "$ZIP_ONLY" -eq 1 ]]; then
+    write_portable_zip "$APP" "$ZIP_PATH"
+    exit 0
+fi
 
 [[ -x "$BIN_SRC" ]] || { echo "Missing binary: $BIN_SRC (build with scripts/build-macos.sh first)" >&2; exit 1; }
 [[ -d "$DATA_SRC" ]] || { echo "Missing engine data: $DATA_SRC" >&2; exit 1; }
 [[ -d "$LIB_SRC" ]] || { echo "Missing install libs: $LIB_SRC" >&2; exit 1; }
+
+if glass_app_in_use; then
+    echo "OpenRCT2-Glass is running from $APP — skipping rebuild; writing zip only." >&2
+    write_portable_zip "$APP" "$ZIP_PATH"
+    exit 0
+fi
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
@@ -135,3 +197,5 @@ test -f "$APP/Contents/Resources/g2.dat"
 printf 'Packaged %s\n' "$APP"
 printf '  tip: %s\n' "$SHORT_SHA"
 printf '  open: open %q\n' "$APP"
+
+write_portable_zip "$APP" "$ZIP_PATH"
